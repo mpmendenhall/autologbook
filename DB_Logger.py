@@ -156,6 +156,8 @@ class DB_Logger(DB_Reader, RBU_cloner):
     
 if __name__=="__main__":
     # set up instruments, readouts
+    if not os.path.exists("test.db"):
+    	os.system("sqlite3 test.db < base_DB_description.txt")
     D = DB_Logger("test.db")
     D.create_instrument("funcgen", "test function generator", "ACME Foobar1000", "0001")
     r0 = D.create_readout("5min", "funcgen", "5-minute-period wave", None)
