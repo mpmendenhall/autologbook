@@ -128,6 +128,14 @@ class DB_Logger(DB_Reader, RBU_cloner):
             rdout[str(rid)] = self.readouts[rid]
         return rdout
     
+    def get_readout(self, i):
+        """Get readout fpr xmlrpc interface"""
+        return self.readouts.get(i,None)
+    
+    def get_instrument(self, i):
+        """Get instrument for xmlrpc interface"""
+        return self.instruments.get(i,None)
+    
     def get_datapoints(self, rid, t0, t1):
         """Get datapoints for specified readout ID in time stamp range"""
         self.servcurs.execute("SELECT time,value FROM readings WHERE type_id = ? AND time >= ? AND time <= ? ORDER BY time LIMIT 2000", (int(rid), t0, t1))
@@ -152,6 +160,8 @@ class DB_Logger(DB_Reader, RBU_cloner):
         server.register_function(D.get_updates, 'update')
         server.register_function(D.get_newest, 'newest')
         server.register_function(D.get_datapoints, 'datapoints')
+        server.register_function(D.get_readout, 'readout')
+        server.register_function(D.get_instrument, 'instrument')
         server.serve_forever()
     
 if __name__=="__main__":

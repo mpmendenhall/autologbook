@@ -14,33 +14,39 @@ class TracePlotter:
         self.t0 = time.time()
         self.tm = self.t0 - 2*3600
         self.readings = {}
-        
+        self.instruments = {}
+        self.channels = {}
+    
     def get_readings(self, rid):
         s = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
         self.readings[rid] = s.datapoints(rid, self.tm, self.t0)
+        chn = s.readout(rid)
+        self.channels[rid] = chn
+        self.instruments[chn["instrument_id"]] = s.instrument(chn["instrument_id"])
     
     def makePage(self, rid):
         self.get_readings(rid)
-                    
-        print(pageHeader("Plot of channel %i"%rid, refresh=300))
-        print('<h1>Readings as of %s</h1>'%time.asctime())
+        chn = self.channels[rid]
+        cname = self.instruments[chn["instrument_id"]]["name"] + ":" + chn["name"]
+        
+        print(pageHeader("%s plot"%cname, refresh=300))
+        print('<h1>%s as of %s</h1>'%(cname, time.asctime()))
         
         with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as gpt:
-        #if 1:
-            gpt = Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT)
 
             pwrite(gpt,"set autoscale\n")
             pwrite(gpt,"set xtic auto\n")
             pwrite(gpt,"set ytic auto\n")
             pwrite(gpt,"unset label\n")
-            pwrite(gpt,'set title "live monitor"\n')
+            #pwrite(gpt,'set title "live monitor"\n')
             pwrite(gpt,'set ylabel ""\n')
             pwrite(gpt,'set xlabel "time [hours]"\n')
-            pwrite(gpt,"set key on left top\n")
+            #pwrite(gpt,"set key on left top\n")
             pwrite(gpt,"set terminal svg enhanced background rgb 'white'\n")
         
             PM = PlotMaker()
             PM.datasets = {"trace":self.readings[rid]}
+            PM.plotsty["trace"] = "with linespoints pt 7 ps 0.4"
             PM.x_txs["trace"] = (lambda x, t0=self.t0: (x-t0)/3600.)
             PM.pass_gnuplot_data(["trace"], gpt)
             

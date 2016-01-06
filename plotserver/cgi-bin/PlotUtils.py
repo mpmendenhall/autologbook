@@ -14,7 +14,9 @@ class PlotMaker:
         self.datasets = {}      # availabale datasets
         self.x_txs = {}         # plot transform functions on x axis
         self.y_txs = {}         # plot transform functions on y axis
-        
+        self.with_key = False	# whether to generate graph key
+        self.plotsty = {}       # plot style commands for each trace
+    
     def pass_gnuplot_data(self,k,gpt):
         """Pass data to gnuplot for keys in k"""
         k = [p for p in k if self.datasets.get(p,None)]
@@ -22,10 +24,10 @@ class PlotMaker:
                 print("No data to plot!")
                 return False
         pwrite(gpt,"plot")
-        pstr = ""
-        for p in k:
-                pstr += """ "-" title "%s: %g","""%(self.renames.get(p,p), self.datasets[p][-1][1])
-        pwrite(gpt,pstr[:-1]+'\n')
+        pstr = ', '.join(['"-" title "" %s'%self.plotsty.get(p,'') for p in k])
+        if self.with_key:
+            pstr = ', '.join(['"-" title "%s: %g" %s'%(self.renames.get(p,p), self.datasets[p][-1][1], self.plotsty.get(p,'')) for p in k])
+        pwrite(gpt,pstr+'\n')
         time.sleep(0.01)
         
         for p in k:
