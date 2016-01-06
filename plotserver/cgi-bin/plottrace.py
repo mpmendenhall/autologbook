@@ -22,6 +22,7 @@ class TracePlotter:
         self.readings[rid] = s.datapoints(rid, self.tm, self.t0)
         chn = s.readout(rid)
         self.channels[rid] = chn
+        self.readings[rid].append((chn["time"], chn["val"])) # append most up-to-date point
         self.instruments[chn["instrument_id"]] = s.instrument(chn["instrument_id"])
     
     def makePage(self, rid):

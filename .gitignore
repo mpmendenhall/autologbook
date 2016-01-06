@@ -1,3 +1,5 @@
 sqlite_apply_RBU
 *.db
 *.o
+__pycache__
+RBU_Data

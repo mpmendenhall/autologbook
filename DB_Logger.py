@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# should work in either python2 or 3
 
 from sqlite3_RBU import *
 import time
@@ -8,6 +7,7 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler
 import os
 
 class instr_info:
+    """Information on instrument entry in DB"""
     def __init__(self, rid, nm, ds, dn, sn):
         self.rid = rid
         self.name = nm
@@ -16,6 +16,7 @@ class instr_info:
         self.sn = sn
 
 class readout_info:
+    """Information on readout entry in DB, with most recent values"""
     def __init__(self, rid, nm, ds, un, iid):
         self.rid = rid
         self.name = nm
@@ -65,12 +66,12 @@ class DB_Logger(DB_Reader, RBU_cloner):
         
         self.instruments = {}   # cache of instrument information
         self.readouts = {}      # cache of readout information
+        self.filters = {}       # data reduction filters per channel
         
         os.system("mkdir -p RBU_Data/")
         self.rbu_outname = "RBU_Data/"+dbname.split(".")[0]+"_rbu_%i.db"
         self.t_prev_update = 0          # timestamp of last update
         self.update_timeout = 60        # timeout [s] to push new updates to remote
-        self.newest_readings = {}       # most recent readings (time,value), listed by readout ID
         
     def __del__(self):
         """Close DB connection on deletion"""
@@ -100,16 +101,23 @@ class DB_Logger(DB_Reader, RBU_cloner):
     
     def log_readout(self, tid, value, t = None):
         """Log reading, using current time for timestamp if not specified"""
-        if t is None:
-            t = time.time()
-        self.insert("readings", {"type_id":tid, "time":t, "value":value})
+        t = time.time() if t is None else t
+        
+        self.log_readout_hook(tid, value, t)
+        if self.filters.get(tid, (lambda a,b,c: True))(tid,t,value):
+            self.insert("readings", {"type_id":tid, "time":t, "value":value})
+            
+        # update latest readout value
         self.readouts[tid].time = t
         self.readouts[tid].val = value
-        self.log_readout_hook(tid, value, t)
         
     def log_readout_hook(self, tid, value, t):
         """Hook for subclass to check readout values"""
         pass
+    
+    
+    ######################################
+    # xmlrpc interface for reading DB info
     
     def get_updates(self):
         """Return filename, if available, of RBU updates info"""
@@ -163,7 +171,68 @@ class DB_Logger(DB_Reader, RBU_cloner):
         server.register_function(D.get_readout, 'readout')
         server.register_function(D.get_instrument, 'instrument')
         server.serve_forever()
+        
+    #######################################
+    # sockets interface for submitting data TODO
     
+    
+    
+########################
+# data reduction filters
+
+class DecimationFilter:
+    """Data filter to keep every n'th point"""
+    def __init__(self, nth):
+            self.nth = nth
+            self.n = 0
+    def __call__(self, tid, t, v):
+        recordable = not self.n
+        self.n = (self.n+1)%self.nth
+        return recordable
+    
+class ChangeFilter:
+    """Filter to record points capturing data changes"""
+    def __init__(self, DBL, dv, dt, extrema = True):
+        self.DBL = DBL
+        self.dv = dv
+        self.dt = dt
+        self.extrema = extrema
+        self.prev_saved = None
+        
+    def __call__(self, tid, t, v):
+        if not self.prev_saved:
+            self.prev_saved = (t,v)
+            return True
+        
+        # comparison to immediately preceding point
+        vold = self.prev_saved[1]
+        tprev = self.DBL.readouts[tid].time
+        vprev = self.DBL.readouts[tid].val
+        vjump = abs(v - vprev) >= self.dv
+        keep_prev = vjump or abs(t - self.prev_saved[0]) >= self.dt
+        if self.extrema:
+            keep_prev |= ((vold <= vprev >= v) or (vold >= vprev <= v)) and not (vold == vprev == v)
+        if keep_prev:
+            if not self.prev_saved == (tprev,vprev):
+                self.DBL.insert("readings", {"type_id":tid, "time":tprev, "value":vprev})
+                self.prev_saved = (tprev,vprev)
+                
+        # comparison to previously saved point
+        vjump |= abs(v - self.prev_saved[1]) >= self.dv or abs(t - self.prev_saved[0]) >= self.dt
+        if vjump:
+            self.prev_saved = (t,v)
+        return vjump
+
+
+
+
+
+
+
+
+
+
+
 if __name__=="__main__":
     # set up instruments, readouts
     if not os.path.exists("test.db"):
@@ -173,11 +242,17 @@ if __name__=="__main__":
     r0 = D.create_readout("5min", "funcgen", "5-minute-period wave", None)
     r1 = D.create_readout("12h", "funcgen", "12-hour-period wave", None)
     D.conn.commit()
+    # set up data filters
+    D.filters[r0] = ChangeFilter(D, 0.2, 30)
+    D.filters[r1] = DecimationFilter(30)
+    # start RBU duplication thread
     D.restart_stuffer()
     
+    # run server
     serverthread =  threading.Thread(target = D.launch_dataserver)
     serverthread.start()
     
+    # generate test signals
     from math import *
     t0 = 0
     while 1:
@@ -188,5 +263,5 @@ if __name__=="__main__":
         D.log_readout(r1, v1, t)
         D.conn.commit()
         print(t,v0,v1)
-        time.sleep(5)
+        time.sleep(1)
     
