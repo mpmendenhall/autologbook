@@ -15,9 +15,9 @@ def makeCheckbox(name,value,label="",checked=False,radio=False):
     htmlstr = '<input type="%s" name="%s" value="%s" %s/>%s'%(itype,name,value,checkstr,label)
     return htmlstr
 
-def makeTable(rows):
+def makeTable(rows, xargs=None):
     """HTML table from array of lists or {"class":c "data":d}"""
-    htmlstr = '<table>\n'
+    htmlstr = '<table>\n' if xargs is None else '<table %s>\n'%xargs
     for r in rows:
         if type(r) == type({}):
             rdat = r["data"]

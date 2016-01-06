@@ -6,5 +6,6 @@ python3 -m http.server --cgi 8001 --bind 127.0.0.1
 
 --------------- TO DO ----------------
 multi-plot graphs
+PMT I,V plots
 saved-state sessions
-PMT array views
+

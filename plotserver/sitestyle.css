@@ -18,17 +18,21 @@ body {
 }
 
 .error {
-     background-color: rgb(255,100,100);
+    background-color: rgb(255,100,100);
 }
 
 .warning {
-     background-color: rgb(255,255,100);
+    background-color: rgb(255,255,100);
 }
 
 .good {
-     background-color: rgb(100,255,100);
+    background-color: rgb(100,255,100);
 }
 
 .unknown {
-     background-color: rgb(255,150,200);
+    background-color: rgb(255,150,200);
+}
+
+.turnedoff {
+    background-color: rgb(50,50,255);
 }

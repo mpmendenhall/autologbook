@@ -5,6 +5,7 @@ import time
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 import os
+import random
 
 class instr_info:
     """Information on instrument entry in DB"""
@@ -234,13 +235,24 @@ class ChangeFilter:
 
 
 if __name__=="__main__":
-    # set up instruments, readouts
+    # database file
     if not os.path.exists("test.db"):
-    	os.system("sqlite3 test.db < base_DB_description.txt")
+        os.system("sqlite3 test.db < base_DB_description.txt")
+    
+    
     D = DB_Logger("test.db")
+    # set up instruments, readouts
     D.create_instrument("funcgen", "test function generator", "ACME Foobar1000", "0001")
     r0 = D.create_readout("5min", "funcgen", "5-minute-period wave", None)
     r1 = D.create_readout("12h", "funcgen", "12-hour-period wave", None)
+    D.create_instrument("PMT_HV", "simulated PMT HV source", "ACME Foobar4000", "e27182")
+    Vchans = []
+    Ichans = []
+    for i in range(32):
+        Vchans.append(D.create_readout("V_%i"%i, "PMT_HV", "Simulated HV channel voltage", "V"))
+        Ichans.append(D.create_readout("I_%i"%i, "PMT_HV", "Simulated HV channel current", "mA"))
+        D.filters[Vchans[-1]] = ChangeFilter(D, 80, 60, False)
+        D.filters[Ichans[-1]] = ChangeFilter(D, 0.2, 60, False)
     D.conn.commit()
     # set up data filters
     D.filters[r0] = ChangeFilter(D, 0.2, 30)
@@ -261,7 +273,9 @@ if __name__=="__main__":
         v1 = sin(2*pi*t/(12*3600))
         D.log_readout(r0, v0, t)
         D.log_readout(r1, v1, t)
+        for i in range(32):
+            D.log_readout(Vchans[i], random.gauss(1500, 20), t)
+            D.log_readout(Ichans[i], random.gauss(0.85, 0.05), t)
         D.conn.commit()
-        print(t,v0,v1)
         time.sleep(1)
     

@@ -7,8 +7,8 @@ INCOMPLETE WORK IN PROGRESS : MANY COMPONENTS MISSING
 DB_Logger:
     - reads in datapoints from devices
     - writes to logbook DB file, copied to differential changes RBU files
-    - checks for "actionable" conditions (out-of-range values, etc.)
-    - manages rollover/archiving of logbook DB files
+    - TODO checks for "actionable" conditions (out-of-range values, etc.)
+    - TODO manages rollover/archiving of logbook DB files
 
 plotserver utilities:
     - cgi scripts run through simple Python cgi server

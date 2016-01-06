@@ -48,6 +48,7 @@ class RBU_cloner:
         self.rbu_q = queue.Queue()
         self.rbu_stuffer_thread = None
         self.stuffer_lock = threading.Lock()
+        self.autocommit = False
         
         # list of tables (with column names) configured in RBU
         self.tables = {}
@@ -86,6 +87,8 @@ class RBU_cloner:
         self.setup_table(tname)
 
         self._insert(self.curs, tname, valdict)
+        if self.autocommit:
+            self.conn.commit()
         valdict["rbu_control"] = 0
         self.rbu_q.put(self.make_insert_command("data_"+tname, valdict))
 

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# stateless view of current reading values
+# stateless plot of one reading recent history
 
 from WebpageUtils import *
 from PlotUtils import *
@@ -40,7 +40,10 @@ class TracePlotter:
             pwrite(gpt,"set ytic auto\n")
             pwrite(gpt,"unset label\n")
             #pwrite(gpt,'set title "live monitor"\n')
-            pwrite(gpt,'set ylabel ""\n')
+            if chn["units"] is not None:
+                pwrite(gpt,'set ylabel "reading [%s]"\n'%chn["units"])
+            else:
+                pwrite(gpt,'set ylabel ""\n')
             pwrite(gpt,'set xlabel "time [hours]"\n')
             #pwrite(gpt,"set key on left top\n")
             pwrite(gpt,"set terminal svg enhanced background rgb 'white'\n")
@@ -52,7 +55,7 @@ class TracePlotter:
             PM.pass_gnuplot_data(["trace"], gpt)
             
             s = gpt.communicate()[0].decode("utf-8")
-            s = "\n".join(s.split("\n")[3:])
+            s = s.split('svg11.dtd">')[-1]
             print(s)
         
         print(pageFooter())
