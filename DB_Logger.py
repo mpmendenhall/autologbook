@@ -141,7 +141,12 @@ class DB_Logger(RBU_cloner):
         inst = self.get_inst_type(curs,nm)
         self.instruments[inst.rid] = inst
         self.instr_idx[inst.name] = inst.rid
-        
+        return inst.rid
+    
+    def ws_create_instrument(self, nm, descrip, devnm, sn, overwrite = False):
+        """Write server version of create_instrument"""
+        return self.create_instrument(self.rbu_curs, nm, descrip, devnm, sn, overwrite)
+    
     def create_readout(self, curs, name, inst_name, descrip, units, overwrite = False):
         """Assure a readout exists, creating as necessary; return readout ID"""
         inst = self.get_inst_type(curs, inst_name)
@@ -154,6 +159,10 @@ class DB_Logger(RBU_cloner):
         if rid is not None:
             self.readouts[rid] = self.get_readout_info(curs,rid)
         return rid
+    
+    def ws_create_readout(self, name, inst_name, descrip, units, overwrite = False):
+        """Write server version of create_readout"""
+        return self.create_readout(self.rbu_curs, name, inst_name, descrip, units, overwrite)
     
     def log_readout(self, tid, value, t = None):
         """Log reading, using current time for timestamp if not specified"""        
@@ -180,6 +189,14 @@ class DB_Logger(RBU_cloner):
     
     def commit_writes(self):
         self.rbu_conn.commit()
+    
+    def set_ChangeFilter(self, iid, dv, dt, extrema = True):
+        """Set "change" data reduction filter on readout"""
+        self.filters[iid] = ChangeFilter(self, dv, dt, extrema)
+        
+    def set_DecimationFilter(self, iid, nth):
+        """Set data decimation filter on readout"""
+        self.filters[iid] = DecimationFilter(nth)
         
     def launch_writeserver(self):
         """Launch server providing database read access"""
@@ -192,6 +209,10 @@ class DB_Logger(RBU_cloner):
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
         server = SimpleXMLRPCServer(("localhost", 8002), requestHandler=RequestHandler, allow_none=True)
+        server.register_function(self.ws_create_instrument, 'create_instrument')
+        server.register_function(self.ws_create_readout, 'create_readout')
+        server.register_function(self.set_ChangeFilter, 'set_ChangeFilter')
+        server.register_function(self.set_DecimationFilter, 'set_DecimationFilter')
         server.register_function(self.log_readout, 'log_readout')
         server.register_function(self.log_message, 'log_message')
         server.register_function(self.writeconn.commit, 'commit')
@@ -245,42 +266,14 @@ class ChangeFilter:
         return vjump
 
 
-
-
-
-
-
-
-
-
-
 if __name__=="__main__":
     # database file
     dbname = "test.db"
     if not os.path.exists(dbname):
         os.system("sqlite3 %s < base_DB_description.txt"%dbname)
-    
-    # set up instruments, readouts, filters: done here to control filters
-    D = DB_Logger("test.db")
-    writeconn = sqlite3.connect(dbname)
-    curs = writeconn.cursor()
 
-    D.create_instrument(curs, "funcgen", "test function generator", "ACME Foobar1000", "0001")
-    r0 = D.create_readout(curs, "5min", "funcgen", "5-minute-period wave", None)
-    r1 = D.create_readout(curs, "12h", "funcgen", "12-hour-period wave", None)
-    D.filters[r0] = ChangeFilter(D, 0.2, 30)
-    D.filters[r1] = DecimationFilter(30)
-    D.create_instrument(curs, "PMT_HV", "simulated PMT HV source", "ACME Foobar4000", "e27182")
-    Vchans = []
-    Ichans = []
-    for i in range(32):
-        Vchans.append(D.create_readout(curs, "V_%i"%i, "PMT_HV", "Simulated HV channel voltage", "V"))
-        Ichans.append(D.create_readout(curs, "I_%i"%i, "PMT_HV", "Simulated HV channel current", "mA"))
-        D.filters[Vchans[-1]] = ChangeFilter(D, 80, 60, False)
-        D.filters[Ichans[-1]] = ChangeFilter(D, 0.2, 60, False)
-    writeconn.commit()
-    writeconn.close()
-    
+    D = DB_Logger(dbname)
+
     # start RBU duplication thread
     D.restart_stuffer()
     

@@ -7,17 +7,13 @@ import time
 DBL = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
 DBL.log_message("TestFunctionGen.py", "Starting function generator.")
 
-# determine channels list
-DBLread = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
-r0 = r1 = None
-for c in DBLread.instrument_readouts("funcgen"):
-    nm = c["name"]
-    if nm == "5min":
-        r0 = c["rid"]
-    if nm == "12h":
-        r1 = c["rid"]
-DBLread = None
-assert(r0 is not None and r1 is not None)
+# set up channels and filters
+DBL.create_instrument("funcgen", "test function generator", "ACME Foobar1000", "0001")
+r0 = DBL.create_readout("5min", "funcgen", "5-minute-period wave", None)
+r1 = DBL.create_readout("12h", "funcgen", "12-hour-period wave", None)
+DBL.set_ChangeFilter(r0, 0.2, 30)
+DBL.set_DecimationFilter(r1, 20)
+DBL.commit()
 
 try: 
     while 1:

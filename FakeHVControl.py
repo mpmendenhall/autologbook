@@ -8,17 +8,16 @@ import random
 DBL = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
 DBL.log_message("FakeHVControl.py", "Starting fake HV.")
 
-# determine channels list
-DBLread = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
-Vchans = {}
-Ichans = {}
-for c in DBLread.instrument_readouts("PMT_HV"):
-    nm = c["name"]
-    if nm[:2] == "I_":
-        Ichans[int(nm[2:])] = c["rid"]
-    if nm[:2] == "V_":
-        Vchans[int(nm[2:])] = c["rid"]
-DBLread = None
+# set up channels and filters
+DBL.create_instrument("PMT_HV", "simulated PMT HV source", "ACME Foobar4000", "e27182")
+Vchans = []
+Ichans = []
+for i in range(32):
+    Vchans.append(DBL.create_readout("V_%i"%i, "PMT_HV", "Simulated HV channel voltage", "V"))
+    Ichans.append(DBL.create_readout("I_%i"%i, "PMT_HV", "Simulated HV channel current", "mA"))
+    DBL.set_ChangeFilter(Vchans[-1], 80, 60, False)
+    DBL.set_ChangeFilter(Ichans[-1], 0.2, 60, False)
+DBL.commit()
 
 try:   
     while 1:
