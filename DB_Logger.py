@@ -39,6 +39,7 @@ class DB_Logger(RBU_cloner):
         self.instr_idx = {}     # instruments name -> rowid index
         self.readouts = {}      # cache of readout information
         self.filters = {}       # data reduction filters per channel
+        self.readsets = []      # pre-defined sets of readouts for negotiating bulk transfers
         
         os.system("mkdir -p RBU_Data/")
         self.rbu_outname = "RBU_Data/"+dbname.split(".")[0]+"_rbu_%i.db"
@@ -110,7 +111,7 @@ class DB_Logger(RBU_cloner):
         """Get messages in time range"""
         self.servcurs.execute("SELECT time,src,msg FROM textlog WHERE time >= ? AND time <= ? ORDER BY time DESC LIMIT 100", (t0, t1))
         return self.servcurs.fetchall()
-    
+        
     def launch_dataserver(self):
         """Launch server providing database read access"""
         # server thread interface to DB
@@ -177,7 +178,12 @@ class DB_Logger(RBU_cloner):
         # update latest readout value
         self.readouts[tid].time = t
         self.readouts[tid].val = value
-        
+    
+    def log_readset(self, rsid, tvs):
+        """log readouts [t,v,t,v...] in predefined readset (simplified data transfer)"""
+        for (n,tid) in enumerate(self.readsets[rsid]):
+            self.log_readout(tid, tvs[2*n+1], tvs[2*n])
+    
     def log_readout_hook(self, tid, value, t):
         """Hook for subclass to check readout values"""
         pass
@@ -197,6 +203,14 @@ class DB_Logger(RBU_cloner):
     def set_DecimationFilter(self, iid, nth):
         """Set data decimation filter on readout"""
         self.filters[iid] = DecimationFilter(nth)
+    
+    def define_readset(self, rs):
+        """Return index for pre-defined read set, creating new as needed"""
+        try:
+            return self.readsets.index(rs)
+        except:
+            self.readsets.append(rs)
+            return len(self.readsets)-1
         
     def launch_writeserver(self):
         """Launch server providing database read access"""
@@ -216,6 +230,8 @@ class DB_Logger(RBU_cloner):
         server.register_function(self.log_readout, 'log_readout')
         server.register_function(self.log_message, 'log_message')
         server.register_function(self.writeconn.commit, 'commit')
+        server.register_function(self.define_readset, 'define_readset')
+        server.register_function(self.log_readset, 'log_readset')
         server.serve_forever() 
     
     

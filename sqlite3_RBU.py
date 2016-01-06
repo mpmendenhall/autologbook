@@ -192,26 +192,3 @@ class RBU_cloner:
             self.stop_stuffer()
         self.rbu_stuffer_thread = threading.Thread(target = self.rbu_stuffer)
         self.rbu_stuffer_thread.start()
-        
-        
-        
-        
-        
-        
-        
-if __name__ == "__main__":
-    conn = sqlite3.connect('test.db')
-    R = RBU_cloner(conn.cursor())
-    R.restart_stuffer()
-    
-    for j in range(2):
-        for i in range(10):
-            R.insert("readings", {"type_id":1, "value":3.14, "time":i})
-            time.sleep(0.5)
-        if j < 1:
-            R.flush_stuffer()
-            R.restart_stuffer()
-        else:
-            R.stop_stuffer()
-        
-    conn.commit()

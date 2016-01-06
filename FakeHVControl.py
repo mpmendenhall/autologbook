@@ -19,12 +19,17 @@ for i in range(32):
     DBL.set_ChangeFilter(Ichans[-1], 0.2, 60, False)
 DBL.commit()
 
+rset = DBL.define_readset(Vchans + Ichans)
+
 try:   
     while 1:
         t = time.time()
+        rdata = []
         for i in range(32):
-            DBL.log_readout(Vchans[i], random.gauss(1500, 20), t)
-            DBL.log_readout(Ichans[i], random.gauss(0.85, 0.05), t)
+            rdata += [t,random.gauss(1500, 20)]
+        for i in range(32):
+            rdata += [t,random.gauss(0.85, 0.05)]
+        DBL.log_readset(rset,rdata)
         DBL.commit()
         time.sleep(1)
 except:

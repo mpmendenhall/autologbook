@@ -6,9 +6,12 @@
 import time
 
 def pwrite(p,s):
+    """encode string as bytes for write to pipe"""
     p.stdin.write(bytes(s, 'UTF-8'))
     
 class PlotMaker:
+    """Wrapper for gnuplot control"""
+    
     def __init__(self):
         self.renames = {}       # graph title re-naming
         self.datasets = {}      # availabale datasets

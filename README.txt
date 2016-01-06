@@ -6,23 +6,25 @@ INCOMPLETE WORK IN PROGRESS : MANY COMPONENTS MISSING
 
 DB_Logger:
     - 3 components in separate threads:
-        - read-only xmlrpc server interface (might be exposed on network)
-        - read/write xmlrpc interface (localhost), with duplication to RBU
+        - read-only xmlrpc server interface (probably localhost only, accessed via cgi script views)
+        - read/write xmlrpc interface (restrict to localhost) for communication with data collection scripts; duplicates data to RBU
         - in-memory recent data cache shared between interfaces
 
     - TODO checks for "actionable" conditions (out-of-range values, etc.)
     - TODO manages rollover/archiving of logbook DB files
 
+FakeHVControl.py,TestFunctionGen.py: test data generators talking to RB_Logger
+
 plotserver utilities:
-    - cgi scripts run through simple Python cgi server
-    - stateless versions pull data each time
+    - cgi scripts run through Python cgi server
+    - stateless views of DB_Logger data
     - TODO state-cacheing advanced plotting sessions
     
 --------------- TO DO ----------------
 
 general configuration file
 alarm/range configuration files
-DB_Logger sockets write interface for c++/fast-DAQ integration
+finish RBU setup, including instruments/readings in RBU
 
 DB_Server:
     - pulls RBU data over network as (slightly delayed, higher-traffic-volume) proxy for DB_Logger
