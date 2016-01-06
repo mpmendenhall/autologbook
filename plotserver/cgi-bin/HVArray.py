@@ -19,7 +19,7 @@ class HVArray:
         self.get_readings()
         
         nameidx = {}
-        for c in self.readings.values():
+        for c in self.readings:
             nameidx[c["name"]] = c
         
         trows = []

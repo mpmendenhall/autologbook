@@ -4,6 +4,7 @@
 from WebpageUtils import *
 import xmlrpc.client
 import time
+import cgi
 
 class WebChecklist:
     
@@ -14,15 +15,21 @@ class WebChecklist:
     def makeChecklistTable(self):
         t0 = time.time()
         trows = [{"class":"tblhead", "data":["Device","Value","Unit","Last updated"]},]
-
-        rlist = list(self.readings.keys())
+        
+        rlist = [(r["name"], r) for r in self.readings]
         rlist.sort()
-        for i in rlist:
-            rdat = [ self.readings[i]["name"], self.readings[i]["val"], self.readings[i]["units"], "---", '<a href="/cgi-bin/plottrace.py?rid=%s">plot</a>'%i]
+        for r in [x[1] for x in rlist]:
+            rdat = [cgi.escape(r["name"]),
+                    r["val"],
+                    r["units"],
+                    "---", '<a href="/cgi-bin/plottrace.py?rid=%i">plot</a>'%r["rid"]]
             cls = "good"
-            vt = self.readings[i]["time"]
+            vt = r["time"]
             if vt is not None:
-                rdat[3] = timeWriter(t0-vt)+" ago"
+                dt = t0-vt
+                rdat[3] = timeWriter(dt)+" ago"
+                if dt > 120:
+                   cls = "unknown" 
             else:
                 cls = "unknown"
             trows.append({"class":cls, "data":rdat})

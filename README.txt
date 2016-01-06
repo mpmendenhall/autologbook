@@ -5,8 +5,11 @@ a collection of Python scripts for generating and managing sqlite3 database log 
 INCOMPLETE WORK IN PROGRESS : MANY COMPONENTS MISSING
 
 DB_Logger:
-    - reads in datapoints from devices
-    - writes to logbook DB file, copied to differential changes RBU files
+    - 3 components in separate threads:
+        - read-only xmlrpc server interface (might be exposed on network)
+        - read/write xmlrpc interface (localhost), with duplication to RBU
+        - in-memory recent data cache shared between interfaces
+
     - TODO checks for "actionable" conditions (out-of-range values, etc.)
     - TODO manages rollover/archiving of logbook DB files
 

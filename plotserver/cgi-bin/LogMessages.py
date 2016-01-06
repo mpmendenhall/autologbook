@@ -4,6 +4,7 @@
 from WebpageUtils import *
 import xmlrpc.client
 import time
+import cgi
 
 class LogMessagesDisplay:
 
@@ -14,6 +15,8 @@ class LogMessagesDisplay:
 
         trows = [{"class":"tblhead", "data":["time","source","message"]},]
         for m in self.messages:
+            m[1] = cgi.escape(m[1]) if m[1] else ""
+            m[2] = cgi.escape(m[2]) if m[2] else ""
             trows.append([time.ctime(m[0]), "[%s]"%m[1], m[2]])
         return makeTable(trows)
         

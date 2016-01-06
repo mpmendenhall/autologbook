@@ -38,10 +38,10 @@ class RBU_table_data:
     
 class RBU_cloner:
     """Copies sqlite3 commands between active database connecion and Resumable Bulk Update (RBU) copy"""
-
-    def __init__(self, curs):
+    
+    def __init__(self, curs = None):
         """Initialize with cursors for primary database"""
-        self.curs = curs
+        self.rbu_curs = curs
         
         self.rbu_outname = "test_rbu_%i.db"
         self.rbu_prevName = None        # name of previously completed RBU file
@@ -60,7 +60,7 @@ class RBU_cloner:
         if tname in self.tables:
             return
         self.tables_lock.acquire()
-        self.tables[tname] = RBU_table_data(tname, self.curs)
+        self.tables[tname] = RBU_table_data(tname, self.rbu_curs)
         self.rbu_q.put((self.tables[tname].rbu_table_cmd(), ()))
         self.tables_lock.release()
 
@@ -86,7 +86,7 @@ class RBU_cloner:
         """Insert a row into named table, given dictionary of column name/values"""
         self.setup_table(tname)
 
-        self._insert(self.curs, tname, valdict)
+        self._insert(self.rbu_curs, tname, valdict)
         if self.autocommit:
             self.conn.commit()
         valdict["rbu_control"] = 0
@@ -98,12 +98,12 @@ class RBU_cloner:
 
         # determine primary key for affected rows
         pkey = self.tables[tname].primary
-        self.curs.execute("SELECT %s FROM %s WHERE %s"%(pkey, tname, whereclause))
-        rws = [r[0] for r in self.curs.fetchall()]
+        self.rbu_curs.execute("SELECT %s FROM %s WHERE %s"%(pkey, tname, whereclause))
+        rws = [r[0] for r in self.rbu_curs.fetchall()]
 
         # update main DB
         ucmd = "UPDATE " + tname + " SET " + ", ".join([c+" = ?" for c in updvals.keys()]) + " WHERE " + whereclause
-        self.curs.execute(ucmd, tuple(updvals.values()))
+        self.rbu_curs.execute(ucmd, tuple(updvals.values()))
 
         # generate RBU commands for each row
         rbucols = self.tables[tname].colnames
@@ -122,11 +122,11 @@ class RBU_cloner:
 
         # determine primary key for affected rows
         pkey = self.tables[tname].primary
-        self.curs.execute("SELECT %s FROM %s WHERE %s"%(pkey, tname, whereclause))
-        rws = [r[0] for r in self.curs.fetchall()]
+        self.rbu_curs.execute("SELECT %s FROM %s WHERE %s"%(pkey, tname, whereclause))
+        rws = [r[0] for r in self.rbu_curs.fetchall()]
 
         # update main DB
-        self.curs.execute("DELETE FROM " + tname + " WHERE " + whereclause)
+        self.rbu_curs.execute("DELETE FROM " + tname + " WHERE " + whereclause)
 
         # generate RBU delete command for each row
         if pkey == "rowid":
