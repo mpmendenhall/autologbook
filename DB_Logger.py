@@ -35,7 +35,8 @@ class DB_Logger(RBU_cloner):
         """Initialize with name of database to open"""
         RBU_cloner.__init__(self)
         self.dbname = dbname
-        self.instruments = {}   # cache of instrument information
+        self.instruments = {}   # cache of instrument information, by rowid index
+        self.instr_idx = {}     # instruments name -> rowid index
         self.readouts = {}      # cache of readout information
         self.filters = {}       # data reduction filters per channel
         
@@ -86,23 +87,25 @@ class DB_Logger(RBU_cloner):
         return list(self.readouts.values())
     
     def get_readout(self, i):
-        """Get readout fpr xmlrpc interface"""
+        """Get one newest readout for xmlrpc interface"""
         return self.readouts.get(i,None)
     
     def get_instrument(self, i):
         """Get instrument for xmlrpc interface"""
         return self.instruments.get(i, None)
     
+    def get_instrument_readouts(self, instrname):
+        """Get all newest readouts for one instrument"""
+        if instrname not in self.instr_idx:
+            return None
+        self.servcurs.execute("SELECT rowid FROM readout_types WHERE instrument_id = ?", (self.instr_idx[instrname],))
+        return [self.readouts[r[0]] for r in self.servcurs.fetchall()]
+    
     def get_datapoints(self, rid, t0, t1):
         """Get datapoints for specified readout ID in time stamp range"""
         self.servcurs.execute("SELECT time,value FROM readings WHERE type_id = ? AND time >= ? AND time <= ? ORDER BY time LIMIT 2000", (int(rid), t0, t1))
         return self.servcurs.fetchall()
     
-    def get_channel_info(self, rid):
-        """Get information on one channel"""
-        if rid not in self.readouts:
-            return None
-        
     def get_messages(self, t0, t1):
         """Get messages in time range"""
         self.servcurs.execute("SELECT time,src,msg FROM textlog WHERE time >= ? AND time <= ? ORDER BY time DESC LIMIT 100", (t0, t1))
@@ -119,8 +122,9 @@ class DB_Logger(RBU_cloner):
             rpc_paths = ('/RPC2',)
         server = SimpleXMLRPCServer(("localhost", 8000), requestHandler=RequestHandler, allow_none=True)
         #server.register_introspection_functions()
-        server.register_function(self.get_updates, 'update')
+        #server.register_function(self.get_updates, 'update')
         server.register_function(self.get_newest, 'newest')
+        server.register_function(self.get_instrument_readouts, 'instrument_readouts')
         server.register_function(self.get_datapoints, 'datapoints')
         server.register_function(self.get_readout, 'readout')
         server.register_function(self.get_instrument, 'instrument')
@@ -136,6 +140,7 @@ class DB_Logger(RBU_cloner):
         curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO instrument_types(name,descrip,dev_name,serial) VALUES (?,?,?,?)", (nm,descrip,devnm,sn))
         inst = self.get_inst_type(curs,nm)
         self.instruments[inst.rid] = inst
+        self.instr_idx[inst.name] = inst.rid
         
     def create_readout(self, curs, name, inst_name, descrip, units, overwrite = False):
         """Assure a readout exists, creating as necessary; return readout ID"""
@@ -151,7 +156,9 @@ class DB_Logger(RBU_cloner):
         return rid
     
     def log_readout(self, tid, value, t = None):
-        """Log reading, using current time for timestamp if not specified"""
+        """Log reading, using current time for timestamp if not specified"""        
+        assert(tid in self.readouts)
+
         t = time.time() if t is None else t
         
         self.log_readout_hook(tid, value, t)
@@ -173,7 +180,7 @@ class DB_Logger(RBU_cloner):
     
     def commit_writes(self):
         self.rbu_conn.commit()
-    
+        
     def launch_writeserver(self):
         """Launch server providing database read access"""
         # server thread interface to DB
@@ -253,11 +260,11 @@ if __name__=="__main__":
     if not os.path.exists(dbname):
         os.system("sqlite3 %s < base_DB_description.txt"%dbname)
     
-    # set up instruments, readouts
+    # set up instruments, readouts, filters: done here to control filters
     D = DB_Logger("test.db")
     writeconn = sqlite3.connect(dbname)
     curs = writeconn.cursor()
-        
+
     D.create_instrument(curs, "funcgen", "test function generator", "ACME Foobar1000", "0001")
     r0 = D.create_readout(curs, "5min", "funcgen", "5-minute-period wave", None)
     r1 = D.create_readout(curs, "12h", "funcgen", "12-hour-period wave", None)

@@ -12,12 +12,13 @@ DBL.log_message("FakeHVControl.py", "Starting fake HV.")
 DBLread = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
 Vchans = {}
 Ichans = {}
-for c in DBLread.newest():
+for c in DBLread.instrument_readouts("PMT_HV"):
     nm = c["name"]
     if nm[:2] == "I_":
         Ichans[int(nm[2:])] = c["rid"]
     if nm[:2] == "V_":
         Vchans[int(nm[2:])] = c["rid"]
+DBLread = None
 
 try:   
     while 1:
