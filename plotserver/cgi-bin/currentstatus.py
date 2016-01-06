@@ -6,8 +6,6 @@ import xmlrpc.client
 import time
 
 class WebChecklist:
-    def __init__(self):
-        pass
     
     def get_readings(self):
         s = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)

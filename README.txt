@@ -17,7 +17,6 @@ plotserver utilities:
     
 --------------- TO DO ----------------
 
-DB_Logger log messages interface
 general configuration file
 alarm/range configuration files
 DB_Logger sockets write interface for c++/fast-DAQ integration

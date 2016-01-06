@@ -116,6 +116,10 @@ class DB_Logger(DB_Reader, RBU_cloner):
         """Hook for subclass to check readout values"""
         pass
     
+    def log_message(self, src, msg, t = None):
+        """Log a textual message, using current time for timestamp if not specified"""
+        t = time.time() if t is None else t
+        self.insert("textlog", {"src":src, "time":t, "msg":msg})
     
     ######################################
     # xmlrpc interface for reading DB info
@@ -155,6 +159,10 @@ class DB_Logger(DB_Reader, RBU_cloner):
         if rid not in self.readouts:
             return None
         
+    def get_messages(self, t0, t1):
+        """Get messages in time range"""
+        self.servcurs.execute("SELECT time,src,msg FROM textlog WHERE time >= ? AND time <= ? ORDER BY time DESC LIMIT 100", (t0, t1))
+        return self.servcurs.fetchall()
     
     def launch_dataserver(self):
         # server thread interface to DB
@@ -171,6 +179,7 @@ class DB_Logger(DB_Reader, RBU_cloner):
         server.register_function(D.get_datapoints, 'datapoints')
         server.register_function(D.get_readout, 'readout')
         server.register_function(D.get_instrument, 'instrument')
+        server.register_function(D.get_messages, 'messages')
         server.serve_forever()
         
     #######################################
@@ -267,6 +276,7 @@ if __name__=="__main__":
     # generate test signals
     from math import *
     t0 = 0
+    D.log_message("DB_Logger.py", "starting simulated data")
     while 1:
         t = time.time()
         v0 = sin(2*pi*t/300)
