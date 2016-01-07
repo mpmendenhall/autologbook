@@ -23,7 +23,7 @@ def addTag(parent, tag, xargs = {}, contents = None):
         e.text = str(contents)
     return e
 
-def makeCheckbox(name, value, checked=False, radio=False, xargs={}):
+def makeCheckbox(name, value="y", checked=False, radio=False, xargs={}):
     """HTML for checkbox control"""
     xargs["name"] = name
     xargs["value"] = value
@@ -31,6 +31,17 @@ def makeCheckbox(name, value, checked=False, radio=False, xargs={}):
     if checked:
         xargs["checked"] = ""
     return ET.Element('input', xargs)
+
+def makeList(items, xargs={}, toptag='ul', itmtag='li'):
+    """HTML list"""
+    L = ET.Element(toptag, xargs)
+    for i in items:
+        if type(i) == type(tuple()):
+            addTag(L, itmtag, xargs=i[1], contents = i[0])
+        else:
+            addTag(L, itmtag, contents = i)
+            
+    return L
 
 def makeTable(rows, xargs={}):
     """HTML table from array of lists or {"class":c "data":d}"""
@@ -40,25 +51,23 @@ def makeTable(rows, xargs={}):
         if ET.iselement(r):
            T.append(r)
            continue
-       
-        if type(r) == type({}):
-            rdat = r["data"]
-            rw = ET.SubElement(T, 'tr', {"class":r["class"]})
+        
+        if type(r) == type(tuple()):
+            rw = makeList(r[0], xargs=r[1], toptag='tr', itmtag='td')
         else:
-            rdat = r
-            rw = ET.SubElement(T, 'tr')
-            
-        for c in rdat:
-            addTag(rw, 'td', contents = c)
+            rw = makeList(r, toptag='tr', itmtag='td')
+        T.append(rw)
     
     return T
+
+
 
 def prettystring(elem):
     """ElementTree element to indented string"""
     reparsed = minidom.parseString(ET.tostring(elem).decode('utf-8'))
     return reparsed.toprettyxml().split('<?xml version="1.0" ?>\n')[-1]
 
-def fillTable(itms,cols=4):
+def fillTable(itms,xargs={},cols=4):
     """Flow items into table with specified number of columns"""
     
     # transpose order to fill in by column
@@ -86,7 +95,7 @@ def fillTable(itms,cols=4):
                 continue
             tdat[-1].append(bcols[c][r])
         
-    return makeTable(tdat)
+    return makeTable(tdat,xargs)
 
 def docHeaderString():
     """XHTML5 MIME type header string"""

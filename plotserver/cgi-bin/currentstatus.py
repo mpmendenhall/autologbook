@@ -14,7 +14,7 @@ class WebChecklist:
     
     def makeChecklistTable(self):
         t0 = time.time()
-        trows = [{"class":"tblhead", "data":["Device","Value","Unit","Last updated"]},]
+        trows = [(["Device","Value","Unit","Last updated"], {"class":"tblhead"}),]
         
         rlist = [(r["name"], r) for r in self.readings]
         rlist.sort()
@@ -32,7 +32,7 @@ class WebChecklist:
                    cls = "unknown" 
             else:
                 cls = "unknown"
-            trows.append({"class":cls, "data":rdat})
+            trows.append((rdat,{"class":cls}))
 
         return makeTable(trows)
         

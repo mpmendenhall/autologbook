@@ -13,7 +13,7 @@ class LogMessagesDisplay:
         self.t0 = time.time()
         self.messages = s.messages(self.t0 - 24*3600, self.t0 + 1e7)
 
-        trows = [{"class":"tblhead", "data":["time","source","message"]},]
+        trows = [(["time","source","message"], {"class":"tblhead"}),]
         for m in self.messages:
             m[1] = m[1] if m[1] else ""
             m[2] = m[2] if m[2] else ""

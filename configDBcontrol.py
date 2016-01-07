@@ -45,7 +45,27 @@ class ConfigDB:
         r = self.curs.fetchone()
         return r[0] if r else None
 
-
+    def clone_config(self, csid, name, descrip):
+        """Clone configuration to new name and description"""
+        self.curs.execute("SELECT family FROM config_set WHERE rowid = ?", (csid,))
+        family = self.curs.fetchone()
+        if not family:
+            return None
+        self.curs.execute("SELECT COUNT(*) FROM config_set WHERE name = ? AND family = ?", (name,family[0]))
+        if self.curs.fetchone()[0]:
+            return None
+        
+        cvals = self.get_config(csid)
+        newid = self.make_configset(name, family[0], descrip)
+        for (k,v) in cvals.items():
+            self.set_config_value(newid, k, v)
+        return newid
+    
+        
+    def has_been_applied(self, csid):
+        """Whether a configuration has been previously used"""
+        self.curs.execute("SELECT COUNT(*) FROM config_history WHERE csid = ?", (csid,))
+        return self.curs.fetchone()[0]
 
 if __name__ == "__main__":
     import os
