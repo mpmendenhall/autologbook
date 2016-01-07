@@ -38,13 +38,13 @@ class WebChecklist:
         
     def makePage(self):
         self.get_readings()
-        tbl = self.makeChecklistTable()
-                    
-        print(pageHeader("Readings Monitor", refresh=300))
-        print('<h1>Readings as of %s</h1>'%time.asctime())
-        print(ET.tostring(tbl).decode('ascii'))
-        print(pageFooter())
+    
+        P,b = makePageStructure("Readings Monitor", refresh=300)
+        addTag(b,"h1",contents="Readings as of %s"%time.asctime())
+        b.append(self.makeChecklistTable())
         
+        print(docHeaderString())
+        print(prettystring(P))        
 
 if __name__=="__main__":
     WC = WebChecklist()

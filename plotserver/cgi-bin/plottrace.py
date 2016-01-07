@@ -30,8 +30,14 @@ class TracePlotter:
         chn = self.channels[rid]
         cname = self.instruments[chn["instrument_id"]]["name"] + ":" + chn["name"]
         
-        print(pageHeader("%s plot"%cname, refresh=300))
-        print('<h1>%s as of %s</h1>'%(cname, time.asctime()))
+        fullParse = True
+        
+        if fullParse:
+            P,b = makePageStructure("%s plot"%cname, refresh=300)
+            addTag(b,"h1",contents="%s as of %s"%(cname, time.asctime()))
+        else:
+            print(pageHeader("%s plot"%cname, refresh=300))
+            print('<h1>%s as of %s</h1>'%(cname, time.asctime()))
         
         with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as gpt:
 
@@ -54,11 +60,22 @@ class TracePlotter:
             PM.x_txs["trace"] = (lambda x, t0=self.t0: (x-t0)/3600.)
             PM.pass_gnuplot_data(["trace"], gpt)
             
-            s = gpt.communicate()[0].decode("utf-8")
-            s = s.split('svg11.dtd">')[-1]
-            print(s)
+            if fullParse:
+                pstr = gpt.communicate()[0].decode("utf-8").replace("\n",'').replace('\t','')
+                # hack to work around namespace expansion
+                pstr = pstr.replace("xmlns:","xFOO").replace("xmlns","xBAR").replace("xlink:","xBAZ")
+                b.append(ET.fromstring(pstr))
+            else:
+                s = gpt.communicate()[0].decode("utf-8")
+                s = s.split('svg11.dtd">')[-1]
+                print(s)
         
-        print(pageFooter())
+        if fullParse:
+            print(docHeaderString())
+            # undo namespace expansion hack
+            print(prettystring(P).replace("xFOO","xmlns:").replace("xBAR","xmlns").replace("xBAZ","xlink:"))
+        else:
+            print(pageFooter())
         
         
 

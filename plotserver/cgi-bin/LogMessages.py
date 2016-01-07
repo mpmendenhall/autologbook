@@ -21,11 +21,11 @@ class LogMessagesDisplay:
         return makeTable(trows)
         
     def makePage(self):
-        tbl = self.makeMessageTable()
-        print(pageHeader("Autologbook messages", refresh=300))
-        print('<h1>Messages as of %s</h1>'%time.ctime(self.t0))
-        print(ET.tostring(tbl).decode('ascii'))
-        print(pageFooter())
+        P,b = makePageStructure("Autologbook messages", refresh=300)
+        addTag(b,"h1",contents="Messages as of %s"%time.asctime())
+        b.append(self.makeMessageTable())
+        print(docHeaderString())
+        print(prettystring(P))
         
 if __name__=="__main__":
     LogMessagesDisplay().makePage()

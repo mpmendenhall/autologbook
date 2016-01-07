@@ -4,6 +4,7 @@
 import cgitb
 cgitb.enable()
 import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
 def makeLink(href, content, xargs = {}):
     xargs["href"] = href
@@ -14,16 +15,22 @@ def makeLink(href, content, xargs = {}):
         a.text = str(content)
     return a
 
-def makeCheckbox(name,value,label="",checked=False,radio=False):
+def addTag(parent, tag, xargs = {}, contents = None):
+    e = ET.SubElement(parent, tag, xargs)
+    if ET.iselement(contents):
+        e.append(contents)
+    elif contents:
+        e.text = str(contents)
+    return e
+
+def makeCheckbox(name, value, checked=False, radio=False, xargs={}):
     """HTML for checkbox control"""
-    itype = "radio"
-    if not radio:
-        itype = "checkbox"
-    checkstr = ""
+    xargs["name"] = name
+    xargs["value"] = value
+    xargs["type"] = "radio" if radio else "checkbox"
     if checked:
-        checkstr = "checked"
-    htmlstr = '<input type="%s" name="%s" value="%s" %s/>%s'%(itype,name,value,checkstr,label)
-    return htmlstr
+        xargs["checked"] = ""
+    return ET.Element('input', xargs)
 
 def makeTable(rows, xargs={}):
     """HTML table from array of lists or {"class":c "data":d}"""
@@ -42,13 +49,14 @@ def makeTable(rows, xargs={}):
             rw = ET.SubElement(T, 'tr')
             
         for c in rdat:
-            td = ET.SubElement(rw, 'td')
-            if ET.iselement(c):
-                td.append(c)
-            else:
-                td.text = str(c)
+            addTag(rw, 'td', contents = c)
     
     return T
+
+def prettystring(elem):
+    """ElementTree element to indented string"""
+    reparsed = minidom.parseString(ET.tostring(elem, 'utf-8'))
+    return reparsed.toprettyxml().split('<?xml version="1.0" ?>\n')[-1]
 
 def fillTable(itms,cols=4):
     """Flow items into table with specified number of columns"""
@@ -80,17 +88,34 @@ def fillTable(itms,cols=4):
         
     return makeTable(tdat)
 
+def makePageStructure(title="", refresh=None):
+    """Generic page skeleton"""
+    P = ET.Element('html', {"lang":"en-US", "xml:lang":"en-US", "xmlns":"http://www.w3.org/1999/xhtml"})
+    
+    hd = ET.SubElement(P, 'head')
+    if title:
+        ttl = ET.SubElement(hd, 'title')
+        ttl.text = title
+    ET.SubElement(hd, 'link', {"rel":"stylesheet", "href":"../sitestyle.css"})
+    if refresh:
+        ET.SubElement(hd, 'meta', {"http-equiv":"refresh", "content":"%i"%refresh})
+    
+    b = ET.SubElement(P, "body")
+    return (P,b)
+
+def docHeaderString():
+    return 'Content-Type: application/xhtml+xml\n\n<!DOCTYPE html>\n'
+
 def pageHeader(title="",refresh=None):
     """Generic page header"""
-    htmlstr = 'Content-Type: text/html\n\n'
-    htmlstr += '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n\n'
+    htmlstr = docHeaderString()
     htmlstr += '<html lang="en-US" xml:lang="en-US" xmlns="http://www.w3.org/1999/xhtml">\n\n'
     htmlstr += '<head>\n'
     if title:
         htmlstr += '\t<title>%s</title>\n'%title
-    htmlstr += '\t<link rel="stylesheet" href="../sitestyle.css">\n'
+    htmlstr += '\t<link rel="stylesheet" href="../sitestyle.css"/>\n'
     if refresh:
-        htmlstr += '\t<meta http-equiv="refresh" content="%i">\n'%refresh
+        htmlstr += '\t<meta http-equiv="refresh" content="%i"/>\n'%refresh
     htmlstr += '</head>\n'
     htmlstr += '<body>\n'
     return htmlstr

@@ -50,7 +50,7 @@ class HVArray:
         tbl = self.makeHVTable()
         print(pageHeader("PMT Array HV", refresh=300))
         print('<h1>PMT HV as of %s</h1>'%time.asctime())
-        print(ET.tostring(tbl).decode('ascii'))
+        print(ET.tostring(tbl).decode('ascii')) # print(prettystring(tbl))
         print(pageFooter())
         
 
