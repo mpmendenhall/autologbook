@@ -11,7 +11,7 @@ class LogMessagesDisplay:
     def makeMessageTable(self):
         s = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
         self.t0 = time.time()
-        self.messages = s.messages(self.t0 - 24*3600, self.t0 + 1e7)
+        self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7)
 
         trows = [(["time","source","message"], {"class":"tblhead"}),]
         for m in self.messages:

@@ -47,7 +47,7 @@ class ConfigWebManager(ConfigDB):
         addTag(b, "h3", contents='"%s"'%setname[2])
         b.append(self.update_params_form(cset, not (self.readonly or applied)))
         if not applied:
-            b.append(self.new_params_form())
+            b.append(self.new_params_form(cset))
         b.append(self.copy_params_form(cset))
         print(prettystring(P)) 
 
@@ -56,27 +56,29 @@ class ConfigWebManager(ConfigDB):
         ps = self.curs.fetchall()
         
         if editable:
-            setgroups = [makeTable([[makeCheckbox("del_%i"%p[0]), p[1], (p[2],{"class": "good"}), ET.Element('input', {"type":"text", "name":"val_%i"%p[0], "size":"6"})]]) for p in ps]
+            setgroups = [makeTable([[makeCheckbox("del_%i"%p[0]), p[1], (str(p[2]),{"class": "good"}), ET.Element('input', {"type":"text", "name":"val_%i"%p[0], "size":"6"})]]) for p in ps]
             
             F =  ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py", "method":"post"})
             Fs = addTag(F, "fieldset")
             addTag(Fs, "legend", contents="Current parameter values")
             Fs.append(fillTable(setgroups,{"class":"neutral"}))
-            addTag(Fs,"input",{"type":"submit","name":"upd_cset","value":"Update"})
-            addTag(Fs,"input",{"type":"submit","name":"del_cset","value":"Delete Marked"})
+            addTag(Fs,"input",{"type":"hidden","name":"cset","value":"%i"%cset})
+            addTag(Fs,"input",{"type":"submit","name":"upd_params","value":"Update"})
+            addTag(Fs,"input",{"type":"submit","name":"del_params","value":"Delete Marked"})
             return F
         else:
             setgroups = [makeTable([[p[1], (p[2],{"class": "good"})]]) for p in ps] 
             return fillTable(setgroups,{"class":"neutral"})
         
-    def new_params_form(self):
+    def new_params_form(self,cset):
         F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Add new parameters")
         rows = [(["Name", "Value"], {"class":"tblhead"}),] 
         rows += [ [ET.Element('input', {"type":"text", "name":"nm_%i"%i, "size":"6"}), ET.Element('input', {"type":"text", "name":"val_%i"%i, "size":"10"})] for i in range(6)]
         Fs.append(makeTable(rows))
-        addTag(Fs,"input",{"type":"submit","name":"adp_cset","value":"Add Parameters"})
+        addTag(Fs,"input",{"type":"hidden","name":"cset","value":"%i"%cset})
+        addTag(Fs,"input",{"type":"submit","name":"add_params","value":"Add Parameters"})
         return F
     
     def copy_params_form(self, cset):
@@ -104,6 +106,49 @@ class ConfigWebManager(ConfigDB):
         cset = self.clone_config(cset0, newname, descrip)
         return self.make_params_page(cset) if cset else self.make_families_page()
     
+    def delete_marked(self,form):
+        """Remove parameters marked for deletion"""
+        cset = int(form.getvalue("cset",0))
+        if self.readonly or not cset or self.has_been_applied(cset):
+            return self.make_families_page()
+        for k in form:
+             if k[:4] == "del_":
+                try:
+                    self.curs.execute("DELETE FROM config_values WHERE rowid = ? AND csid = ?", (int(k[4:]),cset))
+                except:
+                    continue
+        return self.make_params_page(cset)
+    
+    def update_params(self,form):
+        """Update specified parameter values"""
+        cset = int(form.getvalue("cset",0))
+        if self.readonly or not cset or self.has_been_applied(cset):
+            return self.make_families_page()
+        for k in form:
+             if k[:4] == "val_" and form.getvalue(k):
+                try:
+                    self.curs.execute("UPDATE config_values SET value = ? WHERE rowid = ? AND csid = ?", (form.getvalue(k), int(k[4:]), cset))
+                except:
+                    continue
+        return self.make_params_page(cset)
+    
+    def add_params(self,form):
+        """Add new parameters"""
+        cset = int(form.getvalue("cset",0))
+        if self.readonly or not cset or self.has_been_applied(cset):
+            return self.make_families_page()
+        for k in form:
+             if k[:3] == "nm_":
+                name = form.getvalue(k)
+                pval = form.getvalue("val_"+k[3:])
+                if not (name and pval):
+                    continue
+                try:
+                    self.curs.execute("INSERT INTO config_values(csid,name,value) VALUES(?,?,?)", (cset, name, pval))
+                except:
+                    continue
+        return self.make_params_page(cset)
+    
 if __name__ == "__main__":
     dbname = "../config_test.db"
     conn = sqlite3.connect(dbname)
@@ -115,6 +160,15 @@ if __name__ == "__main__":
     
     if "cp_cset" in form:
         C.clone_set(form)
+        conn.commit()
+    elif "del_params" in form:
+        C.delete_marked(form)
+        conn.commit()
+    elif "upd_params" in form:
+        C.update_params(form)
+        conn.commit()
+    elif "add_params" in form:
+        C.add_params(form)
         conn.commit()
     elif "family" in form:
         C.make_csets_page(form.getvalue("family"))

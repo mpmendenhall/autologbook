@@ -61,7 +61,6 @@ class ConfigDB:
             self.set_config_value(newid, k, v)
         return newid
     
-        
     def has_been_applied(self, csid):
         """Whether a configuration has been previously used"""
         self.curs.execute("SELECT COUNT(*) FROM config_history WHERE csid = ?", (csid,))
