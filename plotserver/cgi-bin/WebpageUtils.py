@@ -55,7 +55,7 @@ def makeTable(rows, xargs={}):
 
 def prettystring(elem):
     """ElementTree element to indented string"""
-    reparsed = minidom.parseString(ET.tostring(elem, 'utf-8'))
+    reparsed = minidom.parseString(ET.tostring(elem).decode('utf-8'))
     return reparsed.toprettyxml().split('<?xml version="1.0" ?>\n')[-1]
 
 def fillTable(itms,cols=4):
@@ -88,6 +88,10 @@ def fillTable(itms,cols=4):
         
     return makeTable(tdat)
 
+def docHeaderString():
+    """XHTML5 MIME type header string"""
+    return 'Content-Type: application/xhtml+xml\n\n<!DOCTYPE html>\n'
+
 def makePageStructure(title="", refresh=None):
     """Generic page skeleton"""
     P = ET.Element('html', {"lang":"en-US", "xml:lang":"en-US", "xmlns":"http://www.w3.org/1999/xhtml"})
@@ -102,27 +106,6 @@ def makePageStructure(title="", refresh=None):
     
     b = ET.SubElement(P, "body")
     return (P,b)
-
-def docHeaderString():
-    return 'Content-Type: application/xhtml+xml\n\n<!DOCTYPE html>\n'
-
-def pageHeader(title="",refresh=None):
-    """Generic page header"""
-    htmlstr = docHeaderString()
-    htmlstr += '<html lang="en-US" xml:lang="en-US" xmlns="http://www.w3.org/1999/xhtml">\n\n'
-    htmlstr += '<head>\n'
-    if title:
-        htmlstr += '\t<title>%s</title>\n'%title
-    htmlstr += '\t<link rel="stylesheet" href="../sitestyle.css"/>\n'
-    if refresh:
-        htmlstr += '\t<meta http-equiv="refresh" content="%i"/>\n'%refresh
-    htmlstr += '</head>\n'
-    htmlstr += '<body>\n'
-    return htmlstr
-  
-def pageFooter():
-    """Generic page footer"""
-    return '</body>\n</html>\n'
 
 def timeWriter(t):
     """Convert time in seconds to string with units"""

@@ -45,3 +45,8 @@ class PlotMaker:
         time.sleep(0.1)
         
         return True
+
+def mangle_xlink_namespace(s):
+    return s.replace("xmlns:","xFOO").replace("xmlns","xBAR").replace("xlink:","xBAZ")
+def unmangle_xlink_namespace(s):
+    return s.replace("xFOO","xmlns:").replace("xBAR","xmlns").replace("xBAZ","xlink:")
