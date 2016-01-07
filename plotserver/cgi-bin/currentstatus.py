@@ -22,7 +22,7 @@ class WebChecklist:
             rdat = [cgi.escape(r["name"]),
                     r["val"],
                     r["units"],
-                    "---", '<a href="/cgi-bin/plottrace.py?rid=%i">plot</a>'%r["rid"]]
+                    "---", makeLink("/cgi-bin/plottrace.py?rid=%i"%r["rid"], "plot")]
             cls = "good"
             vt = r["time"]
             if vt is not None:
@@ -42,7 +42,7 @@ class WebChecklist:
                     
         print(pageHeader("Readings Monitor", refresh=300))
         print('<h1>Readings as of %s</h1>'%time.asctime())
-        print(tbl)
+        print(ET.tostring(tbl).decode('ascii'))
         print(pageFooter())
         
 

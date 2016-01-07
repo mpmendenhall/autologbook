@@ -3,6 +3,16 @@
 # cgi web-printable tracebacks
 import cgitb
 cgitb.enable()
+import xml.etree.ElementTree as ET
+
+def makeLink(href, content, xargs = {}):
+    xargs["href"] = href
+    a = ET.Element('a', xargs)
+    if ET.iselement(content):
+        a.append(content)
+    else:
+        a.text = str(content)
+    return a
 
 def makeCheckbox(name,value,label="",checked=False,radio=False):
     """HTML for checkbox control"""
@@ -15,21 +25,30 @@ def makeCheckbox(name,value,label="",checked=False,radio=False):
     htmlstr = '<input type="%s" name="%s" value="%s" %s/>%s'%(itype,name,value,checkstr,label)
     return htmlstr
 
-def makeTable(rows, xargs=None):
+def makeTable(rows, xargs={}):
     """HTML table from array of lists or {"class":c "data":d}"""
-    htmlstr = '<table>\n' if xargs is None else '<table %s>\n'%xargs
+    T = ET.Element('table', xargs)
+    
     for r in rows:
+        if ET.iselement(r):
+           T.append(r)
+           continue
+       
         if type(r) == type({}):
             rdat = r["data"]
-            htmlstr += '\t<tr class="%s">\n'%r["class"]
+            rw = ET.SubElement(T, 'tr', {"class":r["class"]})
         else:
             rdat = r
-            htmlstr += '\t<tr>\n'
+            rw = ET.SubElement(T, 'tr')
+            
         for c in rdat:
-            htmlstr += '\t\t<td>%s</td>\n'%str(c)
-        htmlstr += '\t</tr>\n'
-    htmlstr += '</table>\n'
-    return htmlstr
+            td = ET.SubElement(rw, 'td')
+            if ET.iselement(c):
+                td.append(c)
+            else:
+                td.text = str(c)
+    
+    return T
 
 def fillTable(itms,cols=4):
     """Flow items into table with specified number of columns"""

@@ -30,7 +30,7 @@ class HVArray:
             oo = vv/ii if ii else None
             
             if n == len(self.ivnames)/2:
-                trows.append(["&mdash;"]*self.nx)
+                trows.append(["\u2014"]*self.nx)
             if not n%self.nx:
                 trows.append([])
             n += 1
@@ -42,15 +42,15 @@ class HVArray:
                 pcls = "turnedoff"
             if t0 - nameidx[i[0]]["time"] > 60 or t0 - nameidx[i[1]]["time"] > 60:
                 pcls = "unknown"
-            trows[-1].append('<a href="/cgi-bin/plottrace.py?rid=%i">'%nameidx[i[0]]["rid"] + makeTable([["%i V"%vv],["%.2f mA"%ii],["%i k&Omega;"%oo]], 'class="%s"'%pcls) + "</a>")
+            trows[-1].append(makeLink("/cgi-bin/plottrace.py?rid=%i"%nameidx[i[0]]["rid"], makeTable([["%i V"%vv],["%.2f mA"%ii],["%i k\u03a9"%oo]], {"class":pcls})))
         
-        return makeTable(trows, 'style="text-align:center"')
+        return makeTable(trows, {"style":"text-align:center"})
         
     def makePage(self):
         tbl = self.makeHVTable()
         print(pageHeader("PMT Array HV", refresh=300))
         print('<h1>PMT HV as of %s</h1>'%time.asctime())
-        print(tbl)
+        print(ET.tostring(tbl).decode('ascii'))
         print(pageFooter())
         
 
