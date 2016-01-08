@@ -6,8 +6,8 @@ import time
 import cgi
 
 class ConfigWebManager(ConfigDB):
-    
     """Web interface for managing configuration DB"""
+    
     def __init__(self, conn = None):
         ConfigDB.__init__(self,conn)
         self.readonly = False
@@ -251,4 +251,3 @@ if __name__ == "__main__":
         C.make_params_page(cset)
     else:
         C.make_families_page()
-    

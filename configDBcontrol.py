@@ -24,6 +24,11 @@ class ConfigDB:
         self.curs.execute("SELECT rowid FROM config_set WHERE name = ? AND family = ?",(name,family))
         r = self.curs.fetchone()
         return r[0] if r else None
+    
+    def get_setname(self, csid):
+        """Get name information for config set by rowid"""
+        self.curs.execute("SELECT family,name FROM config_set WHERE rowid = ?",(csid,))
+        return self.curs.fetchone()
 
     def set_config_value(self, csid, name, value):
         """Set a configuration parameter"""
@@ -66,6 +71,13 @@ class ConfigDB:
         self.curs.execute("SELECT COUNT(*) FROM config_history WHERE csid = ?", (csid,))
         return self.curs.fetchone()[0]
        
+    def delete_if_not_applied(self, paramid):
+        """Delete a parameter only if from a non-applied configuration set"""
+        self.curs.execute("DELETE FROM config_values WHERE rowid = ? AND NOT (SELECT COUNT(*) FROM config_history WHERE config_history.csid = config_values.csid)", (paramid,))
+    def set_if_not_applied(self, paramid, value):
+        """Set a parameter only if from a non-applied configuration set"""
+        self.curs.execute("UPDATE config_values SET value = ? WHERE rowid = ? AND NOT (SELECT COUNT(*) FROM config_history WHERE config_history.csid = config_values.csid)", (value, paramid,))
+        
 if __name__ == "__main__":
     import os
     dbname = "config_test.db"

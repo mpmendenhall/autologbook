@@ -4,6 +4,9 @@ Michael P. Mendenhall (2016)
 a collection of Python scripts for generating and managing sqlite3 database log files of lab "slow control" readings
 INCOMPLETE WORK IN PROGRESS : MANY COMPONENTS MISSING
 
+------- Readings database -------
+log of continuously changing timestamped quantities
+
 DB_Logger:
     - 3 components in separate threads:
         - read-only xmlrpc server interface (probably localhost only, accessed via cgi script views)
@@ -19,6 +22,18 @@ plotserver utilities:
     - cgi scripts run through Python cgi server
     - stateless views of DB_Logger data
     - TODO state-cacheing advanced plotting sessions
+    
+------- Configurations database -------
+record settings to use and when applied
+
+config_DB_description.txt: database schema
+configDBcontrol.py: commonly useful DB queries
+ConfigWebManager.py: HTTP/cgi interface to configurations    
+
+Forms: special use of config DB for defining and filling forms, e.g. shift change checklists
+    - define form format, expected values, ...
+    - fill in and submit instances of form
+
     
 --------------- TO DO ----------------
 

@@ -16,7 +16,7 @@ def makeLink(href, content, xargs = {}):
     return a
 
 def addTag(parent, tag, xargs = {}, contents = None):
-    e = ET.SubElement(parent, tag, xargs)
+    e = ET.SubElement(parent, tag, xargs) if parent is not None else ET.Element(tag, xargs)
     if ET.iselement(contents):
         e.append(contents)
     elif contents:
