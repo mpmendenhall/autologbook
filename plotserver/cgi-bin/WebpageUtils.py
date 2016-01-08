@@ -67,10 +67,9 @@ def prettystring(elem):
     reparsed = minidom.parseString(ET.tostring(elem).decode('utf-8'))
     return reparsed.toprettyxml().split('<?xml version="1.0" ?>\n')[-1]
 
-def fillTable(itms,xargs={},cols=4):
-    """Flow items into table with specified number of columns"""
-    
-    # transpose order to fill in by column
+
+def fillColumns(itms, cols):
+    """Transpose collection into columns; return rows"""
     nbt = len(itms)
     cols = int(cols)
     nrows = nbt/cols+(nbt%cols>0)
@@ -95,7 +94,12 @@ def fillTable(itms,xargs={},cols=4):
                 continue
             tdat[-1].append(bcols[c][r])
         
-    return makeTable(tdat,xargs)
+    return tdat
+
+def fillTable(itms,xargs={},cols=4):
+    """Flow items into table with specified number of columns"""
+    return makeTable(fillColumns(itms,cols),xargs)
+    
 
 def docHeaderString():
     """XHTML5 MIME type header string"""

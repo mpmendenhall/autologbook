@@ -65,7 +65,7 @@ class ConfigDB:
         """Whether a configuration has been previously used"""
         self.curs.execute("SELECT COUNT(*) FROM config_history WHERE csid = ?", (csid,))
         return self.curs.fetchone()[0]
-
+       
 if __name__ == "__main__":
     import os
     dbname = "config_test.db"

@@ -13,7 +13,7 @@ class ConfigWebManager(ConfigDB):
         self.readonly = False
         
     def make_families_page(self):
-        
+        """Page for browsing/creating configuration set families"""
         self.curs.execute("SELECT DISTINCT family FROM config_set")
         families = [r[0] for r in self.curs.fetchall()]
         fl = makeList([makeLink("/cgi-bin/ConfigWebManager.py?family=%s"%f, f) for f in families])
@@ -21,29 +21,58 @@ class ConfigWebManager(ConfigDB):
         P,b = makePageStructure("Configuration Families")
         addTag(b,"h1",contents="Configuration set families")
         b.append(fl)
-        print(prettystring(P))        
+        
+        if not self.readonly:
+            F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
+            Fs = addTag(F, "fieldset")
+            addTag(Fs, "legend", contents="Make new configuration set family")
+            addTag(Fs, 'input', {"type":"text", "name":"famname", "size":"10"})
+            addTag(Fs,"input",{"type":"submit","name":"newfamily","value":"New family"})
+            b.append(F)
+        
+        print(prettystring(P))
 
     def make_csets_page(self, f):
-        
+        """Page for browsing configuration sets within a family"""
         selected = self.find_config_at(time.time(), f)
-        rows = [(["Name", "Description", "Created"], {"class":"tblhead"}),]
+        rows = [(["", "Name", "Description", "Created"], {"class":"tblhead"}),]
         self.curs.execute("SELECT rowid,name,descrip,time FROM config_set WHERE family = ?", (f,))
+        ndeleteable = 0
         for r in self.curs.fetchall():
-            rw = [makeLink("/cgi-bin/ConfigWebManager.py?cset=%i"%r[0], r[1]), r[2], time.ctime(r[3])]
+            isdeleteable = not self.has_been_applied(r[0])
+            ndeleteable += isdeleteable
+            rw = [makeCheckbox("rmr_%i"%r[0]) if isdeleteable else "",
+                  makeLink("/cgi-bin/ConfigWebManager.py?cset=%i"%r[0], r[1]), r[2], time.ctime(r[3])]
             rows.append((rw,{"class":"good"}) if r[0]==selected else rw)
+        if len(rows) == 1:
+            return self.make_families_page()
+        tbl = makeTable(rows,{"class":"neutral"})
         
         P,b = makePageStructure("%s Configurations"%f)
-        addTag(b,"h1",contents="Configuration sets in %s"%f)
-        b.append(makeTable(rows,{"class":"neutral"}))
-        print(prettystring(P))        
+        h1 = addTag(b,"h1")
+        clnk = makeLink("/cgi-bin/ConfigWebManager.py", "Configuration sets")
+        clnk.tail = "in %s"%f
+        h1.append(clnk)
+        if ndeleteable:
+            F = addTag(b, "form", {"action":"/cgi-bin/ConfigWebManager.py"})
+            F.append(tbl)
+            addTag(F,"input",{"type":"hidden","name":"family","value":f})
+            addTag(F,"input",{"type":"submit","name":"del_csets","value":"Delete Marked"})
+        else:
+            b.append(tbl)
+        print(prettystring(P))
     
     def make_params_page(self,cset):
+        """Page for viewing/modifying parameters in a configuration set"""
         self.curs.execute("SELECT family,name,descrip FROM config_set WHERE rowid = ?", (cset,))
         setname =  self.curs.fetchone()
         applied = self.has_been_applied(cset)
         
         P,b = makePageStructure("%s:%s"%setname[:2])
-        addTag(b, "h1", contents="Configuration set %s:%s"%setname[:2])
+        h1 = addTag(b, "h1", contents="Configuration set ")
+        flnk = makeLink("/cgi-bin/ConfigWebManager.py?family=%s"%setname[0], setname[0])
+        flnk.tail = " : %s"%setname[1]
+        h1.append(flnk)
         addTag(b, "h3", contents='"%s"'%setname[2])
         b.append(self.update_params_form(cset, not (self.readonly or applied)))
         if not applied:
@@ -52,25 +81,31 @@ class ConfigWebManager(ConfigDB):
         print(prettystring(P)) 
 
     def update_params_form(self, cset, editable):
+        """Form for updating parameters"""
         self.curs.execute("SELECT rowid,name,value FROM config_values WHERE csid = ?", (cset,))
         ps = self.curs.fetchall()
         
         if editable:
-            setgroups = [makeTable([[makeCheckbox("del_%i"%p[0]), p[1], (str(p[2]),{"class": "good"}), ET.Element('input', {"type":"text", "name":"val_%i"%p[0], "size":"6"})]]) for p in ps]
+            setgroups = [[makeCheckbox("del_%i"%p[0]), p[1], (str(p[2]),{"class": "good"}), ET.Element('input', {"type":"text", "name":"val_%i"%p[0], "size":"6"})] for p in ps]
+            setgroups = fillColumns(setgroups, 4)
+            setgroups = [ [x for l in g for x in l] for g in setgroups]
             
             F =  ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py", "method":"post"})
             Fs = addTag(F, "fieldset")
             addTag(Fs, "legend", contents="Current parameter values")
-            Fs.append(fillTable(setgroups,{"class":"neutral"}))
+            Fs.append(makeTable(setgroups,{"class":"neutral"}))
             addTag(Fs,"input",{"type":"hidden","name":"cset","value":"%i"%cset})
             addTag(Fs,"input",{"type":"submit","name":"upd_params","value":"Update"})
             addTag(Fs,"input",{"type":"submit","name":"del_params","value":"Delete Marked"})
             return F
         else:
-            setgroups = [makeTable([[p[1], (p[2],{"class": "good"})]]) for p in ps] 
-            return fillTable(setgroups,{"class":"neutral"})
+            setgroups = [[p[1], (p[2],{"class": "good"})] for p in ps]
+            setgroups = fillColumns(setgroups, 4)
+            setgroups = [ [x for l in g for x in l] for g in setgroups]
+            return makeTable(setgroups,{"class":"neutral"})
         
     def new_params_form(self,cset):
+        """Form for new parameters"""
         F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Add new parameters")
@@ -82,6 +117,7 @@ class ConfigWebManager(ConfigDB):
         return F
     
     def copy_params_form(self, cset):
+        """Form to copy a configuration set"""
         F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Copy to new configuration set")
@@ -106,7 +142,7 @@ class ConfigWebManager(ConfigDB):
         cset = self.clone_config(cset0, newname, descrip)
         return self.make_params_page(cset) if cset else self.make_families_page()
     
-    def delete_marked(self,form):
+    def delete_marked_params(self,form):
         """Remove parameters marked for deletion"""
         cset = int(form.getvalue("cset",0))
         if self.readonly or not cset or self.has_been_applied(cset):
@@ -118,6 +154,24 @@ class ConfigWebManager(ConfigDB):
                 except:
                     continue
         return self.make_params_page(cset)
+    
+    def delete_marked_csets(self,form):
+        """Remove parameters marked for deletion"""
+        if self.readonly:
+            return self.make_families_page()
+        for k in form:
+             if k[:4] == "rmr_":
+                try:
+                    cset = int(k[4:])
+                    if self.has_been_applied(cset):
+                        continue
+                    self.curs.execute("DELETE FROM config_values WHERE csid = ?", (cset,))
+                    self.curs.execute("DELETE FROM config_set WHERE rowid = ?", (cset,))
+                except:
+                    continue
+        if "family" in form:
+            return self.make_csets_page(form.getvalue("family"))
+        return self.make_families_page()
     
     def update_params(self,form):
         """Update specified parameter values"""
@@ -149,6 +203,20 @@ class ConfigWebManager(ConfigDB):
                     continue
         return self.make_params_page(cset)
     
+    def make_new_family(self,form):
+        """Add placeholder element for new family"""
+        fname = form.getvalue("famname",None)
+        if fname and not self.readonly:
+            try:
+                self.make_configset("placeholder", fname, "placeholder for family '%s'"%fname)
+            except:
+                pass
+        return self.make_families_page()
+    
+    
+    
+    
+    
 if __name__ == "__main__":
     dbname = "../config_test.db"
     conn = sqlite3.connect(dbname)
@@ -162,13 +230,19 @@ if __name__ == "__main__":
         C.clone_set(form)
         conn.commit()
     elif "del_params" in form:
-        C.delete_marked(form)
+        C.delete_marked_params(form)
+        conn.commit()
+    elif "del_csets" in form:
+        C.delete_marked_csets(form)
         conn.commit()
     elif "upd_params" in form:
         C.update_params(form)
         conn.commit()
     elif "add_params" in form:
         C.add_params(form)
+        conn.commit()
+    elif "newfamily" in form:
+        C.make_new_family(form)
         conn.commit()
     elif "family" in form:
         C.make_csets_page(form.getvalue("family"))
