@@ -103,7 +103,10 @@ class Metaform(ConfigDB):
         rlist = []
         nDeleteable = 0
         edname = ".".join([str(iid[0])]+iid[1])
-        for (k,v) in subobjs.items():
+        klist = list(subobjs.keys())
+        klist.sort()
+        for k in klist:
+            v = subobjs[k]
             subedname = (edname + "."+ k)
             isbase = v[0] in baseconfigs
             if type(v[1]) == type(u"") and v[1][:1] == "@":    # true subclasses
@@ -121,19 +124,33 @@ class Metaform(ConfigDB):
             if isbase:
                 rlist[-1].append(makeCheckbox("del_%i"%v[0]))
                 nDeleteable += 1
-                
+        
+        gp =  ET.Element("g")
+        
         F =  ET.Element("form", {"action":"/cgi-bin/Metaform.py", "method":"post"})
         addTag(F, "h2", contents = "class %s:%s"%self.get_setname(cfg[0][-1]))
-        F.append(makeTable(rlist))
-        addTag(F,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
-        addTag(F,"input",{"type":"submit","name":"update","value":"Update"})
+        Fs = addTag(F, "fieldset")
+        addTag(Fs, "legend", contents="Modify parameters")
+        Fs.append(makeTable(rlist))
+        addTag(Fs,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
+        addTag(Fs,"input",{"type":"submit","name":"update","value":"Update"})
         if nDeleteable:
-            addTag(F,"input",{"type":"submit","name":"delete","value":"Delete Marked"})
-        return F
+            addTag(Fs,"input",{"type":"submit","name":"delete","value":"Delete Marked"})
+        
+        gp.append(F)
+        
+        Fp = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
+        Fsp = addTag(F, "fieldset")
+        addTag(Fsp, "legend", contents="Add new parameter")
+        rows = [(["Name", "Value"], {"class":"tblhead"}),] 
+        addTag(Fsp,"input", {"type":"text", "name":"newnm", "size":"6"})
+        addTag(Fsp,"input", {"type":"text", "name":"newval", "size":"20"})
+        #addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
+        addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
     
-    
-    
-    
+        gp.append(Fp)
+        
+        return gp
     
     
 if __name__ == "__main__":
@@ -167,6 +184,16 @@ if __name__ == "__main__":
                     C.set_config_value(csid, itm[1], form.getvalue("new_"+d))
             except:
                 pass
+        conn.commit()
+        
+    if "addparam" in form and "edit" in form and "newnm" in form and "newval" in form:
+        try:
+            edpath = form.getvalue("edit").split(".")
+            csid = int(edpath[0])
+            if not C.has_been_applied(csid):
+                C.set_config_value(csid, ".".join(edpath[1:]+[form.getvalue("newnm")]), form.getvalue("newval"))
+        except:
+            pass
         conn.commit()
     
     if "edit" in form:
