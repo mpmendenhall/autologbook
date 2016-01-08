@@ -59,11 +59,12 @@ class Metaform(ConfigDB):
         cfg = [(r[0], (r[1],r[2])) for r in self.curs.fetchall()]
         # filter relevant to subpath
         if subpath:
-            cfg = [ c for c in cfg if c[0] == 0 or c[0].split(".")[0] == subpath[0] ]
+            subname = ".".join(subpath)
+            cfg = [ c for c in cfg if c[0] == 0 or c[0][:len(subname)] == subname or subname[:len(c[0])] == c[0] ]
         cfg = dict(cfg)
         # merge overrides from parent
         cfg.update(parentinfo)
-        cfg.setdefault(0,[]).append(classid) # special marker for class ID
+        cfg.setdefault(0,[]).append(classid) # class inheritance chain
         
         if not subpath:
             return cfg
@@ -78,7 +79,13 @@ class Metaform(ConfigDB):
             return None
 
         subcid = int(stp[1:])
-        return self.get_instance_info(subcid, subpath[1:], cfg)
+        subcfg = {}
+        for (k,v) in cfg.items():
+            if k == 0:
+                subcfg[k] = v
+            else:
+                subcfg[k.split(".",1)[1]] = v
+        return self.get_instance_info(subcid, subpath[1:], subcfg)
     
     
     def edit_object(self, iid):
@@ -98,19 +105,20 @@ class Metaform(ConfigDB):
         edname = ".".join([str(iid[0])]+iid[1])
         for (k,v) in subobjs.items():
             subedname = (edname + "."+ k)
+            isbase = v[0] in baseconfigs
             if type(v[1]) == type(u"") and v[1][:1] == "@":    # true subclasses
                 oid = int(v[1][1:])
                 assert oid not in self.prevobjs
                 self.prevobjs.add(oid)
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%subedname, "Edit")
-                rlist.append([k, self.render_object(oid, subdat.get(k,{})), edlink])
+                rlist.append([(k, {"class":"warning"}) if k in subdat else k, self.render_object(oid, subdat.get(k,{})), edlink])
             else:
-                if v[0] in baseconfigs:
+                if isbase:
                     updf = ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"})
                 else:
                     updf = ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"})
-                rlist.append([k, (v[1],{"class":"good"}), updf])
-            if v[0] in baseconfigs:
+                rlist.append([(k, {"class":"warning"}) if isbase else k, (v[1],{"class":"good"}), updf])
+            if isbase:
                 rlist[-1].append(makeCheckbox("del_%i"%v[0]))
                 nDeleteable += 1
                 
@@ -122,6 +130,11 @@ class Metaform(ConfigDB):
         if nDeleteable:
             addTag(F,"input",{"type":"submit","name":"delete","value":"Delete Marked"})
         return F
+    
+    
+    
+    
+    
     
 if __name__ == "__main__":
     dbname = "../config_test.db"
