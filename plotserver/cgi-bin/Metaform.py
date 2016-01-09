@@ -13,98 +13,211 @@ class Metaform(ConfigDB):
         ConfigDB.__init__(self,conn)
         self.readonly = False
         self.prevobjs = set()   # previously-seen objects to avoid circularity
-    
-    
-    def separate_objects(self, cfg):
-        """Divide configuration data into sub-object inheritances"""
-        # sort into sub-objects
-        subobjs = { }
-        subdat = { }
-        for (k,v) in cfg.items():
-            if k == 0:
-                continue
-            if '.' in k:
-                kk = k.split('.',1)
-                subdat.setdefault(kk[0],{})[kk[1]] = v
-            else:
-                subobjs[k] = v
-        return (subobjs, subdat)
-     
-    def render_object(self, csid, instinfo = {}, parentids = set()):
-        """Return HTML block rendering of specified object with instance data"""
+        self.dbcache = {}		# cache of top-level DB entries
+
+    def load_toplevel(self, csid):
+        """Get top-level config information from DB; format into context data"""
         
-        # base values from object
+        if csid in self.dbcache: # check in-memory cache to decrease DB hits
+        	return self.dbcache[csid]
+        
         self.curs.execute("SELECT name,rowid,value FROM config_values WHERE csid = ?", (csid,))
-        cfg = dict([(r[0], (r[1],r[2])) for r in self.curs.fetchall()])
-        # merge overrides from instance
-        cfg.update(instinfo)
-        # sort into sub-objects
-        (subobjs, subdat) = self.separate_objects(cfg)
-        
-        rlist = []
-        for (k,v) in subobjs.items():
-            if type(v[1]) == type("") and v[1][:1] == "@":    # true subclasses
-                oid = int(v[1][1:])
-                assert oid not in parentids
-                rlist.append([k, self.render_object(oid, subdat.get(k,{}), parentids = parentids.union(set((oid,))))])
-            else:
-                rlist.append([k, (v[1],{"class":"good"})])
-        return makeTable(rlist)
+        d = dict([((csid,) + tuple(r[0].split('.')), (r[1], r[2])) for r in self.curs.fetchall()])
+        self.dbcache[csid] = d
+        return d
     
-    def get_instance_info(self, classid, subpath, parentinfo = {}):
+    def reconstruct_instance(self, path, context = {}, cyccheck = None):
         """Reconstruct information for specified instance"""
-
-        # class values
-        self.curs.execute("SELECT name,rowid,value FROM config_values WHERE csid = ?", (classid,))
-        cfg = [(r[0], (r[1],r[2])) for r in self.curs.fetchall()]
-        # filter relevant to subpath
-        if subpath:
-            subname = ".".join(subpath)
-            cfg = [ c for c in cfg if c[0] == 0 or c[0][:len(subname)] == subname or subname[:len(c[0])] == c[0] ]
-        cfg = dict(cfg)
-        # merge overrides from parent
-        cfg.update(parentinfo)
-        cfg.setdefault(0,[]).append(classid) # class inheritance chain
+        #print("<!-- searching", path, "in", context, "-->")
         
-        if not subpath:
-            return cfg
+        if not path: # end of reconstruction
+            #print("<!-- found", context, "-->")
+            return context
         
-        # follow to next item in path
-        try:
-            stp = cfg[subpath[0]][1]
-            if stp[:1] != "@": # not a class specifier
-                return None
-            cfg.pop(subpath[0])
-        except:
-            return None
+        if cyccheck is None: # initialize cyclical references check
+            cyccheck = {path}
 
-        subcid = int(stp[1:])
-        subcfg = {}
-        for (k,v) in cfg.items():
-            if k == 0:
-                subcfg[k] = v
+        if type(path[0]) == type(1): # top-level specifier; need to load path data
+            context = self.load_toplevel(path[0])
+            #print("<!-- found top-level data", context, "-->")
+
+        # filter out relevant info from larger context
+        subcontext = dict([ (k[1:],v) for (k,v) in context.items() if k[:len(path)] == path[:len(k)] ])
+        #print("<!-- filtered to", subcontext, "-->")
+        if not subcontext: # terminate search if no remaining relevant data
+        	return {}
+
+        # check for and expand link
+        if tuple() in subcontext and subcontext[tuple()][1][0] == '@':
+            #print("<!-- found link", subcontext[tuple()], "-->")
+            lpath = subcontext[tuple()][1][1:].split(".")
+            #try:
+            if True:
+                lpath[0] = int(lpath[0])
+                lpath = tuple(lpath)
+                if lpath not in cyccheck:
+                    ldata = self.reconstruct_instance(lpath, {}, cyccheck.union({lpath}))
+                    subcontext.pop(tuple())
+                    ldata.update(subcontext)
+                    subcontext = ldata
+                else:
+                    subcontext[tuple()] = (subcontext[tuple()][0], "CYCLIC"+subcontext[tuple()][1])
+                    #print("<!-- Not following cyclic link! -->")
+            #except:
+                pass
+        
+        # expand * wildcards TODO
+
+        # continue search down path
+        return self.reconstruct_instance(path[1:], subcontext, cyccheck)
+    
+    @staticmethod
+    def subdivide_context(d):
+        """Divide context dictionary into sub-branches"""
+        subdat = { }
+        for (k,v) in d.items():
+            if not len(k):
+            	continue
+            subdat.setdefault(k[0],{})[k[1:]] = v
+        return subdat
+    
+    def traverse_context(self, context, cyccheck = None):
+        """Traverse to fully expand tree defined by context"""
+        #print("<!-- traversing", context, "-->")
+        
+        if cyccheck is None: # initialize cyclical references check
+            cyccheck = set()
+        
+        # check if top level is link; expand context with link contents if so
+        thiso = context.get(tuple(), (None,None))
+        islink = None
+        if type(thiso[1]) == type("") and thiso[1][0] == '@':
+            #print("<!-- found link", thiso, "-->")
+            lpath = thiso[1][1:].split(".")
+            try:
+                lpath[0] = int(lpath[0])
+                lpath = tuple(lpath)
+                if lpath not in cyccheck:
+                    ldata = self.reconstruct_instance(lpath, {}, cyccheck.union({lpath}))
+                    context.pop(tuple())
+                    ldata.update(context)
+                    islink = thiso
+                    context = ldata
+                else:
+                    context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
+                    #print("<!-- Not following cyclic link! -->")
+            except:
+                pass
+            thiso = context.get(tuple(), (None, None))
+
+        subdat = self.subdivide_context(context)
+
+        expanded = {'': thiso} if thiso is not None else {}
+        if islink is not None:
+            expanded[None] = islink
+        for k in subdat:
+            v = subdat[k]
+            expanded[k] = self.traverse_context(v, cyccheck)
+        return expanded
+            
+    def displayform(self, obj):
+        """Display form of object tree"""
+        
+        # fix sort order by variable name
+        rlist = []
+        klist = [ k for k in obj.keys() if k is not None]
+        klist.sort()
+        
+        for k in klist:
+            v = obj[k]
+            if k == '':
+                if v[1]:
+                    rlist.append(["(this)", (v[1],{"class":"good"})])
+            elif tuple(v.keys()) == ('',):
+                rlist.append([k, (v[''][1],{"class":"good"})])
             else:
-                subcfg[k.split(".",1)[1]] = v
-        return self.get_instance_info(subcid, subpath[1:], subcfg)
-    
-    
+                rlist.append([k, self.displayform(v)])
+        return makeTable(rlist)
+
+
     def edit_object(self, iid):
         """Object editor page, given object type config and instance"""
         
-        self.curs.execute("SELECT rowid FROM config_values WHERE csid = ?", (iid[0],))
-        baseconfigs = set([r[0] for r in self.curs.fetchall()]) # configuration defined at base class
+        topdat = set([v[0] for v in self.load_toplevel(iid[0]).values()])
+        ic = self.reconstruct_instance(iid)
+        obj = self.traverse_context(ic,None)
+        print("<!--", obj, "-->")
         
-        cfg = self.get_instance_info(iid[0], iid[1])
-        assert cfg
-        (subobjs, subdat) = self.separate_objects(cfg)
-        
-        # render sub-objects (non-dotted names):
-        # TODO deal with orphaned dotted names
+        # fix sort order by variable name
         rlist = []
-        nDeleteable = 0
-        edname = ".".join([str(iid[0])]+iid[1])
-        klist = list(subobjs.keys())
+        klist = [ k for k in obj.keys() if k is not None]
         klist.sort()
+        
+        nDeleteable = 0
+        edname = ".".join((str(iid[0]),)+iid[1:])
+        for k in klist:
+            v = obj[k]
+            islink = None in v
+            basenum = None
+            subedname = (edname+"."+k)
+            
+            if k == '': # final node value... sometimes need to edit in compound classes
+                if v[1]:
+                    basenum = v[0] if v[0] in topdat else None
+                    rlist.append([("(this)", {"class":"warning"}) if basenum else "(this)", (v[1],{"class":"good"})])
+        
+            elif tuple(v.keys()) == ('',): # simple final node value
+                vv = v['']
+                if vv[1]:
+                    basenum = vv[0] if vv[0] in topdat else None
+                    if basenum:
+                        updf = ET.Element('input', {"type":"text", "name":"val_%i"%vv[0], "size":"20"})
+                    else:
+                        updf = ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"})
+                    rlist.append([(k, {"class":"warning"}) if basenum else k, (vv[1],{"class":"good"}), updf])
+            
+            else: # more complex objects...
+                if '' in v:
+                    basenum = v[''][0] if v[''][0] in topdat else None
+                if islink:
+                    basenum = v[None][0] if v[None][0] in topdat else None
+                edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%subedname, "Edit")
+                kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%v[None][1][1:], "("+k+")") if islink else k
+                rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.displayform(v), edlink])
+            
+            if basenum is not None:
+                rlist[-1].append(makeCheckbox("del_%i"%basenum))
+                nDeleteable += 1
+    
+        gp =  ET.Element("g")
+   
+        
+        F =  ET.Element("form", {"action":"/cgi-bin/Metaform.py", "method":"post"})
+        addTag(F, "h2", contents = "class %s:%s"%self.get_setname(iid[0]))
+        Fs = addTag(F, "fieldset")
+        addTag(Fs, "legend", contents="Modify parameters")
+        Fs.append(makeTable(rlist))
+        addTag(Fs,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
+        addTag(Fs,"input",{"type":"submit","name":"update","value":"Update"})
+        if nDeleteable:
+            addTag(Fs,"input",{"type":"submit","name":"delete","value":"Delete Marked"})
+
+        gp.append(F)
+        
+        Fp = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
+        Fsp = addTag(F, "fieldset")
+        addTag(Fsp, "legend", contents="Add new parameter")
+        rows = [(["Name", "Value"], {"class":"tblhead"}),]
+        addTag(Fsp,"input", {"type":"text", "name":"newnm", "size":"6"})
+        addTag(Fsp,"input", {"type":"text", "name":"newval", "size":"20"})
+        #addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
+        addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
+        
+        gp.append(Fp)
+        
+        return gp
+        
+        
         for k in klist:
             v = subobjs[k]
             subedname = (edname + "."+ k)
@@ -121,36 +234,8 @@ class Metaform(ConfigDB):
                 else:
                     updf = ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"})
                 rlist.append([(k, {"class":"warning"}) if isbase else k, (v[1],{"class":"good"}), updf])
-            if isbase:
-                rlist[-1].append(makeCheckbox("del_%i"%v[0]))
-                nDeleteable += 1
         
-        gp =  ET.Element("g")
-        
-        F =  ET.Element("form", {"action":"/cgi-bin/Metaform.py", "method":"post"})
-        addTag(F, "h2", contents = "class %s:%s"%self.get_setname(cfg[0][-1]))
-        Fs = addTag(F, "fieldset")
-        addTag(Fs, "legend", contents="Modify parameters")
-        Fs.append(makeTable(rlist))
-        addTag(Fs,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
-        addTag(Fs,"input",{"type":"submit","name":"update","value":"Update"})
-        if nDeleteable:
-            addTag(Fs,"input",{"type":"submit","name":"delete","value":"Delete Marked"})
-        
-        gp.append(F)
-        
-        Fp = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
-        Fsp = addTag(F, "fieldset")
-        addTag(Fsp, "legend", contents="Add new parameter")
-        rows = [(["Name", "Value"], {"class":"tblhead"}),] 
-        addTag(Fsp,"input", {"type":"text", "name":"newnm", "size":"6"})
-        addTag(Fsp,"input", {"type":"text", "name":"newval", "size":"20"})
-        #addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
-        addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
-    
-        gp.append(Fp)
-        
-        return gp
+
     
     
 if __name__ == "__main__":
@@ -198,12 +283,12 @@ if __name__ == "__main__":
     
     if "edit" in form:
         iid = form.getvalue("edit").split(".")
-        iid = (int(iid[0]), iid[1:])
+        iid = (int(iid[0]),) + tuple(iid[1:])
         P,b = makePageStructure("Metaform")
         h1 = addTag(b,"h1", contents = "Editing ")
         vstr = "%i"%iid[0]
         h1.append(makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, iid[0]))
-        for v in iid[1]:
+        for v in iid[1:]:
             vstr += ".%s"%v
             h1.append(makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, "."+v))
         b.append(C.edit_object(iid))
