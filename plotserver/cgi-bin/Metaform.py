@@ -24,7 +24,10 @@ class Metaform(ConfigDB):
         
         self.curs.execute("SELECT name,rowid,value FROM config_values WHERE csid = ?", (csid,))
         # note: drop empty items between multiple dots... treats multiple dots as one
-        d = dict([((csid,) + tuple([i for i in r[0].split('.') if i]), (r[1], r[2])) for r in self.curs.fetchall()])
+        #d = dict([((csid,) + tuple([i for i in r[0].split('.') if i]), (r[1], r[2])) for r in self.curs.fetchall()])
+
+        d = dict([((csid,) + tuple([i for i in r[0].split('.')]), (r[1], r[2])) for r in self.curs.fetchall()])
+        
         self.dbcache[csid] = d
         return d
     
@@ -128,9 +131,9 @@ class Metaform(ConfigDB):
     
         # consider each sub-branch
         subdat = self.subdivide_context(context)
-        expanded = {'': thiso} if thiso is not None else {}
+        expanded = {None: thiso} if thiso is not None else {}
         if islink is not None:
-            expanded[None] = islink
+            expanded[0] = islink # special marker for linked objects
         for k in subdat:
             v = subdat[k]
             expanded[k] = self.traverse_context(v, cyccheck)
@@ -142,41 +145,54 @@ class Metaform(ConfigDB):
         
         #########################
         # special case processing
-        specialkeys = set((None, "!xml"))
+        
+        # remove extra link information
+        islink = None
+        if 0 in obj:
+            islink = obj[0]
+            obj.pop(0)
+        
+        # special simple-object case
+        if len(obj)==1 and None in obj:
+            return addTag(None,"g", {"class":"good"}, obj[None][1])
+
         wraptag = None
         
         # xml tags
         if "!xml" in obj:
             xargs = {}
-            for k in [k for k in obj if type(k)==type("") and k[:1]=='$']:
-                specialkeys.add(k)
-                xargs[k[1:]] = obj[k][''][1]
-            wraptag = ET.Element(obj["!xml"][''][1], xargs)
-        
+            for k in [k for k in obj["!xml"] if type(k)==type("") and k[:1]=='#']:
+                xargs[k[1:]] = obj["!xml"][k][None][1]
+            wraptag = ET.Element(obj["!xml"][None][1], xargs)
+            obj.pop("!xml")
+
         # list-like objects
-        itmtag = obj.get("!list",{'':(None,None)})[''][1]
+        itmtag = obj.get("!list", {None: (None,None)})[None][1]
         if itmtag:
             L = wraptag if wraptag is not None else ET.Element("ul")
             klist = [ k for k in obj.keys() if k and k[:1]=="#" and k[-1:] != '*']
             klist.sort()
             for k in klist:
-                addTag(L, itmtag, contents=self.displayform(obj[k]))
+                addTag(L, itmtag, contents = self.displayform(obj[k]))
             return L
         
         # fix sort order by variable name
         rlist = []
-        klist = [ k for k in obj.keys() if k not in specialkeys and k[-1:] != '*']
+        klist = [ k for k in obj.keys() if  k is not None and k[-1:] != '*']
         klist.sort()
-        
+        if None in obj:
+            klist = [None,] + klist
+
+        # display entities for each non-"special" object
         for k in klist:
-            if itmtag and k[:1] != "#":
+            if itmtag and (k is not None and k[:1] != "#"):
                 continue
             v = obj[k]
-            if k == '' and type(v) == type(tuple()):
+            if k == None:
                 if v[1]:
                     rlist.append(["(this)", (v[1],{"class":"good"})])
-            elif tuple(v.keys()) == ('',):
-                rlist.append([k, (v[''][1],{"class":"good"})])
+            elif tuple(v.keys()) == (None,):
+                rlist.append([k, (v[None][1],{"class":"good"})])
             else:
                 rlist.append([k, self.displayform(v)])
 
@@ -207,30 +223,30 @@ class Metaform(ConfigDB):
         topdat = set([v[0] for v in self.load_toplevel(iid[0]).values()])
         ic = self.reconstruct_instance(iid)
         obj = self.traverse_context(ic,None)
-        #print("<!-- edit_object", obj, "-->")
+        print("<!-- edit_object", obj, "-->")
         
         # fix sort order by variable name
         rlist = []
-        klist = [ k for k in obj.keys() if k is not None]
+        klist = [ k for k in obj.keys() if k not in (None, 0)]
         klist.sort()
         
         nDeleteable = 0
         edname = ".".join((str(iid[0]),)+iid[1:])
         for k in klist:
             v = obj[k]
-            islink = None in v
+            islink = 0 in v
             basenum = None
             subedname = (edname+"."+k)
             
-            if k == '': # final node value... sometimes need to edit in compound classes
+            if k == None: # final node value... sometimes need to edit in compound classes
                 if v[1]:
                     basenum = v[0] if v[0] in topdat else None
                     rlist.append([("(this)", {"class":"warning"}) if basenum else "(this)", (v[1],{"class":"good"})])
                     if basenum:
                         rlist[-1].append(ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"}))
         
-            elif tuple(v.keys()) == ('',): # simple editable final node value
-                vv = v['']
+            elif tuple(v.keys()) == (None,): # simple editable final node value
+                vv = v[None]
                 if type(vv) == type(tuple()) and vv[1]:
                     basenum = vv[0] if vv[0] in topdat else None
                     if basenum:
@@ -240,12 +256,12 @@ class Metaform(ConfigDB):
                     rlist.append([(k, {"class":"warning"}) if basenum else k, (vv[1],{"class":"good"}), updf])
             
             else: # more complex objects...
-                if '' in v:
-                    basenum = v[''][0] if v[''][0] in topdat else None
+                if None in v:
+                    basenum = v[None][0] if v[None][0] in topdat else None
                 if islink:
                     basenum = v[None][0] if v[None][0] in topdat else None
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
-                kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(v[None][1][1:]), "("+k+")") if islink else k
+                kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(v[0][1][1:]), "("+k+")") if islink else "None" if k is None else "''" if not k else k
                 rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.displayform(v), (edlink, {"style":"text-align:center"})])
             
             if basenum is not None:
