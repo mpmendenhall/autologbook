@@ -4,6 +4,7 @@ from WebpageUtils import *
 from configDBcontrol import *
 import time
 import cgi
+import urllib.parse as urlp
 
 
 class Metaform(ConfigDB):
@@ -22,13 +23,15 @@ class Metaform(ConfigDB):
         	return self.dbcache[csid]
         
         self.curs.execute("SELECT name,rowid,value FROM config_values WHERE csid = ?", (csid,))
-        d = dict([((csid,) + tuple(r[0].split('.')), (r[1], r[2])) for r in self.curs.fetchall()])
+        # note: drop empty items between multiple dots... treats multiple dots as one
+        d = dict([((csid,) + tuple([i for i in r[0].split('.') if i]), (r[1], r[2])) for r in self.curs.fetchall()])
         self.dbcache[csid] = d
         return d
     
     def reconstruct_instance(self, path, context = {}, cyccheck = None):
         """Reconstruct information for specified instance"""
         #print("<!-- searching", path, "in", context, "-->")
+        
         
         if not path: # end of reconstruction
             #print("<!-- found", context, "-->")
@@ -111,8 +114,20 @@ class Metaform(ConfigDB):
                 pass
             thiso = context.get(tuple(), (None, None))
 
-        subdat = self.subdivide_context(context)
 
+        # expand wildcard items
+        kset = list(context.keys())
+        kset.sort() # standardize application order
+        for c in [k for k in kset if k and k[0][-1:] == '*']:
+            cc = c[0][:-1]
+            for c2 in kset:
+                if c2 and c2[0][-1] != '*' and c2[0][:len(cc)] == cc:
+                    creplace  = (c2[0],) + c[1:]
+                    context[creplace] = context[c]
+            #context.pop(c) leave in... suppress on display
+    
+        # consider each sub-branch
+        subdat = self.subdivide_context(context)
         expanded = {'': thiso} if thiso is not None else {}
         if islink is not None:
             expanded[None] = islink
@@ -142,7 +157,7 @@ class Metaform(ConfigDB):
         itmtag = obj.get("!list",{'':(None,None)})[''][1]
         if itmtag:
             L = wraptag if wraptag is not None else ET.Element("ul")
-            klist = [ k for k in obj.keys() if k and k[:1]=="#"]
+            klist = [ k for k in obj.keys() if k and k[:1]=="#" and k[-1:] != '*']
             klist.sort()
             for k in klist:
                 addTag(L, itmtag, contents=self.displayform(obj[k]))
@@ -150,14 +165,14 @@ class Metaform(ConfigDB):
         
         # fix sort order by variable name
         rlist = []
-        klist = [ k for k in obj.keys() if k not in specialkeys]
+        klist = [ k for k in obj.keys() if k not in specialkeys and k[-1:] != '*']
         klist.sort()
         
         for k in klist:
             if itmtag and k[:1] != "#":
                 continue
             v = obj[k]
-            if k == '':
+            if k == '' and type(v) == type(tuple()):
                 if v[1]:
                     rlist.append(["(this)", (v[1],{"class":"good"})])
             elif tuple(v.keys()) == ('',):
@@ -165,7 +180,7 @@ class Metaform(ConfigDB):
             else:
                 rlist.append([k, self.displayform(v)])
 
-        if len(rlist) == 1:
+        if len(rlist) == 1 and False: #TODO breaks on deeply-embedded and complex objects
             r = rlist[0]
             wraptag = wraptag if wraptag else ET.Element("g")
             wraptag.text = r[0]
@@ -192,7 +207,7 @@ class Metaform(ConfigDB):
         topdat = set([v[0] for v in self.load_toplevel(iid[0]).values()])
         ic = self.reconstruct_instance(iid)
         obj = self.traverse_context(ic,None)
-        print("<!--", obj, "-->")
+        #print("<!-- edit_object", obj, "-->")
         
         # fix sort order by variable name
         rlist = []
@@ -214,9 +229,9 @@ class Metaform(ConfigDB):
                     if basenum:
                         rlist[-1].append(ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"}))
         
-            elif tuple(v.keys()) == ('',): # simple final node value
+            elif tuple(v.keys()) == ('',): # simple editable final node value
                 vv = v['']
-                if vv[1]:
+                if type(vv) == type(tuple()) and vv[1]:
                     basenum = vv[0] if vv[0] in topdat else None
                     if basenum:
                         updf = ET.Element('input', {"type":"text", "name":"val_%i"%vv[0], "size":"20"})
@@ -229,9 +244,9 @@ class Metaform(ConfigDB):
                     basenum = v[''][0] if v[''][0] in topdat else None
                 if islink:
                     basenum = v[None][0] if v[None][0] in topdat else None
-                edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%subedname, "Edit")
-                kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%v[None][1][1:], "("+k+")") if islink else k
-                rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.displayform(v), edlink])
+                edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
+                kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(v[None][1][1:]), "("+k+")") if islink else k
+                rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.displayform(v), (edlink, {"style":"text-align:center"})])
             
             if basenum is not None:
                 rlist[-1].append(makeCheckbox("del_%i"%basenum))
@@ -263,8 +278,21 @@ class Metaform(ConfigDB):
         gp.append(Fp)
         return gp
         
+def linkedname(iid, toptag):
+    """Object name with links to editor"""
+    iid = iid.split(".")
+    iid = (int(iid[0]),) + tuple(iid[1:])
+    vstr = "%i"%iid[0]
+    prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), "%s:%s"%C.get_setname(iid[0]))
+    toptag.append(prev)
+    for v in iid[1:]:
+        vstr += ".%s"%v
+        prev.tail = "."
+        prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), v)
+        toptag.append(prev)
+    return iid
 
-    
+
     
 if __name__ == "__main__":
     dbname = "../config_test.db"
@@ -310,36 +338,18 @@ if __name__ == "__main__":
         conn.commit()
     
     if "view" in form:
-        iid = form.getvalue("view").split(".")
-        iid = (int(iid[0]),) + tuple(iid[1:])
         P,b = makePageStructure("Metaform")
         h1 = addTag(b,"h1", contents = "Viewing ")
-        vstr = "%i"%iid[0]
-        prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, "%s:%s"%C.get_setname(iid[0]))
-        h1.append(prev)
-        for v in iid[1:]:
-            vstr += ".%s"%v
-            prev.tail = "."
-            prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, v)
-            h1.append(prev)
+        iid = linkedname(form.getvalue("view"),h1)
         ic = C.reconstruct_instance(iid)
         obj = C.traverse_context(ic,None)
         b.append(C.displayform(obj))
         print(prettystring(P))
 
     elif "edit" in form:
-        iid = form.getvalue("edit").split(".")
-        iid = (int(iid[0]),) + tuple(iid[1:])
         P,b = makePageStructure("Metaform")
         h1 = addTag(b,"h1", contents = "Editing ")
-        vstr = "%i"%iid[0]
-        prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, "%s:%s"%C.get_setname(iid[0]))
-        h1.append(prev)
-        for v in iid[1:]:
-            vstr += ".%s"%v
-            prev.tail = "."
-            prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, v)
-            h1.append(prev)
+        iid = linkedname(form.getvalue("edit") ,h1)
         b.append(C.edit_object(iid))
         print(prettystring(P))
     
