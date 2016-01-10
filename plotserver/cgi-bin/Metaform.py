@@ -48,9 +48,10 @@ class Metaform(ConfigDB):
         	return {}
 
         # check for and expand link
-        if tuple() in subcontext and subcontext[tuple()][1][0] == '@':
+        thiso = subcontext.get(tuple(), None)
+        if thiso and type(thiso[1])==type('') and thiso[1][0] == '@':
             #print("<!-- found link", subcontext[tuple()], "-->")
-            lpath = subcontext[tuple()][1][1:].split(".")
+            lpath = thiso[1][1:].split(".")
             #try:
             if True:
                 lpath[0] = int(lpath[0])
@@ -119,13 +120,27 @@ class Metaform(ConfigDB):
             v = subdat[k]
             expanded[k] = self.traverse_context(v, cyccheck)
         return expanded
-            
+    
+    
+    
+    
+    
     def displayform(self, obj):
         """Display form of object tree"""
         
+        # special case processing
+        specialkeys = set((None, "xml"))
+        wraptag = None
+        if "xml" in obj:
+            xargs = {}
+            for k in [k for k in obj if type(k)==type("") and k[:1]=='$']:
+                specialkeys.add(k)
+                xargs[k[1:]] = obj[k][''][1]
+            wraptag = ET.Element(obj["xml"][''][1], xargs)
+        
         # fix sort order by variable name
         rlist = []
-        klist = [ k for k in obj.keys() if k is not None]
+        klist = [ k for k in obj.keys() if k not in specialkeys]
         klist.sort()
         
         for k in klist:
@@ -137,7 +152,11 @@ class Metaform(ConfigDB):
                 rlist.append([k, (v[''][1],{"class":"good"})])
             else:
                 rlist.append([k, self.displayform(v)])
-        return makeTable(rlist)
+
+        tbl = makeTable(rlist)
+        if wraptag is not None:
+            wraptag.append(tbl)
+        return wraptag if wraptag is not None else tbl
 
 
     def edit_object(self, iid):
@@ -165,6 +184,8 @@ class Metaform(ConfigDB):
                 if v[1]:
                     basenum = v[0] if v[0] in topdat else None
                     rlist.append([("(this)", {"class":"warning"}) if basenum else "(this)", (v[1],{"class":"good"})])
+                    if basenum:
+                        rlist[-1].append(ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"}))
         
             elif tuple(v.keys()) == ('',): # simple final node value
                 vv = v['']
@@ -193,7 +214,6 @@ class Metaform(ConfigDB):
    
         
         F =  ET.Element("form", {"action":"/cgi-bin/Metaform.py", "method":"post"})
-        addTag(F, "h2", contents = "class %s:%s"%self.get_setname(iid[0]))
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Modify parameters")
         Fs.append(makeTable(rlist))
@@ -287,10 +307,13 @@ if __name__ == "__main__":
         P,b = makePageStructure("Metaform")
         h1 = addTag(b,"h1", contents = "Editing ")
         vstr = "%i"%iid[0]
-        h1.append(makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, iid[0]))
+        prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, "%s:%s"%C.get_setname(iid[0]))
+        h1.append(prev)
         for v in iid[1:]:
             vstr += ".%s"%v
-            h1.append(makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, "."+v))
+            prev.tail = "."
+            prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, v)
+            h1.append(prev)
         b.append(C.edit_object(iid))
         print(prettystring(P))
     
