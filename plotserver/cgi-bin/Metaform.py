@@ -122,21 +122,31 @@ class Metaform(ConfigDB):
         return expanded
     
     
-    
-    
-    
     def displayform(self, obj):
         """Display form of object tree"""
         
+        #########################
         # special case processing
-        specialkeys = set((None, "xml"))
+        specialkeys = set((None, "!xml"))
         wraptag = None
-        if "xml" in obj:
+        
+        # xml tags
+        if "!xml" in obj:
             xargs = {}
             for k in [k for k in obj if type(k)==type("") and k[:1]=='$']:
                 specialkeys.add(k)
                 xargs[k[1:]] = obj[k][''][1]
-            wraptag = ET.Element(obj["xml"][''][1], xargs)
+            wraptag = ET.Element(obj["!xml"][''][1], xargs)
+        
+        # list-like objects
+        itmtag = obj.get("!list",{'':(None,None)})[''][1]
+        if itmtag:
+            L = wraptag if wraptag is not None else ET.Element("ul")
+            klist = [ k for k in obj.keys() if k and k[:1]=="#"]
+            klist.sort()
+            for k in klist:
+                addTag(L, itmtag, contents=self.displayform(obj[k]))
+            return L
         
         # fix sort order by variable name
         rlist = []
@@ -144,6 +154,8 @@ class Metaform(ConfigDB):
         klist.sort()
         
         for k in klist:
+            if itmtag and k[:1] != "#":
+                continue
             v = obj[k]
             if k == '':
                 if v[1]:
@@ -153,10 +165,25 @@ class Metaform(ConfigDB):
             else:
                 rlist.append([k, self.displayform(v)])
 
+        if len(rlist) == 1:
+            r = rlist[0]
+            wraptag = wraptag if wraptag else ET.Element("g")
+            wraptag.text = r[0]
+            if ET.iselement(r[1]):
+                wraptag.append(r[1])
+            else:
+                el = ET.Element("g", r[1][1])
+                el.text = r[1][0]
+                wraptag.append(el)
+            return wraptag
+
         tbl = makeTable(rlist)
         if wraptag is not None:
             wraptag.append(tbl)
         return wraptag if wraptag is not None else tbl
+
+
+
 
 
     def edit_object(self, iid):
@@ -234,26 +261,7 @@ class Metaform(ConfigDB):
         addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
         
         gp.append(Fp)
-        
         return gp
-        
-        
-        for k in klist:
-            v = subobjs[k]
-            subedname = (edname + "."+ k)
-            isbase = v[0] in baseconfigs
-            if type(v[1]) == type(u"") and v[1][:1] == "@":    # true subclasses
-                oid = int(v[1][1:])
-                assert oid not in self.prevobjs
-                self.prevobjs.add(oid)
-                edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%subedname, "Edit")
-                rlist.append([(k, {"class":"warning"}) if k in subdat else k, self.render_object(oid, subdat.get(k,{})), edlink])
-            else:
-                if isbase:
-                    updf = ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"})
-                else:
-                    updf = ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"})
-                rlist.append([(k, {"class":"warning"}) if isbase else k, (v[1],{"class":"good"}), updf])
         
 
     
@@ -301,7 +309,25 @@ if __name__ == "__main__":
             pass
         conn.commit()
     
-    if "edit" in form:
+    if "view" in form:
+        iid = form.getvalue("view").split(".")
+        iid = (int(iid[0]),) + tuple(iid[1:])
+        P,b = makePageStructure("Metaform")
+        h1 = addTag(b,"h1", contents = "Viewing ")
+        vstr = "%i"%iid[0]
+        prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, "%s:%s"%C.get_setname(iid[0]))
+        h1.append(prev)
+        for v in iid[1:]:
+            vstr += ".%s"%v
+            prev.tail = "."
+            prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%vstr, v)
+            h1.append(prev)
+        ic = C.reconstruct_instance(iid)
+        obj = C.traverse_context(ic,None)
+        b.append(C.displayform(obj))
+        print(prettystring(P))
+
+    elif "edit" in form:
         iid = form.getvalue("edit").split(".")
         iid = (int(iid[0]),) + tuple(iid[1:])
         P,b = makePageStructure("Metaform")
