@@ -48,7 +48,7 @@ class Metaform(ConfigDB):
     #
     # expanded: { x : { y: { z : { None:(ID,value) } }, None:(ID,value) }
     
-    def traverse_context(self, context, find = None, cyccheck = None):
+    def traverse_context(self, context, find = None, cyccheck = None, wildcard = True):
         """Expand context into tree, including links; return target context or whole expanded tree."""
         
         if cyccheck is None: # initialize cyclical references check
@@ -71,14 +71,12 @@ class Metaform(ConfigDB):
             else:
                 context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
                 #print("<!-- Not following cyclic link! -->")
-
-            thiso = context.get(tuple(), (None, None))
-
-        if find == tuple(): # end of find
+        
+        if find == tuple(): # context at end of find mode... before wildcard expansion
             return context
         
         # expand wildcard items
-        if find is None: # TODO in find case
+        if wildcard:
             kset = [k for k in context.keys() if k and isinstance(k[0], str)]
             kset.sort() # standardize application order
             for c in [k for k in kset if k[0][-1:] == '*']:
@@ -87,10 +85,10 @@ class Metaform(ConfigDB):
                     if c2 and c2[0][-1] != '*' and c2[0][:len(cc)] == cc:
                         creplace  = (c2[0],) + c[1:]
                         context[creplace] = context[c]
-    
+
         # consider each sub-branch
         subdat = self.subdivide_context(context, find)
-        expanded = {None: thiso} if thiso != (None,None) else {}
+        expanded = {None: context[tuple()]} if tuple() in context else {}
         if islink is not None:
             expanded[0] = islink # special marker for linked objects
         for k in subdat:
@@ -183,7 +181,7 @@ class Metaform(ConfigDB):
         idat = self.load_toplevel(iid[0])
         topkeys = set([v[0] for v in idat.values()])
         obj = self.traverse_context(idat, iid)
-        obj = self.traverse_context(obj)
+        obj = self.traverse_context(obj, wildcard = False)
         print("<!-- edit_object", obj, "-->")
         
         # fix sort order by variable name
@@ -271,6 +269,8 @@ def linkedname(iid, toptag):
         toptag.append(prev)
     return iid
 
+# TODO
+# editing target of links within object
 
     
 if __name__ == "__main__":
