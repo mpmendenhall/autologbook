@@ -43,60 +43,61 @@ class Metaform(ConfigDB):
             subdat.setdefault(k[0],{})[k[1:]] = v
         return subdat
     
+    # context: { (x,y,z) : (ID, value), (): (ID,value) }
+    #   can be merged/updated with other contexts
+    #
+    # expanded: { x : { y: { z : { None:(ID,value) } }, None:(ID,value) }
+    
     def traverse_context(self, context, find = None, cyccheck = None):
-        """Traverse to fully expand tree defined by context"""
-        
-        if find == tuple(): # end of find
-            return context
+        """Expand context into tree, including links; return target context or whole expanded tree."""
         
         if cyccheck is None: # initialize cyclical references check
             cyccheck = set()
         
         # check if top level is link; expand context with link contents if so
-        thiso = context.get(tuple(), (None,None))
-        islink = None
+        thiso = context.get(tuple(), (None,None)) # "this" value for top-level object in traversal, including link expansion
+        islink = None # filled in with link information
         if isinstance(thiso[1],str) and thiso[1][:1] == '@':
             #print("<!-- found link", thiso, "-->")
             lpath = thiso[1][1:].split(".")
-            try:
-                lpath[0] = int(lpath[0])
-                lpath = tuple(lpath)
-                if lpath not in cyccheck:
-                    ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck.union({lpath}))
-                    context.pop(tuple())
-                    ldata.update(context)
-                    islink = thiso
-                    context = ldata
-                else:
-                    context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
-                    #print("<!-- Not following cyclic link! -->")
-            except:
-                pass
+            lpath[0] = int(lpath[0])
+            lpath = tuple(lpath)
+            if lpath not in cyccheck:
+                ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck.union({lpath}))
+                context.pop(tuple()) # remove origin link
+                ldata.update(context) # over-write linked data
+                context = ldata # modified data is new context
+                islink = thiso # save link information
+            else:
+                context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
+                #print("<!-- Not following cyclic link! -->")
+
             thiso = context.get(tuple(), (None, None))
 
-
+        if find == tuple(): # end of find
+            return context
+        
         # expand wildcard items
-        kset = [k for k in context.keys() if isinstance(k, str)]
-        kset.sort() # standardize application order
-        for c in [k for k in kset if k[0][-1:] == '*']:
-            cc = c[0][:-1]
-            for c2 in kset:
-                if c2 and c2[0][-1] != '*' and c2[0][:len(cc)] == cc:
-                    creplace  = (c2[0],) + c[1:]
-                    context[creplace] = context[c]
+        if find is None: # TODO in find case
+            kset = [k for k in context.keys() if k and isinstance(k[0], str)]
+            kset.sort() # standardize application order
+            for c in [k for k in kset if k[0][-1:] == '*']:
+                cc = c[0][:-1]
+                for c2 in kset:
+                    if c2 and c2[0][-1] != '*' and c2[0][:len(cc)] == cc:
+                        creplace  = (c2[0],) + c[1:]
+                        context[creplace] = context[c]
     
         # consider each sub-branch
         subdat = self.subdivide_context(context, find)
-        expanded = {None: thiso} if thiso is not None else {}
+        expanded = {None: thiso} if thiso != (None,None) else {}
         if islink is not None:
             expanded[0] = islink # special marker for linked objects
         for k in subdat:
             v = subdat[k]
             expanded[k] = self.traverse_context(v, find[1:] if find else None, cyccheck)
-            
-        if find is not None:
-            return expanded[find[0]]
-        return expanded
+
+        return expanded[find[0]] if find is not None else expanded
     
     
     def displayform(self, obj):
