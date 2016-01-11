@@ -229,14 +229,16 @@ class Metaform(ConfigDB):
         rlist = []
         klist = [ k for k in obj.keys() if k not in (None, 0)]
         klist.sort()
-        
+        if None in obj:
+            klist = [None,] + klist
+            
         nDeleteable = 0
         edname = ".".join((str(iid[0]),)+iid[1:])
         for k in klist:
             v = obj[k]
             islink = 0 in v
             basenum = None
-            subedname = (edname+"."+k)
+            subedname = (edname+"."+k) if k is not None else None
             
             if k == None: # final node value... sometimes need to edit in compound classes
                 if v[1]:
@@ -244,7 +246,6 @@ class Metaform(ConfigDB):
                     rlist.append([("(this)", {"class":"warning"}) if basenum else "(this)", (v[1],{"class":"good"})])
                     if basenum:
                         rlist[-1].append(ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"}))
-        
             elif tuple(v.keys()) == (None,): # simple editable final node value
                 vv = v[None]
                 if type(vv) == type(tuple()) and vv[1]:
