@@ -31,66 +31,23 @@ class Metaform(ConfigDB):
         self.dbcache[csid] = d
         return d
     
-    def reconstruct_instance(self, path, context = {}, cyccheck = None):
-        """Reconstruct information for specified instance"""
-        #print("<!-- searching", path, "in", context, "-->")
-        
-        
-        if not path: # end of reconstruction
-            #print("<!-- found", context, "-->")
-            return context
-        
-        if cyccheck is None: # initialize cyclical references check
-            cyccheck = {path}
-
-        if type(path[0]) == type(1): # top-level specifier; need to load path data
-            context = self.load_toplevel(path[0])
-            #print("<!-- found top-level data", context, "-->")
-
-        # filter out relevant info from larger context
-        subcontext = dict([ (k[1:],v) for (k,v) in context.items() if k[:len(path)] == path[:len(k)] ])
-        #print("<!-- filtered to", subcontext, "-->")
-        if not subcontext: # terminate search if no remaining relevant data
-        	return {}
-
-        # check for and expand link
-        thiso = subcontext.get(tuple(), None)
-        if thiso and type(thiso[1])==type('') and thiso[1][0] == '@':
-            #print("<!-- found link", subcontext[tuple()], "-->")
-            lpath = thiso[1][1:].split(".")
-            #try:
-            if True:
-                lpath[0] = int(lpath[0])
-                lpath = tuple(lpath)
-                if lpath not in cyccheck:
-                    ldata = self.reconstruct_instance(lpath, {}, cyccheck.union({lpath}))
-                    subcontext.pop(tuple())
-                    ldata.update(subcontext)
-                    subcontext = ldata
-                else:
-                    subcontext[tuple()] = (subcontext[tuple()][0], "CYCLIC"+subcontext[tuple()][1])
-                    #print("<!-- Not following cyclic link! -->")
-            #except:
-                pass
-        
-        # expand * wildcards TODO
-
-        # continue search down path
-        return self.reconstruct_instance(path[1:], subcontext, cyccheck)
-    
     @staticmethod
-    def subdivide_context(d):
-        """Divide context dictionary into sub-branches"""
+    def subdivide_context(d, find = None):
+        """Divide context dictionary into sub-context branches, optionally keeping for only one specific branch"""
         subdat = { }
         for (k,v) in d.items():
-            if not len(k):
-            	continue
+            if not k or not len(k):
+                continue
+            if find is not None and k[:len(find)] != find[:len(k)]:
+                continue
             subdat.setdefault(k[0],{})[k[1:]] = v
         return subdat
     
-    def traverse_context(self, context, cyccheck = None):
+    def traverse_context(self, context, find = None, cyccheck = None):
         """Traverse to fully expand tree defined by context"""
-        #print("<!-- traversing", context, "-->")
+        
+        if find == tuple(): # end of find
+            return context
         
         if cyccheck is None: # initialize cyclical references check
             cyccheck = set()
@@ -98,14 +55,14 @@ class Metaform(ConfigDB):
         # check if top level is link; expand context with link contents if so
         thiso = context.get(tuple(), (None,None))
         islink = None
-        if type(thiso[1]) == type("") and thiso[1][0] == '@':
+        if isinstance(thiso[1],str) and thiso[1][:1] == '@':
             #print("<!-- found link", thiso, "-->")
             lpath = thiso[1][1:].split(".")
             try:
                 lpath[0] = int(lpath[0])
                 lpath = tuple(lpath)
                 if lpath not in cyccheck:
-                    ldata = self.reconstruct_instance(lpath, {}, cyccheck.union({lpath}))
+                    ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck.union({lpath}))
                     context.pop(tuple())
                     ldata.update(context)
                     islink = thiso
@@ -119,24 +76,26 @@ class Metaform(ConfigDB):
 
 
         # expand wildcard items
-        kset = list(context.keys())
+        kset = [k for k in context.keys() if isinstance(k, str)]
         kset.sort() # standardize application order
-        for c in [k for k in kset if k and k[0][-1:] == '*']:
+        for c in [k for k in kset if k[0][-1:] == '*']:
             cc = c[0][:-1]
             for c2 in kset:
                 if c2 and c2[0][-1] != '*' and c2[0][:len(cc)] == cc:
                     creplace  = (c2[0],) + c[1:]
                     context[creplace] = context[c]
-            #context.pop(c) leave in... suppress on display
     
         # consider each sub-branch
-        subdat = self.subdivide_context(context)
+        subdat = self.subdivide_context(context, find)
         expanded = {None: thiso} if thiso is not None else {}
         if islink is not None:
             expanded[0] = islink # special marker for linked objects
         for k in subdat:
             v = subdat[k]
-            expanded[k] = self.traverse_context(v, cyccheck)
+            expanded[k] = self.traverse_context(v, find[1:] if find else None, cyccheck)
+            
+        if find is not None:
+            return expanded[find[0]]
         return expanded
     
     
@@ -220,9 +179,10 @@ class Metaform(ConfigDB):
     def edit_object(self, iid):
         """Object editor page, given object type config and instance"""
         
-        topdat = set([v[0] for v in self.load_toplevel(iid[0]).values()])
-        ic = self.reconstruct_instance(iid)
-        obj = self.traverse_context(ic,None)
+        idat = self.load_toplevel(iid[0])
+        topkeys = set([v[0] for v in idat.values()])
+        obj = self.traverse_context(idat, iid)
+        obj = self.traverse_context(obj)
         print("<!-- edit_object", obj, "-->")
         
         # fix sort order by variable name
@@ -242,14 +202,15 @@ class Metaform(ConfigDB):
             
             if k == None: # final node value... sometimes need to edit in compound classes
                 if v[1]:
-                    basenum = v[0] if v[0] in topdat else None
+                    basenum = v[0] if v[0] in topkeys else None
                     rlist.append([("(this)", {"class":"warning"}) if basenum else "(this)", (v[1],{"class":"good"})])
                     if basenum:
                         rlist[-1].append(ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"}))
+                        
             elif tuple(v.keys()) == (None,): # simple editable final node value
                 vv = v[None]
                 if type(vv) == type(tuple()) and vv[1]:
-                    basenum = vv[0] if vv[0] in topdat else None
+                    basenum = vv[0] if vv[0] in topkeys else None
                     if basenum:
                         updf = ET.Element('input', {"type":"text", "name":"val_%i"%vv[0], "size":"20"})
                     else:
@@ -258,9 +219,9 @@ class Metaform(ConfigDB):
             
             else: # more complex objects...
                 if None in v:
-                    basenum = v[None][0] if v[None][0] in topdat else None
+                    basenum = v[None][0] if v[None][0] in topkeys else None
                 if islink:
-                    basenum = v[None][0] if v[None][0] in topdat else None
+                    basenum = v[0][0] if v[0][0] in topkeys else None
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
                 kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(v[0][1][1:]), "("+k+")") if islink else "None" if k is None else "''" if not k else k
                 rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.displayform(v), (edlink, {"style":"text-align:center"})])
@@ -358,8 +319,9 @@ if __name__ == "__main__":
         P,b = makePageStructure("Metaform")
         h1 = addTag(b,"h1", contents = "Viewing ")
         iid = linkedname(form.getvalue("view"),h1)
-        ic = C.reconstruct_instance(iid)
-        obj = C.traverse_context(ic,None)
+        obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
+        obj = C.traverse_context(obj)
+        print("<!-- view", obj, "-->")
         b.append(C.displayform(obj))
         print(prettystring(P))
 
