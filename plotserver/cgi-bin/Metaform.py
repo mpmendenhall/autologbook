@@ -52,11 +52,12 @@ class Metaform(ConfigDB):
         """Expand context into tree, including links; return target context or whole expanded tree."""
         
         if cyccheck is None: # initialize cyclical references check
-            cyccheck = set()
+            cyccheck = {find} if find is not None else set()
         
         # check if top level is link; expand context with link contents if so
         thiso = context.get(tuple(), (None,None)) # "this" value for top-level object in traversal, including link expansion
         islink = None # filled in with link information
+        lpath = None # link path
         if isinstance(thiso[1],str) and thiso[1][:1] == '@':
             #print("<!-- found link", thiso, "-->")
             lpath = thiso[1][1:].split(".")
@@ -93,9 +94,9 @@ class Metaform(ConfigDB):
             expanded[0] = islink # special marker for linked objects
         for k in subdat:
             v = subdat[k]
-            expanded[k] = self.traverse_context(v, find[1:] if find else None, cyccheck)
+            expanded[k] = self.traverse_context(v, find[1:] if find else None, cyccheck.union({lpath}) if islink else cyccheck)
 
-        return expanded[find[0]] if find is not None else expanded
+        return expanded.get(find[0],{}) if find is not None else expanded
     
     
     def displayform(self, obj):
@@ -279,8 +280,8 @@ if __name__ == "__main__":
     C = Metaform(conn)
     
     form = cgi.FieldStorage()
-    
     print(docHeaderString())
+    Page = None
     
     if "delete" in form:
         for d in [v[4:] for v in form if v[:4]=="del_"]:
@@ -317,20 +318,20 @@ if __name__ == "__main__":
         conn.commit()
     
     if "view" in form:
-        P,b = makePageStructure("Metaform")
+        Page,b = makePageStructure("Metaform")
         h1 = addTag(b,"h1", contents = "Viewing ")
         iid = linkedname(form.getvalue("view"),h1)
         obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
         obj = C.traverse_context(obj)
-        print("<!-- view", obj, "-->")
+        #print("<!-- view", obj, "-->")
         b.append(C.displayform(obj))
-        print(prettystring(P))
 
     elif "edit" in form:
-        P,b = makePageStructure("Metaform")
+        Page,b = makePageStructure("Metaform")
         h1 = addTag(b,"h1", contents = "Editing ")
         iid = linkedname(form.getvalue("edit") ,h1)
         b.append(C.edit_object(iid))
-        print(prettystring(P))
     
+    if Page:
+        print(prettystring(Page))
     
