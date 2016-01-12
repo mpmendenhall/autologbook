@@ -126,13 +126,19 @@ class Metaform(ConfigDB):
             obj.pop("!xml")
 
         # list-like objects
-        itmtag = obj.get("!list", {None: (None,None)})[None][1]
-        if itmtag:
+        itmtag = None
+        isList = "!list" in obj
+        if isList:
             L = wraptag if wraptag is not None else ET.Element("ul")
+            itmtag = obj.get("!list", {None: (None,None)})[None][1]
             klist = [ k for k in obj.keys() if k and k[:1]=="#" and k[-1:] != '*']
             klist.sort()
             for k in klist:
-                addTag(L, itmtag, contents = self.displayform(obj[k]))
+                itm = self.displayform(obj[k])
+                if itmtag:
+                    addTag(L, itmtag, contents = itm)
+                else:
+                    L.append(itm)
             return L
         
         # fix sort order by variable name
@@ -144,7 +150,7 @@ class Metaform(ConfigDB):
 
         # display entities for each non-"special" object
         for k in klist:
-            if itmtag and (k is not None and k[:1] != "#"):
+            if isList and (k is not None and k[:1] != "#"):
                 continue
             v = obj[k]
             if k == None:
@@ -201,21 +207,20 @@ class Metaform(ConfigDB):
             subedname = (edname+"."+k) if k is not None else None
             
             if k == None: # final node value... sometimes need to edit in compound classes
-                if v[1]:
-                    basenum = v[0] if v[0] in topkeys else None
-                    rlist.append([("(this)", {"class":"warning"}) if basenum else "(this)", (v[1],{"class":"good"})])
-                    if basenum:
-                        rlist[-1].append(ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"}))
+                basenum = v[0] if v[0] in topkeys else None
+                rlist.append([("(this)", {"class":"warning"}) if basenum else "(this)", (v[1] if v[1] is not None else "None", {"class":"good"})])
+                if basenum:
+                    rlist[-1].append(ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"}))
                         
             elif tuple(v.keys()) == (None,): # simple editable final node value
                 vv = v[None]
-                if type(vv) == type(tuple()) and vv[1]:
+                if type(vv) == type(tuple()):
                     basenum = vv[0] if vv[0] in topkeys else None
                     if basenum:
                         updf = ET.Element('input', {"type":"text", "name":"val_%i"%vv[0], "size":"20"})
                     else:
                         updf = ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"})
-                    rlist.append([(k, {"class":"warning"}) if basenum else k, (vv[1],{"class":"good"}), updf])
+                    rlist.append([(k, {"class":"warning"}) if basenum else k, (vv[1] if vv[1] is not None else "None",{"class":"good"}), updf])
             
             else: # more complex objects...
                 if None in v:
@@ -294,7 +299,10 @@ if __name__ == "__main__":
     if "update" in form:
         for d in [v[4:] for v in form if v[:4]=="val_"]:
             try:
-                C.set_if_not_applied(int(d), form.getvalue("val_"+d))
+                v = form.getvalue("val_"+d)
+                if v == "@":
+                    v = None
+                C.set_if_not_applied(int(d), v)
             except:
                 pass
         for d in [v[4:] for v in form if v[:4]=="new_"]:
@@ -302,7 +310,10 @@ if __name__ == "__main__":
                 itm = d.split(".",1)
                 csid = int(itm[0])
                 if not C.has_been_applied(csid):
-                    C.set_config_value(csid, itm[1], form.getvalue("new_"+d))
+                    v = form.getvalue("new_"+d)
+                    if v == "@":
+                        v = None
+                    C.set_config_value(csid, itm[1], v)
             except:
                 pass
         conn.commit()
@@ -311,8 +322,11 @@ if __name__ == "__main__":
         try:
             edpath = form.getvalue("edit").split(".")
             csid = int(edpath[0])
+            newval = form.getvalue("newval")
+            if newval == "@":
+                newval = None
             if not C.has_been_applied(csid):
-                C.set_config_value(csid, ".".join(edpath[1:]+[form.getvalue("newnm")]), form.getvalue("newval"))
+                C.set_config_value(csid, ".".join(edpath[1:]+[form.getvalue("newnm")]), newval)
         except:
             pass
         conn.commit()
