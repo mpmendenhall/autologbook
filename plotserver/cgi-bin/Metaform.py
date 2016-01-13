@@ -376,7 +376,7 @@ if __name__ == "__main__":
         h1 = addTag(b,"h1", contents = "Viewing ")
         iid = linkedname(form.getvalue("view"),h1)
         obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
-        obj = C.traverse_context(obj)
+        obj = C.traverse_context(obj, ppath=iid)
         #print("<!-- view", obj, "-->")
         b.append(C.aselement(C.displayform(obj)))
 
