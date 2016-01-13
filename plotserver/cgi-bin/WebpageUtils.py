@@ -15,8 +15,8 @@ def makeLink(href, content, xargs = {}):
         a.text = str(content)
     return a
 
-def addTag(parent, tag, xargs = {}, contents = None):
-    e = ET.SubElement(parent, tag, xargs) if parent is not None else ET.Element(tag, xargs)
+def mergecontents(e, contents):
+    """Merge mixed text/tag contents into e"""
     if ET.iselement(contents):
         e.append(contents)
     elif isinstance(contents, tuple) or isinstance(contents, list):
@@ -32,6 +32,10 @@ def addTag(parent, tag, xargs = {}, contents = None):
                     e.text = e.text + c if e.text else c
     elif contents:
         e.text = str(contents)
+
+def addTag(parent, tag, xargs = {}, contents = None):
+    e = ET.SubElement(parent, tag, xargs) if parent is not None else ET.Element(tag, xargs)
+    mergecontents(e,contents)
     return e
 
 def makeCheckbox(name, value="y", checked=False, radio=False, xargs={}):

@@ -108,6 +108,17 @@ class Metaform(ConfigDB):
             return clist[0]
         return addTag(None, dflt, contents = clist)
     
+    @staticmethod
+    def asstring(clist):
+        """flatten display list to string"""
+        s = ""
+        for c in clist:
+            if ET.iselement(c):
+                s += ET.tostring(c).decode('utf-8')
+            elif c:
+                s += str(c)
+        return s
+    
     def displayform(self, obj):
         """Display form of object tree: returns tuple of mixed text/tag objects"""
         
@@ -122,7 +133,7 @@ class Metaform(ConfigDB):
         if "!xml" in obj and None in obj["!xml"] and obj["!xml"][None][1]:
             xargs = {}
             for k in [k for k in obj["!xml"] if type(k)==type("") and k[:1]=='#']:
-                xargs[k[1:]] = obj["!xml"][k][None][1]
+                xargs[k[1:]] = self.asstring(self.displayform(obj["!xml"][k]))
             wraptag = ET.Element(obj["!xml"][None][1], xargs)
             obj.pop("!xml")
             
@@ -144,14 +155,13 @@ class Metaform(ConfigDB):
             itmtag = obj.get("!list", {None: (None,None)})[None][1]
             if itmtag:
                 itms = [addTag(None, itmtag, contents = i) for i in itms]
-            else:
+            else: # "glom mode"
                 itms = [i for itm in itms for i in itm]
             
             if wraptag is None:
                 return tuple(itms)
             
-            for itm in itms:
-                wraptag.append(itm)
+            mergecontents(wraptag, itms)
             return (wraptag,)
         
         # "displayable" objects ordered by name
