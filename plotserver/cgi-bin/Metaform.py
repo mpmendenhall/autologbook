@@ -54,6 +54,7 @@ class Metaform(ConfigDB):
         if cyccheck is None: # initialize cyclical references check
             cyccheck = {find} if find is not None else set()
         
+        #####################################################################
         # check if top level is link; expand context with link contents if so
         thiso = context.get(tuple(), (None,None)) # "this" value for top-level object in traversal, including link expansion
         islink = None # filled in with link information
@@ -62,12 +63,19 @@ class Metaform(ConfigDB):
             context.pop(tuple())
             islink = thiso # mark as link
         elif isinstance(thiso[1],str) and thiso[1][:1] == '@':
-            if thiso[1][1:2] == "~":
-                n = int(thiso[1][2:]) if thiso[1][2:].isdigit() else 0
-                context[tuple()] = (thiso[0], ".".join([str(p) for p in ppath][:-n if n else 1000000]))
-                islink = thiso
-            else:
-                #print("<!-- found link", thiso, "-->")
+            if thiso[1][1:2] in ["~","$"]: # relative link expansion
+                lparts = thiso[1][2:].split(".")
+                n = int(lparts[0]) if lparts[0].isdigit() else 0
+                ltext = ".".join([str(p) for p in ppath][:-n if n else 1000000] + lparts[1:])
+                if thiso[1][1:2] == "$": # relative link text
+                    context[tuple()] = (thiso[0], ltext)
+                    islink = thiso
+                    thiso = None
+                else:
+                    thiso = (thiso[0], "@"+ltext) if ltext else None
+                    
+            if thiso is not None:
+                print("<!-- found link", thiso, "-->")
                 lpath = thiso[1][1:].split(".")
                 lpath[0] = int(lpath[0])
                 lpath = tuple(lpath)
