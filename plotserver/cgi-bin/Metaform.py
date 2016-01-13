@@ -52,7 +52,7 @@ class Metaform(ConfigDB):
         """Expand context into tree, including links; return target context or whole expanded tree."""
         
         if cyccheck is None: # initialize cyclical references check
-            cyccheck = {find} if find is not None else set()
+            cyccheck = 0 #{find} if find is not None else set()
         
         #####################################################################
         # check if top level is link; expand context with link contents if so
@@ -73,21 +73,23 @@ class Metaform(ConfigDB):
                     thiso = None
                 else:
                     thiso = (thiso[0], "@"+ltext) if ltext else None
+                    print("<!-- Expanding rel link", thiso, "-->")
                     
             if thiso is not None:
-                print("<!-- found link", thiso, "-->")
+                print("<!-- following link", thiso, "-->")
                 lpath = thiso[1][1:].split(".")
                 lpath[0] = int(lpath[0])
                 lpath = tuple(lpath)
-                if lpath not in cyccheck:
-                    ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck.union({lpath}))
+                if cyccheck < 100: #lpath not in cyccheck:
+                    ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck + 1) #.union({lpath}))
                     context.pop(tuple()) # remove origin link
                     ldata.update(context) # over-write linked data
                     context = ldata # modified data is new context
                     islink = thiso # save link information
+                    print("<!-- link info", context, "-->")
                 else:
+                    print("<!-- cyclic link on lpath", lpath, thiso, "-->")
                     context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
-                    #print("<!-- Not following cyclic link! -->")
         
         if find == tuple(): # context at end of find mode... before wildcard expansion
             return context
@@ -110,7 +112,9 @@ class Metaform(ConfigDB):
             expanded[0] = islink # special marker for linked objects
         for k in subdat:
             v = subdat[k]
-            expanded[k] = self.traverse_context(v, find[1:] if find else None, cyccheck.union({lpath}) if islink else cyccheck, ppath = ppath + (k,))
+            expanded[k] = self.traverse_context(v, find[1:] if find else None,
+                                                cyccheck +1, #cyccheck.union({lpath}) if islink else cyccheck,
+                                                ppath = ppath + (k,))
 
         return expanded.get(find[0],{}) if find is not None else expanded
     
@@ -147,6 +151,7 @@ class Metaform(ConfigDB):
             xargs = {}
             for k in [k for k in obj["!xml"] if type(k)==type("") and k[:1]=='#']:
                 xargs[k[1:]] = self.asstring(self.displayform(obj["!xml"][k]))
+                print("<!-- xargs" ,k, obj["!xml"][k], "-->")
             wraptag = ET.Element(obj["!xml"][None][1], xargs)
             obj.pop("!xml")
             
@@ -202,6 +207,9 @@ class Metaform(ConfigDB):
             else:
                 rlist.append([k, self.aselement(self.displayform(v))])
 
+        if not rlist:
+            return (wraptag,) if wraptag is not None else tuple()
+            
         tbl = makeTable(rlist)
         if wraptag is not None:
             wraptag.append(tbl)
