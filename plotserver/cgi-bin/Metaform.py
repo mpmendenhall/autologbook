@@ -52,7 +52,7 @@ class Metaform(ConfigDB):
         """Expand context into tree, including links; return target context or whole expanded tree."""
         
         if cyccheck is None: # initialize cyclical references check
-            cyccheck = 0 #{find} if find is not None else set()
+            cyccheck = set() #{find} if find is not None else set()
         
         #####################################################################
         # check if top level is link; expand context with link contents if so
@@ -73,22 +73,22 @@ class Metaform(ConfigDB):
                     thiso = None
                 else:
                     thiso = (thiso[0], "@"+ltext) if ltext else None
-                    print("<!-- Expanding rel link", thiso, "-->")
+                    #Sprint("<!-- Expanding rel link", thiso, "-->")
                     
             if thiso is not None:
-                print("<!-- following link", thiso, "-->")
+                #print("<!-- following link", thiso, cyccheck, "-->")
                 lpath = thiso[1][1:].split(".")
                 lpath[0] = int(lpath[0])
                 lpath = tuple(lpath)
-                if cyccheck < 100: #lpath not in cyccheck:
-                    ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck + 1) #.union({lpath}))
+                if thiso not in cyccheck:
+                    ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck.union({thiso}))
                     context.pop(tuple()) # remove origin link
                     ldata.update(context) # over-write linked data
                     context = ldata # modified data is new context
                     islink = thiso # save link information
-                    print("<!-- link info", context, "-->")
+                    #print("<!-- link info", thiso, context, "-->")
                 else:
-                    print("<!-- cyclic link on lpath", lpath, thiso, "-->")
+                    #print("<!-- CYCLIC LINK on lpath", lpath, thiso, "-->")
                     context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
         
         if find == tuple(): # context at end of find mode... before wildcard expansion
@@ -113,7 +113,7 @@ class Metaform(ConfigDB):
         for k in subdat:
             v = subdat[k]
             expanded[k] = self.traverse_context(v, find[1:] if find else None,
-                                                cyccheck +1, #cyccheck.union({lpath}) if islink else cyccheck,
+                                                cyccheck.union({islink}) if islink else cyccheck,
                                                 ppath = ppath + (k,))
 
         return expanded.get(find[0],{}) if find is not None else expanded
@@ -151,7 +151,6 @@ class Metaform(ConfigDB):
             xargs = {}
             for k in [k for k in obj["!xml"] if type(k)==type("") and k[:1]=='#']:
                 xargs[k[1:]] = self.asstring(self.displayform(obj["!xml"][k]))
-                print("<!-- xargs" ,k, obj["!xml"][k], "-->")
             wraptag = ET.Element(obj["!xml"][None][1], xargs)
             obj.pop("!xml")
             
