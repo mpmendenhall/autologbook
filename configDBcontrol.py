@@ -32,7 +32,7 @@ class ConfigDB:
 
     def set_config_value(self, csid, name, value):
         """Set a configuration parameter"""
-        self.curs.execute(*insert_val_string("INSERT INTO config_values", {"csid":csid, "name":name, "value":value}))
+        self.curs.execute(*insert_val_string("INSERT OR REPLACE INTO config_values", {"csid":csid, "name":name, "value":value}))
         
     def get_config(self, csid):
         """Get configuration parameter values by set ID"""

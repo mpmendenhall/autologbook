@@ -48,7 +48,7 @@ class Metaform(ConfigDB):
     #
     # expanded: { x : { y: { z : { None:(ID,value) } }, None:(ID,value) }
     
-    def traverse_context(self, context, find = None, cyccheck = None, wildcard = True):
+    def traverse_context(self, context, find = None, cyccheck = None, wildcard = True, ppath = tuple()):
         """Expand context into tree, including links; return target context or whole expanded tree."""
         
         if cyccheck is None: # initialize cyclical references check
@@ -62,19 +62,24 @@ class Metaform(ConfigDB):
             context.pop(tuple())
             islink = thiso # mark as link
         elif isinstance(thiso[1],str) and thiso[1][:1] == '@':
-            #print("<!-- found link", thiso, "-->")
-            lpath = thiso[1][1:].split(".")
-            lpath[0] = int(lpath[0])
-            lpath = tuple(lpath)
-            if lpath not in cyccheck:
-                ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck.union({lpath}))
-                context.pop(tuple()) # remove origin link
-                ldata.update(context) # over-write linked data
-                context = ldata # modified data is new context
-                islink = thiso # save link information
+            if thiso[1][1:2] == "~":
+                n = int(thiso[1][2:]) if thiso[1][2:].isdigit() else 0
+                context[tuple()] = (thiso[0], ".".join([str(p) for p in ppath][:-n if n else 1000000]))
+                islink = thiso
             else:
-                context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
-                #print("<!-- Not following cyclic link! -->")
+                #print("<!-- found link", thiso, "-->")
+                lpath = thiso[1][1:].split(".")
+                lpath[0] = int(lpath[0])
+                lpath = tuple(lpath)
+                if lpath not in cyccheck:
+                    ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck.union({lpath}))
+                    context.pop(tuple()) # remove origin link
+                    ldata.update(context) # over-write linked data
+                    context = ldata # modified data is new context
+                    islink = thiso # save link information
+                else:
+                    context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
+                    #print("<!-- Not following cyclic link! -->")
         
         if find == tuple(): # context at end of find mode... before wildcard expansion
             return context
@@ -97,7 +102,7 @@ class Metaform(ConfigDB):
             expanded[0] = islink # special marker for linked objects
         for k in subdat:
             v = subdat[k]
-            expanded[k] = self.traverse_context(v, find[1:] if find else None, cyccheck.union({lpath}) if islink else cyccheck)
+            expanded[k] = self.traverse_context(v, find[1:] if find else None, cyccheck.union({lpath}) if islink else cyccheck, ppath = ppath + (k,))
 
         return expanded.get(find[0],{}) if find is not None else expanded
     
@@ -205,7 +210,7 @@ class Metaform(ConfigDB):
         idat = self.load_toplevel(iid[0])
         topkeys = set([v[0] for v in idat.values()])
         obj = self.traverse_context(idat, iid)
-        obj = self.traverse_context(obj, wildcard = False)
+        obj = self.traverse_context(obj, wildcard = False, ppath=iid)
         print("<!-- edit_object", obj, "-->")
         
         # fix sort order by variable name
@@ -247,6 +252,7 @@ class Metaform(ConfigDB):
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
                 kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(v[0][1][1:]), "("+k+")") if islink else "None" if k is None else "''" if not k else k
                 rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.aselement(self.displayform(v)), (edlink, {"style":"text-align:center"})])
+                # TODO more compact form accepting display form lists
             
             if basenum is not None:
                 rlist[-1].append(makeCheckbox("del_%i"%basenum))
@@ -314,6 +320,7 @@ if __name__ == "__main__":
         conn.commit()
     
     if "update" in form:
+        # value update entries, specified by pre-existing ID
         for d in [v[4:] for v in form if v[:4]=="val_"]:
             try:
                 v = form.getvalue("val_"+d)
@@ -322,6 +329,7 @@ if __name__ == "__main__":
                 C.set_if_not_applied(int(d), v)
             except:
                 pass
+        # new or overrwrite entries
         for d in [v[4:] for v in form if v[:4]=="new_"]:
             try:
                 itm = d.split(".",1)
