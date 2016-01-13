@@ -101,9 +101,15 @@ class Metaform(ConfigDB):
 
         return expanded.get(find[0],{}) if find is not None else expanded
     
+    @staticmethod
+    def aselement(clist, dflt="div"):
+        """contents list to single element"""
+        if len(clist)==1 and ET.iselement(clist[0]):
+            return clist[0]
+        return addTag(None, dflt, contents = clist)
     
     def displayform(self, obj):
-        """Display form of object tree; may modify object, returns string, XML, or None"""
+        """Display form of object tree: returns tuple of mixed text/tag objects"""
         
         # remove extra link information unused by display
         islink = None
@@ -122,28 +128,31 @@ class Metaform(ConfigDB):
             
         # simple single-value objects
         if len(obj)==1 and None in obj:
+            o = obj[None][1]
             if wraptag is not None:
-                wraptag.text = obj[None][1]
-                return wraptag
-            return obj[None][1]
+                wraptag.text = o
+                return (wraptag,)
+            return (o,) if o is not None else tuple()
 
-        # list-form objects
+        # list-like objects
         itmtag = None
         if "!list" in obj:
-            L = wraptag if wraptag is not None else ET.Element("ul")
-            itmtag = obj.get("!list", {None: (None,None)})[None][1]
             klist = [ k for k in obj.keys() if k and k[:1]=="#" and k[-1:] != '*']
             klist.sort()
-            for k in klist:
-                itm = self.displayform(obj[k])
-                if itmtag:
-                    addTag(L, itmtag, contents = itm)
-                else:
-                    if isinstance(itm, str) or itm is None:
-                        addTag(L, "div", contents = itm)
-                    else:
-                        L.append(itm)
-            return L
+        
+            itms = [self.displayform(obj[k]) for k in klist]
+            itmtag = obj.get("!list", {None: (None,None)})[None][1]
+            if itmtag:
+                itms = [addTag(None, itmtag, contents = i) for i in itms]
+            else:
+                itms = [i for itm in itms for i in itm]
+            
+            if wraptag is None:
+                return tuple(itms)
+            
+            for itm in itms:
+                wraptag.append(itm)
+            return (wraptag,)
         
         # "displayable" objects ordered by name
         rlist = []
@@ -157,7 +166,7 @@ class Metaform(ConfigDB):
             v = obj[None][1]
             if wraptag is not None:
                 wraptag.text = v #"NULL" if v is None else v
-                return wraptag
+                return (wraptag,)
 
         # table form display entities for each non-"special" object
         for k in klist:
@@ -168,13 +177,13 @@ class Metaform(ConfigDB):
             elif tuple(v.keys()) == (None,):
                 rlist.append([k, (v[None][1],{"class":"good"})])
             else:
-                rlist.append([k, self.displayform(v)])
+                rlist.append([k, self.aselement(self.displayform(v))])
 
         tbl = makeTable(rlist)
         if wraptag is not None:
             wraptag.append(tbl)
-            return wraptag
-        return tbl
+            return (wraptag,)
+        return (tbl,)
 
 
 
@@ -227,7 +236,7 @@ class Metaform(ConfigDB):
                     basenum = v[0][0] if v[0][0] in topkeys else None
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
                 kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(v[0][1][1:]), "("+k+")") if islink else "None" if k is None else "''" if not k else k
-                rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.displayform(v), (edlink, {"style":"text-align:center"})])
+                rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.aselement(self.displayform(v)), (edlink, {"style":"text-align:center"})])
             
             if basenum is not None:
                 rlist[-1].append(makeCheckbox("del_%i"%basenum))
@@ -336,7 +345,7 @@ if __name__ == "__main__":
         obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
         obj = C.traverse_context(obj)
         #print("<!-- view", obj, "-->")
-        b.append(C.displayform(obj))
+        b.append(C.aselement(C.displayform(obj)))
 
     elif "edit" in form:
         Page,b = makePageStructure("Metaform")

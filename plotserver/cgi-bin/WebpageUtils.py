@@ -5,7 +5,7 @@ import cgitb
 cgitb.enable()
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-
+ 
 def makeLink(href, content, xargs = {}):
     xargs["href"] = href
     a = ET.Element('a', xargs)
@@ -19,6 +19,17 @@ def addTag(parent, tag, xargs = {}, contents = None):
     e = ET.SubElement(parent, tag, xargs) if parent is not None else ET.Element(tag, xargs)
     if ET.iselement(contents):
         e.append(contents)
+    elif isinstance(contents, tuple) or isinstance(contents, list):
+        for c in contents:
+            prevel = None
+            if ET.iselement(c):
+                e.append(c)
+                prevel = c
+            elif c:
+                if prevel:
+                    prevel.tail = prevel.tail + c if prevel.tail else c
+                else:
+                    e.text = e.text + c if e.text else c
     elif contents:
         e.text = str(contents)
     return e
