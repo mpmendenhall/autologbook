@@ -58,7 +58,10 @@ class Metaform(ConfigDB):
         thiso = context.get(tuple(), (None,None)) # "this" value for top-level object in traversal, including link expansion
         islink = None # filled in with link information
         lpath = None # link path
-        if isinstance(thiso[1],str) and thiso[1][:1] == '@':
+        if thiso[1] == '@': # special case link-to-NULL
+            context.pop(tuple())
+            islink = thiso # mark as link
+        elif isinstance(thiso[1],str) and thiso[1][:1] == '@':
             #print("<!-- found link", thiso, "-->")
             lpath = thiso[1][1:].split(".")
             lpath[0] = int(lpath[0])
@@ -100,35 +103,33 @@ class Metaform(ConfigDB):
     
     
     def displayform(self, obj):
-        """Display form of object tree"""
+        """Display form of object tree; may modify object, returns string, XML, or None"""
         
-        #########################
-        # special case processing
-        
-        # remove extra link information
+        # remove extra link information unused by display
         islink = None
         if 0 in obj:
             islink = obj[0]
             obj.pop(0)
         
-        # special simple-object case
-        if len(obj)==1 and None in obj:
-            return addTag(None,"g", {"class":"good"}, obj[None][1])
-
+        # create xml tag if specified; delete link information
         wraptag = None
-        
-        # xml tags
-        if "!xml" in obj:
+        if "!xml" in obj and None in obj["!xml"] and obj["!xml"][None][1]:
             xargs = {}
             for k in [k for k in obj["!xml"] if type(k)==type("") and k[:1]=='#']:
                 xargs[k[1:]] = obj["!xml"][k][None][1]
             wraptag = ET.Element(obj["!xml"][None][1], xargs)
             obj.pop("!xml")
+            
+        # simple single-value objects
+        if len(obj)==1 and None in obj:
+            if wraptag is not None:
+                wraptag.text = obj[None][1]
+                return wraptag
+            return obj[None][1]
 
-        # list-like objects
+        # list-form objects
         itmtag = None
-        isList = "!list" in obj
-        if isList:
+        if "!list" in obj:
             L = wraptag if wraptag is not None else ET.Element("ul")
             itmtag = obj.get("!list", {None: (None,None)})[None][1]
             klist = [ k for k in obj.keys() if k and k[:1]=="#" and k[-1:] != '*']
@@ -138,20 +139,28 @@ class Metaform(ConfigDB):
                 if itmtag:
                     addTag(L, itmtag, contents = itm)
                 else:
-                    L.append(itm)
+                    if isinstance(itm, str) or itm is None:
+                        addTag(L, "div", contents = itm)
+                    else:
+                        L.append(itm)
             return L
         
-        # fix sort order by variable name
+        # "displayable" objects ordered by name
         rlist = []
         klist = [ k for k in obj.keys() if  k is not None and k[-1:] != '*']
         klist.sort()
         if None in obj:
             klist = [None,] + klist
+            
+        # simple leaf nodes
+        if klist == [None,]:
+            v = obj[None][1]
+            if wraptag is not None:
+                wraptag.text = v #"NULL" if v is None else v
+                return wraptag
 
-        # display entities for each non-"special" object
+        # table form display entities for each non-"special" object
         for k in klist:
-            if isList and (k is not None and k[:1] != "#"):
-                continue
             v = obj[k]
             if k == None:
                 if v[1]:
@@ -161,22 +170,11 @@ class Metaform(ConfigDB):
             else:
                 rlist.append([k, self.displayform(v)])
 
-        if len(rlist) == 1 and False: #TODO breaks on deeply-embedded and complex objects
-            r = rlist[0]
-            wraptag = wraptag if wraptag else ET.Element("g")
-            wraptag.text = r[0]
-            if ET.iselement(r[1]):
-                wraptag.append(r[1])
-            else:
-                el = ET.Element("g", r[1][1])
-                el.text = r[1][0]
-                wraptag.append(el)
-            return wraptag
-
         tbl = makeTable(rlist)
         if wraptag is not None:
             wraptag.append(tbl)
-        return wraptag if wraptag is not None else tbl
+            return wraptag
+        return tbl
 
 
 
