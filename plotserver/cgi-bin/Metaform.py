@@ -201,15 +201,15 @@ class Metaform(ConfigTree):
         gp.append(Fp)
         return gp
         
-    def linkedname(self, iid, toptag):
+    def linkedname(self, iid, toptag, mode = "edit"):
         """Object name with links to editor"""
         vstr = "%i"%iid[0]
-        prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), "%s:%s"%self.get_setname(iid[0]))
+        prev = makeLink("/cgi-bin/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), "%s:%s"%self.get_setname(iid[0]))
         toptag.append(prev)
         for v in iid[1:]:
             vstr += ".%s"%v
             prev.tail = "."
-            prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), v)
+            prev = makeLink("/cgi-bin/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), v)
             toptag.append(prev)
 
 if __name__ == "__main__":
@@ -263,21 +263,25 @@ if __name__ == "__main__":
                 conn.commit()
     
     if "view" in form:
-        iid = C.iid_fromstr(form.getvalue("view"))
+        vstr = form.getvalue("view")
+        iid = C.iid_fromstr(vstr)
         if iid is not None:
             Page,b = makePageStructure("Metaform")
             h1 = addTag(b,"h1", contents = "Viewing ")
-            C.linkedname(iid,h1)
+            C.linkedname(iid,h1,mode="view")
+            h1.append(makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), "(edit)"))
             obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
             obj = C.traverse_context(obj, ppath=iid)
             b.append(C.aselement(C.displayform(obj)))
 
     elif "edit" in form:
-        iid = C.iid_fromstr(form.getvalue("edit"))
+        vstr = form.getvalue("edit")
+        iid = C.iid_fromstr(vstr)
         if iid is not None:
             Page,b = makePageStructure("Metaform")
             h1 = addTag(b,"h1", contents = "Editing ")
             C.linkedname(iid ,h1)
+            h1.append(makeLink("/cgi-bin/Metaform.py?view=%s"%urlp.quote(vstr), "(view)"))
             b.append(C.edit_object(iid))
     
     if Page:
