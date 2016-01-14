@@ -131,24 +131,20 @@ class Metaform(ConfigTree):
         for k in klist:
             v = obj[k]
             islink = 0 in v
-            basenum = None
+            basenum = None # entry ID for this object, if belonging to top object (TODO problematic with internal links)
             subedname = (edname+"."+k) if k is not None else None
+            updf = None # update/create field for (this)
+            edlink = None # link to object editor page
             
             if k == None: # final node value... sometimes need to edit in compound classes
                 basenum = v[0] if v[0] in topkeys else None
-                rlist.append([("(this)", {"class":"warning"}) if basenum else "(this)", (v[1] if v[1] is not None else "None", {"class":"good"})])
-                if basenum:
-                    rlist[-1].append(ET.Element('input', {"type":"text", "name":"val_%i"%v[0], "size":"20"}))
-                        
+                newrow = [("(this)", {"class":"warning"}) if basenum else "(this)", (v[1] if v[1] is not None else "None", {"class":"good"})]
+                
             elif tuple(v.keys()) == (None,): # simple editable final node value
                 vv = v[None]
                 if type(vv) == type(tuple()):
                     basenum = vv[0] if vv[0] in topkeys else None
-                    if basenum:
-                        updf = ET.Element('input', {"type":"text", "name":"val_%i"%vv[0], "size":"20"})
-                    else:
-                        updf = ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"})
-                    rlist.append([(k, {"class":"warning"}) if basenum else k, (vv[1] if vv[1] is not None else "None",{"class":"good"}), updf])
+                    newrow = [(k, {"class":"warning"}) if basenum else k, (vv[1] if vv[1] is not None else "None",{"class":"good"})]
             
             else: # more complex objects...
                 if None in v:
@@ -157,13 +153,22 @@ class Metaform(ConfigTree):
                     basenum = v[0][0] if v[0][0] in topkeys else None
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
                 kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(v[0][1][1:]), "("+k+")") if islink else "None" if k is None else "''" if not k else k
-                rlist.append([(kname, {"class":"warning"}) if basenum else kname, self.aselement(self.displayform(v)), (edlink, {"style":"text-align:center"})])
-                # TODO more compact form accepting display form lists
+                newrow = [(kname, {"class":"warning"}) if basenum else kname, self.aselement(self.displayform(v))]            
             
+            if basenum:
+                updf = ET.Element('input', {"type":"text", "name":"val_%i"%basenum, "size":"20"})
+            elif subedname:
+                updf = (ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"}), {"class":"warning"})
+                
+            newrow += [updf, (edlink, {"style":"text-align:center"}) if edlink is not None else None]
+            
+            # object (self) defined here and deletable
             if basenum is not None:
-                rlist[-1].append(makeCheckbox("del_%i"%basenum))
+                newrow.append(makeCheckbox("del_%i"%basenum))
                 nDeleteable += 1
-    
+            
+            rlist.append(newrow)
+            
         gp =  ET.Element("g")
    
         
@@ -184,7 +189,7 @@ class Metaform(ConfigTree):
         rows = [(["Name", "Value"], {"class":"tblhead"}),]
         addTag(Fsp,"input", {"type":"text", "name":"newnm", "size":"6"})
         addTag(Fsp,"input", {"type":"text", "name":"newval", "size":"20"})
-        #addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
+        #addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions... duplicated above
         addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
         
         gp.append(Fp)
@@ -201,10 +206,6 @@ class Metaform(ConfigTree):
             prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), v)
             toptag.append(prev)
 
-# TODO
-# editing target of links within object
-
-    
 if __name__ == "__main__":
     dbname = "../config_test.db"
     conn = sqlite3.connect(dbname)
