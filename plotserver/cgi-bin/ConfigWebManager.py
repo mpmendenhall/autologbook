@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from WebpageUtils import *
 from configDBcontrol import *
@@ -73,7 +73,8 @@ class ConfigWebManager(ConfigDB):
         flnk = makeLink("/cgi-bin/ConfigWebManager.py?family=%s"%setname[0], setname[0])
         flnk.tail = " : %s"%setname[1]
         h1.append(flnk)
-        addTag(b, "h3", contents='"%s"'%setname[2])
+        h3 = addTag(b, "h3", contents='"%s"'%setname[2])
+        h3.append(makeLink("/cgi-bin/ConfigWebManager.py?dump=%i"%cset, "(text dump)"))
         b.append(self.update_params_form(cset, not (self.readonly or applied)))
         if not applied:
             b.append(self.new_params_form(cset))
@@ -223,6 +224,21 @@ if __name__ == "__main__":
     C = ConfigWebManager(conn)
     
     form = cgi.FieldStorage()
+    
+    if "dump" in form:
+        print("Content-Type: text/plain\n")
+        try:
+            cset = int(form.getvalue("dump"))
+            C.curs.execute("SELECT family,name,descrip FROM config_set WHERE rowid = ?", (cset,))
+            for r in C.curs.fetchall():
+                print("%s:%s\t%s\n"%r)
+            C.curs.execute("SELECT name,value FROM config_values WHERE csid = ?", (cset,))
+            for r in C.curs.fetchall():
+                print("%s\t%s"%(r[0], str(r[1])))
+        except:
+            pass
+        import sys
+        sys.exit()
     
     print(docHeaderString())
     

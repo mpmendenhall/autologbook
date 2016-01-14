@@ -66,5 +66,3 @@ multi-plot graphs
 PMT I,V plots
 saved-state sessions
 messages display: last n OR time interval
-delete configurations
-nicer table fill

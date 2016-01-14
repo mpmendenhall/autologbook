@@ -168,14 +168,20 @@ class Metaform(ConfigTree):
                 nDeleteable += 1
             
             rlist.append(newrow)
-            
+       
+        tbl = ET.Element('table')
+        #cs = addTag(tbl, "colgroup")
+        #for i in range(5):
+        #    c = addTag(cs, "col", {"class":"neutral"} if i == 2 else {})
+        makeTable(rlist, T = tbl)
+        
         gp =  ET.Element("g")
    
         
         F =  ET.Element("form", {"action":"/cgi-bin/Metaform.py", "method":"post"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Modify parameters")
-        Fs.append(makeTable(rlist))
+        Fs.append(tbl)
         addTag(Fs,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
         addTag(Fs,"input",{"type":"submit","name":"update","value":"Update"})
         if nDeleteable:

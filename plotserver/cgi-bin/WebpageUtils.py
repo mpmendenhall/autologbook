@@ -58,9 +58,10 @@ def makeList(items, xargs={}, toptag='ul', itmtag='li'):
             
     return L
 
-def makeTable(rows, xargs={}):
+def makeTable(rows, xargs={}, T = None):
     """HTML table from array of lists or {"class":c "data":d}"""
-    T = ET.Element('table', xargs)
+    if T is None:
+        T = ET.Element('table', xargs)
     
     for r in rows:
         if ET.iselement(r):
@@ -87,7 +88,7 @@ def fillColumns(itms, cols):
     """Transpose collection into columns; return rows"""
     nbt = len(itms)
     cols = int(cols)
-    nrows = nbt/cols+(nbt%cols>0)
+    nrows = nbt//cols+(nbt%cols>0)
     lastrow = (nbt-1)%cols+1
     bcols = [[] for c in range(cols)]
 
