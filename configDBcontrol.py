@@ -19,11 +19,16 @@ class ConfigDB:
         self.curs.execute(*insert_val_string("INSERT INTO config_set", {"name": name, "family": family, "descrip": descrip, "time": t}))
         return self.curs.lastrowid
 
-    def find_configset(self, name, family):
-        """Find configuration set by name and family"""
-        self.curs.execute("SELECT rowid FROM config_set WHERE name = ? AND family = ?",(name,family))
-        r = self.curs.fetchone()
-        return r[0] if r else None
+    def find_configset(self, name, family = None):
+        """Find configuration set by name and (optional) family; return None if nonexistent or ambiguous"""
+        if family is not None:
+            self.curs.execute("SELECT rowid FROM config_set WHERE name = ? AND family = ?",(name,family))
+            r = self.curs.fetchone()
+            return r[0] if r else None
+        else:
+            self.curs.execute("SELECT rowid FROM config_set WHERE name = ?",(name,))
+            r = self.curs.fetchall()
+            return r[0][0] if len(r)==1 else None
     
     def get_setname(self, csid):
         """Get name information for config set by rowid"""

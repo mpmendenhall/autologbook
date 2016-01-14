@@ -1,123 +1,18 @@
 #!/usr/bin/python3
 
+from ConfigTree import *
 from WebpageUtils import *
-from configDBcontrol import *
 import time
 import cgi
 import urllib.parse as urlp
 
-
-class Metaform(ConfigDB):
-    """Form-generating web form"""
+class Metaform(ConfigTree):
+    """Web forms interface to ConfigTree, allowing web form generation"""
     
     def __init__(self, conn = None):
-        ConfigDB.__init__(self,conn)
+        ConfigTree.__init__(self,conn)
         self.readonly = False
-        self.prevobjs = set()   # previously-seen objects to avoid circularity
-        self.dbcache = {}		# cache of top-level DB entries
 
-    def load_toplevel(self, csid):
-        """Get top-level config information from DB; format into context data"""
-        
-        if csid in self.dbcache: # check in-memory cache to decrease DB hits
-        	return self.dbcache[csid]
-        
-        self.curs.execute("SELECT name,rowid,value FROM config_values WHERE csid = ?", (csid,))
-        # note: drop empty items between multiple dots... treats multiple dots as one
-        #d = dict([((csid,) + tuple([i for i in r[0].split('.') if i]), (r[1], r[2])) for r in self.curs.fetchall()])
-
-        d = dict([((csid,) + tuple([i for i in r[0].split('.')]), (r[1], r[2])) for r in self.curs.fetchall()])
-        
-        self.dbcache[csid] = d
-        return d
-    
-    @staticmethod
-    def subdivide_context(d, find = None):
-        """Divide context dictionary into sub-context branches, optionally keeping for only one specific branch"""
-        subdat = { }
-        for (k,v) in d.items():
-            if not k or not len(k):
-                continue
-            if find is not None and k[:len(find)] != find[:len(k)]:
-                continue
-            subdat.setdefault(k[0],{})[k[1:]] = v
-        return subdat
-    
-    # context: { (x,y,z) : (ID, value), (): (ID,value) }
-    #   can be merged/updated with other contexts
-    #
-    # expanded: { x : { y: { z : { None:(ID,value) } }, None:(ID,value) }
-    
-    def traverse_context(self, context, find = None, cyccheck = None, wildcard = True, ppath = tuple()):
-        """Expand context into tree, including links; return target context or whole expanded tree."""
-        
-        if cyccheck is None: # initialize cyclical references check
-            cyccheck = set() #{find} if find is not None else set()
-        
-        #####################################################################
-        # check if top level is link; expand context with link contents if so
-        thiso = context.get(tuple(), (None,None)) # "this" value for top-level object in traversal, including link expansion
-        islink = None # filled in with link information
-        lpath = None # link path
-        if thiso[1] == '@': # special case link-to-NULL
-            context.pop(tuple())
-            islink = thiso # mark as link
-        elif isinstance(thiso[1],str) and thiso[1][:1] == '@':
-            if thiso[1][1:2] in ["~","$"]: # relative link expansion
-                lparts = thiso[1][2:].split(".")
-                n = int(lparts[0]) if lparts[0].isdigit() else 0
-                ltext = ".".join([str(p) for p in ppath][:-n if n else 1000000] + lparts[1:])
-                if thiso[1][1:2] == "$": # relative link text
-                    context[tuple()] = (thiso[0], ltext)
-                    islink = thiso
-                    thiso = None
-                else:
-                    thiso = (thiso[0], "@"+ltext) if ltext else None
-                    #Sprint("<!-- Expanding rel link", thiso, "-->")
-                    
-            if thiso is not None:
-                #print("<!-- following link", thiso, cyccheck, "-->")
-                lpath = thiso[1][1:].split(".")
-                lpath[0] = int(lpath[0])
-                lpath = tuple(lpath)
-                if thiso not in cyccheck:
-                    ldata = self.traverse_context(self.load_toplevel(lpath[0]), lpath, cyccheck.union({thiso}))
-                    context.pop(tuple()) # remove origin link
-                    ldata.update(context) # over-write linked data
-                    context = ldata # modified data is new context
-                    islink = thiso # save link information
-                    #print("<!-- link info", thiso, context, "-->")
-                else:
-                    #print("<!-- CYCLIC LINK on lpath", lpath, thiso, "-->")
-                    context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
-        
-        if find == tuple(): # context at end of find mode... before wildcard expansion
-            return context
-        
-        # expand wildcard items
-        if wildcard:
-            kset = [k for k in context.keys() if k and isinstance(k[0], str)]
-            kset.sort() # standardize application order
-            for c in [k for k in kset if k[0][-1:] == '*']:
-                cc = c[0][:-1]
-                for c2 in kset:
-                    if c2 and c2[0][-1] != '*' and c2[0][:len(cc)] == cc:
-                        creplace  = (c2[0],) + c[1:]
-                        context[creplace] = context[c]
-
-        # consider each sub-branch
-        subdat = self.subdivide_context(context, find)
-        expanded = {None: context[tuple()]} if tuple() in context else {}
-        if islink is not None:
-            expanded[0] = islink # special marker for linked objects
-        for k in subdat:
-            v = subdat[k]
-            expanded[k] = self.traverse_context(v, find[1:] if find else None,
-                                                cyccheck.union({islink}) if islink else cyccheck,
-                                                ppath = ppath + (k,))
-
-        return expanded.get(find[0],{}) if find is not None else expanded
-    
     @staticmethod
     def aselement(clist, dflt="div"):
         """contents list to single element"""
@@ -215,10 +110,6 @@ class Metaform(ConfigDB):
             return (wraptag,)
         return (tbl,)
 
-
-
-
-
     def edit_object(self, iid):
         """Object editor page, given object type config and instance"""
         
@@ -299,19 +190,16 @@ class Metaform(ConfigDB):
         gp.append(Fp)
         return gp
         
-def linkedname(iid, toptag):
-    """Object name with links to editor"""
-    iid = iid.split(".")
-    iid = (int(iid[0]),) + tuple(iid[1:])
-    vstr = "%i"%iid[0]
-    prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), "%s:%s"%C.get_setname(iid[0]))
-    toptag.append(prev)
-    for v in iid[1:]:
-        vstr += ".%s"%v
-        prev.tail = "."
-        prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), v)
+    def linkedname(self, iid, toptag):
+        """Object name with links to editor"""
+        vstr = "%i"%iid[0]
+        prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), "%s:%s"%self.get_setname(iid[0]))
         toptag.append(prev)
-    return iid
+        for v in iid[1:]:
+            vstr += ".%s"%v
+            prev.tail = "."
+            prev = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), v)
+            toptag.append(prev)
 
 # TODO
 # editing target of links within object
@@ -359,32 +247,31 @@ if __name__ == "__main__":
         conn.commit()
         
     if "addparam" in form and "edit" in form and "newnm" in form and "newval" in form:
-        try:
-            edpath = form.getvalue("edit").split(".")
-            csid = int(edpath[0])
+        iid = C.iid_fromstr(form.getvalue("edit"))
+        if iid is not None:
             newval = form.getvalue("newval")
-            if newval == "@":
-                newval = None
-            if not C.has_been_applied(csid):
-                C.set_config_value(csid, ".".join(edpath[1:]+[form.getvalue("newnm")]), newval)
-        except:
-            pass
-        conn.commit()
+            newval = None if newval == "@" else newval
+            if not C.has_been_applied(iid[0]):
+                C.set_config_value(iid[0], ".".join(iid[1:]+[form.getvalue("newnm")]), newval)
+                conn.commit()
     
     if "view" in form:
-        Page,b = makePageStructure("Metaform")
-        h1 = addTag(b,"h1", contents = "Viewing ")
-        iid = linkedname(form.getvalue("view"),h1)
-        obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
-        obj = C.traverse_context(obj, ppath=iid)
-        #print("<!-- view", obj, "-->")
-        b.append(C.aselement(C.displayform(obj)))
+        iid = C.iid_fromstr(form.getvalue("view"))
+        if iid is not None:
+            Page,b = makePageStructure("Metaform")
+            h1 = addTag(b,"h1", contents = "Viewing ")
+            C.linkedname(iid,h1)
+            obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
+            obj = C.traverse_context(obj, ppath=iid)
+            b.append(C.aselement(C.displayform(obj)))
 
     elif "edit" in form:
-        Page,b = makePageStructure("Metaform")
-        h1 = addTag(b,"h1", contents = "Editing ")
-        iid = linkedname(form.getvalue("edit") ,h1)
-        b.append(C.edit_object(iid))
+        iid = C.iid_fromstr(form.getvalue("edit"))
+        if iid is not None:
+            Page,b = makePageStructure("Metaform")
+            h1 = addTag(b,"h1", contents = "Editing ")
+            C.linkedname(iid ,h1)
+            b.append(C.edit_object(iid))
     
     if Page:
         print(prettystring(Page))
