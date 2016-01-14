@@ -33,7 +33,7 @@ class ConfigTree(ConfigDB):
                 return self.dbcache[csid]
         
         self.curs.execute("SELECT name,rowid,value FROM config_values WHERE csid = ?", (csid,))
-        d = dict([((csid,) + tuple([i for i in r[0].split('.')]), (r[1], r[2])) for r in self.curs.fetchall()])
+        d = dict([((csid,) + (tuple([i for i in r[0].split('.')]) if r[0] is not None else tuple()), (r[1], r[2])) for r in self.curs.fetchall()])
         
         self.dbcache[csid] = d
         return d

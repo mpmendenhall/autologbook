@@ -5,6 +5,10 @@ launch server in this directory:
 export PYTHONPATH=${APP_DIR}/autologbook/:$PYTHONPATH
 python3 -m http.server --cgi 8001 --bind 127.0.0.1
 
+TODO
+handle ; in descrip
+handle --- in object value
+fix relative link edit-link path
 
 
 Metaform object structure:
@@ -59,6 +63,81 @@ Chains of links to links are permitted, with inheritance/overwriting occurring a
     and the (this) of the initial link node becoming (this) of the non-linking node ending the chain.
 Cyclical links will be caught during evaluation,
     which stops further evaluation of a link chain at that point.
+
+    
+== Recipes for useful objects ==
+
+obj:formfield       self-referencing form input field
+# creates its own "value" entry
+
+!xml                    input
+!xml.#name.!list        None
+!xml.#name.#1           new_
+!xml.#name.#2           @$3.value
+!xml.#type              text
+!xml.#value             @~2.value
+
+obj:checkline       table row for a checklist entry
+
+!list                   None
+!xml                    tr
+#*.!xml                 td
+#1_name                 None
+#1_name.!xml.#class     neutral
+#2_value.!list          None
+#2_value.#1             @obj:formfield
+#2_value.#1.!xml.#size  10
+#3_unit                 None
+#4_min                  None
+#5_max                  None
+#6_comments.!list       None
+#6_comments.#1          @obj:formfield
+
+obj:checkline_tblheader header row for checklines table
+
+!list           None
+!xml            tr
+!xml.#class     tblhead
+#*.!xml         td
+#1              Name
+#2              Value
+#3              Units
+#4              min.
+#5              max.
+#6              Comments
+
+obj:submitbutton    form submit button
+
+!xml    input
+!xml.#name      update
+!xml.#type      submit
+!xml.#value     Submit
+
+obj:fieldset    form fieldset wrapper object (fill in #0 with legend text; #1...#n with contents)
+
+!list           None
+!xml            fieldset
+#0.!xml         legend
+
+obj:form        Metaform form outline
+
+!xml            form
+!xml.#action    /cgi-bin/Metaform.py
+!list           None
+#~              @obj:submitbutton
+
+
+----------------
+forms:ctable_???        embed checklines in a table object, then edit their parameters:
+
+!list   None
+!xml    table
+#1      @obj:checkline
+#2      @obj:checkline
+#3      @obj:checkline
+...
+
+
 
 
 --------------- TO DO ----------------

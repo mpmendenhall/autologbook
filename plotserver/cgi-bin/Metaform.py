@@ -123,23 +123,25 @@ class Metaform(ConfigTree):
         rlist = []
         klist = [ k for k in obj.keys() if k not in (None, 0)]
         klist.sort()
-        if None in obj:
-            klist = [None,] + klist
+        klist = [None,] + klist
             
         nDeleteable = 0
         edname = ".".join((str(iid[0]),)+iid[1:])
         for k in klist:
-            v = obj[k]
-            islink = 0 in v
+            v = obj.get(k, {})
+            islink = v[0] if 0 in v else None
             basenum = None # entry ID for this object, if belonging to top object (TODO problematic with internal links)
-            subedname = (edname+"."+k) if k is not None else None
+            subedname = (edname+"."+k) if k is not None else edname
             updf = None # update/create field for (this)
             edlink = None # link to object editor page
             
-            if k == None: # final node value... sometimes need to edit in compound classes
-                basenum = v[0] if v[0] in topkeys else None
-                newrow = [("(this)", {"class":"warning"}) if basenum else "(this)", (v[1] if v[1] is not None else "None", {"class":"good"})]
-                
+            if k == None:
+                if None in obj: # node has a (this) value
+                    basenum = v[0] if v[0] in topkeys else None
+                    newrow = [("(this)", {"class":"warning"}) if basenum else "(this)", (v[1] if v[1] is not None else "None", {"class":"good"})]
+                else:
+                    newrow = ["(this)", None]
+                    
             elif tuple(v.keys()) == (None,): # simple editable final node value
                 vv = v[None]
                 if type(vv) == type(tuple()):
@@ -152,7 +154,7 @@ class Metaform(ConfigTree):
                 if islink:
                     basenum = v[0][0] if v[0][0] in topkeys else None
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
-                kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(v[0][1][1:]), "("+k+")") if islink else "None" if k is None else "''" if not k else k
+                kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), k+" "+islink[1]) if islink else "None" if k is None else "''" if not k else k
                 newrow = [(kname, {"class":"warning"}) if basenum else kname, self.aselement(self.displayform(v))]            
             
             if basenum:
@@ -248,7 +250,7 @@ if __name__ == "__main__":
                     v = form.getvalue("new_"+d)
                     if v == "@":
                         v = None
-                    C.set_config_value(csid, itm[1], v)
+                    C.set_config_value(csid, itm[1] if len(itm)==2 else None, v)
             except:
                 pass
         conn.commit()
@@ -259,7 +261,7 @@ if __name__ == "__main__":
             newval = form.getvalue("newval")
             newval = None if newval == "@" else newval
             if not C.has_been_applied(iid[0]):
-                C.set_config_value(iid[0], ".".join(iid[1:]+[form.getvalue("newnm")]), newval)
+                C.set_config_value(iid[0], ".".join(iid[1:]+(form.getvalue("newnm"),)), newval)
                 conn.commit()
     
     if "view" in form:
