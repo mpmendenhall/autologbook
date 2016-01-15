@@ -15,24 +15,24 @@ def makeLink(href, content, xargs = {}):
         a.text = str(content)
     return a
 
-def mergecontents(e, contents):
-    """Merge mixed text/tag contents into e"""
+def mergecontents(e, contents, prevel = None):
+    """Recursively merge mixed text/tag contents into e"""
     if ET.iselement(contents):
         e.append(contents)
+        prevel = contents
     elif isinstance(contents, tuple) or isinstance(contents, list):
-        prevel = None
         for c in contents:
             if ET.iselement(c):
                 e.append(c)
                 prevel = c
             elif c is not None:
-                cs = str(c)
-                if prevel is not None:
-                    prevel.tail = prevel.tail + cs if prevel.tail else cs
-                else:
-                    e.text = e.text + cs if e.text else cs
+                mergecontents(e, c, prevel)
     elif contents:
-        e.text = str(contents)
+        cs = str(contents)
+        if prevel is not None:
+            prevel.tail = prevel.tail + cs if prevel.tail else cs
+        else:
+            e.text = e.text + cs if e.text else cs
 
 def addTag(parent, tag, xargs = {}, contents = None):
     e = ET.SubElement(parent, tag, xargs) if parent is not None else ET.Element(tag, xargs)

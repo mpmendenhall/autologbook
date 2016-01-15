@@ -12,13 +12,6 @@ class Metaform(ConfigTree):
     def __init__(self, conn = None):
         ConfigTree.__init__(self,conn)
         self.readonly = False
-
-    @staticmethod
-    def aselement(clist, dflt="div"):
-        """contents list to single element"""
-        if len(clist)==1 and ET.iselement(clist[0]):
-            return clist[0]
-        return addTag(None, dflt, contents = clist)
     
     @staticmethod
     def asstring(clist):
@@ -99,7 +92,7 @@ class Metaform(ConfigTree):
             elif tuple(v.keys()) == (None,):
                 rlist.append([k, (v[None][1],{"class":"good"})])
             else:
-                rlist.append([k, self.aselement(self.displayform(v))])
+                rlist.append([k, self.displayform(v)])
 
         if not rlist:
             return (wraptag,) if wraptag is not None else tuple()
@@ -116,9 +109,7 @@ class Metaform(ConfigTree):
         idat = self.load_toplevel(iid[0])
         topkeys = set([v[0] for v in idat.values()])
         obj = self.traverse_context(idat, iid)
-        #print("<!-- found context", obj, "-->")
         obj = self.traverse_context(obj, wildcard = False, ppath=iid)
-        #print("<!-- edit expanded", obj, "-->")
         
         # fix sort order by variable name, with "(this)" at top
         rlist = []
@@ -156,7 +147,7 @@ class Metaform(ConfigTree):
                 if islink:
                     basenum = islink[0] if islink[0] in topkeys else None
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
-                newrow = [(kname, {"class":"warning"}) if basenum else kname, self.aselement(self.displayform(v))]            
+                newrow = [(kname, {"class":"warning"}) if basenum else kname, self.displayform(v)]            
             
             if basenum:
                 updf = ET.Element('input', {"type":"text", "name":"val_%i"%basenum, "size":"20"})
@@ -183,9 +174,8 @@ class Metaform(ConfigTree):
         #    c = addTag(cs, "col", {"class":"neutral"} if i == 2 else {})
         makeTable(rlist, T = tbl)
         
-        gp =  ET.Element("g")
+        gp =  []
    
-        
         F =  ET.Element("form", {"action":"/cgi-bin/Metaform.py", "method":"post"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Modify parameters")
@@ -226,6 +216,8 @@ class Metaform(ConfigTree):
             prev.tail = "."
             prev = makeLink("/cgi-bin/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), v)
             toptag.append(prev)
+
+
 
 if __name__ == "__main__":
     dbname = "../config_test.db"
@@ -291,25 +283,25 @@ if __name__ == "__main__":
         iid = C.iid_fromstr(vstr)
         if iid is not None:
             Page,b = makePageStructure("Metaform")
-            h1 = addTag(b,"h1", contents = "Editing ")
+            h1 = addTag(None,"h1", contents = "Editing ")
             C.linkedname(iid ,h1)
             h1.append(makeLink("/cgi-bin/Metaform.py?view=%s"%urlp.quote(vstr), "(view)"))
             h1.append(makeLink("/cgi-bin/ConfigWebManager.py?cset=%i&ncols=2"%iid[0], "(flat)"))
-            b.append(C.edit_object(iid))
+            mergecontents(b, (h1, C.edit_object(iid)))
     
     elif "view" in form:
         vstr = form.getvalue("view")
         iid = C.iid_fromstr(vstr)
         if iid is not None:
             Page,b = makePageStructure("Metaform")
-            h1 = addTag(b,"h1", contents = "Viewing ")
+            h1 = addTag(None,"h1", contents = "Viewing ")
             C.linkedname(iid,h1,mode="view")
             h1.append(makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), "(edit)"))
             obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
             obj = C.traverse_context(obj, ppath=iid)
-            b.append(C.aselement(C.displayform(obj)))
+            mergecontents(b, (h1, C.displayform(obj)))
 
     
-    if Page:
+    if Page is not None:
         print(prettystring(Page))
     
