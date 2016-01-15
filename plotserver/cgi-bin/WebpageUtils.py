@@ -25,11 +25,12 @@ def mergecontents(e, contents):
             if ET.iselement(c):
                 e.append(c)
                 prevel = c
-            elif c:
+            elif c is not None:
+                cs = str(c)
                 if prevel:
-                    prevel.tail = prevel.tail + c if prevel.tail else c
+                    prevel.tail = prevel.tail + cs if prevel.tail else cs
                 else:
-                    e.text = e.text + c if e.text else c
+                    e.text = e.text + cs if e.text else cs
     elif contents:
         e.text = str(contents)
 
