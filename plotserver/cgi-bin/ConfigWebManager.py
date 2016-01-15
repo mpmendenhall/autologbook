@@ -62,7 +62,7 @@ class ConfigWebManager(ConfigDB):
             b.append(tbl)
         print(prettystring(P))
     
-    def make_params_page(self,cset):
+    def make_params_page(self,cset,ncols=4):
         """Page for viewing/modifying parameters in a configuration set"""
         self.curs.execute("SELECT family,name,descrip FROM config_set WHERE rowid = ?", (cset,))
         setname =  self.curs.fetchone()
@@ -75,20 +75,23 @@ class ConfigWebManager(ConfigDB):
         h1.append(flnk)
         h3 = addTag(b, "h3", contents='"%s"'%setname[2])
         h3.append(makeLink("/cgi-bin/ConfigWebManager.py?dump=%i"%cset, "(text dump)"))
-        b.append(self.update_params_form(cset, not (self.readonly or applied)))
+        h3.append(makeLink("/cgi-bin/Metaform.py?view=%i"%cset, "(tree view)"))
+        b.append(self.update_params_form(cset, not (self.readonly or applied), ncols))
         if not applied:
             b.append(self.new_params_form(cset))
         b.append(self.copy_params_form(cset))
         print(prettystring(P)) 
 
-    def update_params_form(self, cset, editable):
+    def update_params_form(self, cset, editable, ncols = 4):
         """Form for updating parameters"""
         self.curs.execute("SELECT rowid,name,value FROM config_values WHERE csid = ?", (cset,))
         ps = self.curs.fetchall()
         
+        varname = (lambda n: "(None)" if n is None else n)
+        
         if editable:
-            setgroups = [[makeCheckbox("del_%i"%p[0]), p[1], (str(p[2]),{"class": "good"}), ET.Element('input', {"type":"text", "name":"val_%i"%p[0], "size":"6"})] for p in ps]
-            setgroups = fillColumns(setgroups, 4)
+            setgroups = [[makeCheckbox("del_%i"%p[0]), varname(p[1]), (str(p[2]),{"class": "good"}), ET.Element('input', {"type":"text", "name":"val_%i"%p[0], "size":"6"})] for p in ps]
+            setgroups = fillColumns(setgroups, ncols)
             setgroups = [ [x for l in g for x in l] for g in setgroups]
             
             F =  ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py", "method":"post"})
@@ -96,12 +99,13 @@ class ConfigWebManager(ConfigDB):
             addTag(Fs, "legend", contents="Current parameter values")
             Fs.append(makeTable(setgroups,{"class":"neutral"}))
             addTag(Fs,"input",{"type":"hidden","name":"cset","value":"%i"%cset})
+            addTag(Fs,"input",{"type":"hidden","name":"ncols","value":"%i"%ncols})
             addTag(Fs,"input",{"type":"submit","name":"upd_params","value":"Update"})
             addTag(Fs,"input",{"type":"submit","name":"del_params","value":"Delete Marked"})
             return F
         else:
-            setgroups = [[p[1], (p[2],{"class": "good"})] for p in ps]
-            setgroups = fillColumns(setgroups, 4)
+            setgroups = [[varname(p[1]), (p[2],{"class": "good"})] for p in ps]
+            setgroups = fillColumns(setgroups, ncols)
             setgroups = [ [x for l in g for x in l] for g in setgroups]
             return makeTable(setgroups,{"class":"neutral"})
         
@@ -147,14 +151,13 @@ class ConfigWebManager(ConfigDB):
         """Remove parameters marked for deletion"""
         cset = int(form.getvalue("cset",0))
         if self.readonly or not cset or self.has_been_applied(cset):
-            return self.make_families_page()
+            return
         for k in form:
              if k[:4] == "del_":
                 try:
                     self.curs.execute("DELETE FROM config_values WHERE rowid = ? AND csid = ?", (int(k[4:]),cset))
                 except:
                     continue
-        return self.make_params_page(cset)
     
     def delete_marked_csets(self,form):
         """Remove parameters marked for deletion"""
@@ -178,20 +181,19 @@ class ConfigWebManager(ConfigDB):
         """Update specified parameter values"""
         cset = int(form.getvalue("cset",0))
         if self.readonly or not cset or self.has_been_applied(cset):
-            return self.make_families_page()
+            return
         for k in form:
              if k[:4] == "val_" and form.getvalue(k):
                 try:
                     self.curs.execute("UPDATE config_values SET value = ? WHERE rowid = ? AND csid = ?", (form.getvalue(k), int(k[4:]), cset))
                 except:
                     continue
-        return self.make_params_page(cset)
     
     def add_params(self,form):
         """Add new parameters"""
         cset = int(form.getvalue("cset",0))
         if self.readonly or not cset or self.has_been_applied(cset):
-            return self.make_families_page()
+            return
         for k in form:
              if k[:3] == "nm_":
                 name = form.getvalue(k)
@@ -202,7 +204,6 @@ class ConfigWebManager(ConfigDB):
                     self.curs.execute("INSERT INTO config_values(csid,name,value) VALUES(?,?,?)", (cset, name, pval))
                 except:
                     continue
-        return self.make_params_page(cset)
     
     def make_new_family(self,form):
         """Add placeholder element for new family"""
@@ -242,20 +243,21 @@ if __name__ == "__main__":
     
     print(docHeaderString())
     
-    if "cp_cset" in form:
-        C.clone_set(form)
-        conn.commit()
-    elif "del_params" in form:
-        C.delete_marked_params(form)
-        conn.commit()
-    elif "del_csets" in form:
-        C.delete_marked_csets(form)
-        conn.commit()
-    elif "upd_params" in form:
+    if "upd_params" in form:
         C.update_params(form)
         conn.commit()
     elif "add_params" in form:
         C.add_params(form)
+        conn.commit()
+    elif "del_params" in form:
+        C.delete_marked_params(form)
+        conn.commit()
+        
+    if "cp_cset" in form:
+        C.clone_set(form)
+        conn.commit()
+    elif "del_csets" in form:
+        C.delete_marked_csets(form)
         conn.commit()
     elif "newfamily" in form:
         C.make_new_family(form)
@@ -264,6 +266,8 @@ if __name__ == "__main__":
         C.make_csets_page(form.getvalue("family"))
     elif "cset" in form:
         cset = int(form.getvalue("cset"))
-        C.make_params_page(cset)
+        ncols = form.getvalue("ncols", None)
+        ncols = 3 if ncols is None or not ncols.isdigit() or not 1 <= int(ncols) <= 6 else int(ncols)
+        C.make_params_page(cset,ncols)
     else:
         C.make_families_page()

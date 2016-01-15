@@ -79,26 +79,24 @@ obj:formfield       self-referencing form input field
 
 obj:checkline       table row for a checklist entry
 
-!list                   None
+!list                   td
 !xml                    tr
-#*.!xml                 td
-#1_name                 None
+#1_name None
+#1_name.!xml            div
 #1_name.!xml.#class     neutral
-#2_value.!list          None
-#2_value.#1             @obj:formfield
-#2_value.#1.!xml.#size  10
+#2_value                @obj:formfield
+#2_value.!xml.#size     10.0
 #3_unit                 None
 #4_min                  None
 #5_max                  None
-#6_comments.!list       None
-#6_comments.#1          @obj:formfield
+#6_comments             @obj:formfield
+#6_comments.!xml.#size  50.0
 
 obj:checkline_tblheader header row for checklines table
 
-!list           None
+!list           td
 !xml            tr
 !xml.#class     tblhead
-#*.!xml         td
 #1              Name
 #2              Value
 #3              Units
@@ -120,11 +118,17 @@ obj:fieldset    form fieldset wrapper object (fill in #0 with legend text; #1...
 #0.!xml         legend
 
 obj:form        Metaform form outline
+# top-level form with submit button and automatic return to viewing form
 
+!list           None
 !xml            form
 !xml.#action    /cgi-bin/Metaform.py
-!list           None
+!xml.#method    post
 #~              @obj:submitbutton
+#~1.!xml        input
+#~1.!xml.#name  view
+#~1.!xml.#type  hidden
+#~1.!xml.#value @$3
 
 
 ----------------

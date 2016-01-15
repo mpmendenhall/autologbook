@@ -97,6 +97,8 @@ class ConfigTree(ConfigDB):
                     context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
         
         if find == tuple(): # context at end of find mode... before wildcard expansion
+            if islink is not None:
+                context[0] = islink # special marker for linked objects
             return context
         
         # expand wildcard items
@@ -110,15 +112,24 @@ class ConfigTree(ConfigDB):
                         creplace  = (c2[0],) + c[1:]
                         context[creplace] = context[c]
 
-        # consider each sub-branch
+        
         subdat = self.subdivide_context(context, find)
-        expanded = {None: context[tuple()]} if tuple() in context else {}
+        # follow search path
+        if find is not None:
+            return self.traverse_context(subdat.get(find[0],{}), find[1:],
+                                         cyccheck.union({islink}) if islink else cyccheck,
+                                         ppath = ppath + (find[0],))
+        # expand all branches
+        expanded = {}
+        if tuple() in context:
+            expanded[None] = context[tuple()]
+        if 0 in context:
+            expanded[0] = context[0]
         if islink is not None:
             expanded[0] = islink # special marker for linked objects
         for k in subdat:
             v = subdat[k]
-            expanded[k] = self.traverse_context(v, find[1:] if find else None,
+            expanded[k] = self.traverse_context(v, None,
                                                 cyccheck.union({islink}) if islink else cyccheck,
                                                 ppath = ppath + (k,))
-
-        return expanded.get(find[0],{}) if find is not None else expanded
+        return expanded

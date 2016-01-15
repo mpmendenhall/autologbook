@@ -116,10 +116,11 @@ class Metaform(ConfigTree):
         idat = self.load_toplevel(iid[0])
         topkeys = set([v[0] for v in idat.values()])
         obj = self.traverse_context(idat, iid)
+        #print("<!-- found context", obj, "-->")
         obj = self.traverse_context(obj, wildcard = False, ppath=iid)
-        print("<!-- edit_object", obj, "-->")
+        #print("<!-- edit expanded", obj, "-->")
         
-        # fix sort order by variable name
+        # fix sort order by variable name, with "(this)" at top
         rlist = []
         klist = [ k for k in obj.keys() if k not in (None, 0)]
         klist.sort()
@@ -129,32 +130,33 @@ class Metaform(ConfigTree):
         edname = ".".join((str(iid[0]),)+iid[1:])
         for k in klist:
             v = obj.get(k, {})
-            islink = v[0] if 0 in v else None
-            basenum = None # entry ID for this object, if belonging to top object (TODO problematic with internal links)
+            islink = v.get(0,None) if k is not None else obj.get(0,None)
+            kname = "(this)" if k is None else "''" if not k else k # display name for key
+            kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), kname+" "+islink[1]) if islink else kname
             subedname = (edname+"."+k) if k is not None else edname
-            updf = None # update/create field for (this)
-            edlink = None # link to object editor page
+            basenum = None      # entry ID for this object, if belonging to top object (TODO problematic with internal links)
+            updf = None         # update/create field for (this)
+            edlink = None       # link to object editor page
             
-            if k == None:
+            if k is None:
                 if None in obj: # node has a (this) value
                     basenum = v[0] if v[0] in topkeys else None
-                    newrow = [("(this)", {"class":"warning"}) if basenum else "(this)", (v[1] if v[1] is not None else "None", {"class":"good"})]
+                    newrow = [(kname, {"class":"warning"}) if basenum else kname, (v[1] if v[1] is not None else "None", {"class":"good"})]
                 else:
-                    newrow = ["(this)", None]
+                    newrow = [kname, None]
                     
             elif tuple(v.keys()) == (None,): # simple editable final node value
                 vv = v[None]
                 if type(vv) == type(tuple()):
                     basenum = vv[0] if vv[0] in topkeys else None
-                    newrow = [(k, {"class":"warning"}) if basenum else k, (vv[1] if vv[1] is not None else "None",{"class":"good"})]
+                    newrow = [(kname, {"class":"warning"}) if basenum else kname, (vv[1] if vv[1] is not None else "None",{"class":"good"})]
             
             else: # more complex objects...
-                if None in v:
+                if None in v: # object's "this" defined
                     basenum = v[None][0] if v[None][0] in topkeys else None
                 if islink:
                     basenum = v[0][0] if v[0][0] in topkeys else None
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
-                kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), k+" "+islink[1]) if islink else "None" if k is None else "''" if not k else k
                 newrow = [(kname, {"class":"warning"}) if basenum else kname, self.aselement(self.displayform(v))]            
             
             if basenum:
@@ -195,7 +197,7 @@ class Metaform(ConfigTree):
         Fsp = addTag(F, "fieldset")
         addTag(Fsp, "legend", contents="Add new parameter")
         rows = [(["Name", "Value"], {"class":"tblhead"}),]
-        addTag(Fsp,"input", {"type":"text", "name":"newnm", "size":"6"})
+        addTag(Fsp,"input", {"type":"text", "name":"newnm", "size":"20"})
         addTag(Fsp,"input", {"type":"text", "name":"newval", "size":"20"})
         #addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions... duplicated above
         addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
@@ -264,7 +266,18 @@ if __name__ == "__main__":
                 C.set_config_value(iid[0], ".".join(iid[1:]+(form.getvalue("newnm"),)), newval)
                 conn.commit()
     
-    if "view" in form:
+    if "edit" in form:
+        vstr = form.getvalue("edit")
+        iid = C.iid_fromstr(vstr)
+        if iid is not None:
+            Page,b = makePageStructure("Metaform")
+            h1 = addTag(b,"h1", contents = "Editing ")
+            C.linkedname(iid ,h1)
+            h1.append(makeLink("/cgi-bin/Metaform.py?view=%s"%urlp.quote(vstr), "(view)"))
+            h1.append(makeLink("/cgi-bin/ConfigWebManager.py?cset=%i&ncols=2"%iid[0], "(flat)"))
+            b.append(C.edit_object(iid))
+    
+    elif "view" in form:
         vstr = form.getvalue("view")
         iid = C.iid_fromstr(vstr)
         if iid is not None:
@@ -276,15 +289,6 @@ if __name__ == "__main__":
             obj = C.traverse_context(obj, ppath=iid)
             b.append(C.aselement(C.displayform(obj)))
 
-    elif "edit" in form:
-        vstr = form.getvalue("edit")
-        iid = C.iid_fromstr(vstr)
-        if iid is not None:
-            Page,b = makePageStructure("Metaform")
-            h1 = addTag(b,"h1", contents = "Editing ")
-            C.linkedname(iid ,h1)
-            h1.append(makeLink("/cgi-bin/Metaform.py?view=%s"%urlp.quote(vstr), "(view)"))
-            b.append(C.edit_object(iid))
     
     if Page:
         print(prettystring(Page))
