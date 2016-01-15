@@ -20,14 +20,14 @@ def mergecontents(e, contents):
     if ET.iselement(contents):
         e.append(contents)
     elif isinstance(contents, tuple) or isinstance(contents, list):
+        prevel = None
         for c in contents:
-            prevel = None
             if ET.iselement(c):
                 e.append(c)
                 prevel = c
             elif c is not None:
                 cs = str(c)
-                if prevel:
+                if prevel is not None:
                     prevel.tail = prevel.tail + cs if prevel.tail else cs
                 else:
                     e.text = e.text + cs if e.text else cs

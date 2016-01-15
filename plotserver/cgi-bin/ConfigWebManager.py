@@ -79,6 +79,7 @@ class ConfigWebManager(ConfigDB):
         b.append(self.update_params_form(cset, not (self.readonly or applied), ncols))
         if not applied:
             b.append(self.new_params_form(cset))
+            b.append(self.rename_params_form(cset))
         b.append(self.copy_params_form(cset))
         print(prettystring(P)) 
 
@@ -119,6 +120,18 @@ class ConfigWebManager(ConfigDB):
         Fs.append(makeTable(rows))
         addTag(Fs,"input",{"type":"hidden","name":"cset","value":"%i"%cset})
         addTag(Fs,"input",{"type":"submit","name":"add_params","value":"Add Parameters"})
+        return F
+    
+    def rename_params_form(self, cset):
+        F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
+        Fs = addTag(F, "fieldset")
+        mergecontents(Fs, (addTag(None, "legend", contents="Rename parameters"),
+                           "old name:",
+                           ET.Element('input', {"type":"text", "name":"fromname", "size":"10"}),
+                           " new name:",
+                           ET.Element('input', {"type":"text", "name":"toname", "size":"10"}),
+                           ET.Element("input",{"type":"hidden","name":"cset","value":"%i"%cset}),
+                           ET.Element("input",{"type":"submit","name":"rename","value":"Rename"})))
         return F
     
     def copy_params_form(self, cset):
@@ -205,6 +218,15 @@ class ConfigWebManager(ConfigDB):
                 except:
                     continue
     
+    def rename_params(self,form):
+        """Add new parameters"""
+        cset = int(form.getvalue("cset",0))
+        fromnm = form.getvalue("fromname",None)
+        tonm = form.getvalue("toname",None)
+        if self.readonly or not cset or not fromnm or not tonm or self.has_been_applied(cset):
+            return
+        self.rename_configs(cset, fromnm, tonm)
+                
     def make_new_family(self,form):
         """Add placeholder element for new family"""
         fname = form.getvalue("famname",None)
@@ -251,6 +273,9 @@ if __name__ == "__main__":
         conn.commit()
     elif "del_params" in form:
         C.delete_marked_params(form)
+        conn.commit()
+    elif "rename" in form:
+        C.rename_params(form)
         conn.commit()
         
     if "cp_cset" in form:

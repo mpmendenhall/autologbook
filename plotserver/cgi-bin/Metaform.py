@@ -163,15 +163,20 @@ class Metaform(ConfigTree):
             elif subedname:
                 updf = (ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"}), {"class":"warning"})
                 
-            newrow += [updf, (edlink, {"style":"text-align:center"}) if edlink is not None else None]
+            newrow += [updf, (edlink, {"style":"text-align:center", "class":"neutral"}) if edlink is not None else None]
             
             # object (self) defined here and deletable
             if basenum is not None:
-                newrow.append(makeCheckbox("del_%i"%basenum))
+                newrow.append((makeCheckbox("del_%i"%basenum), {"style":"text-align:center", "class":"error"}))
                 nDeleteable += 1
             
             rlist.append(newrow)
        
+        finalrow = [None, None, (ET.Element("input",{"type":"submit","name":"update","value":"Update"}), {"style":"text-align:center"}), None]
+        if nDeleteable:
+            finalrow.append(ET.Element("input",{"type":"submit","name":"delete","value":"Delete"}))
+        rlist.append(finalrow)
+        
         tbl = ET.Element('table')
         #cs = addTag(tbl, "colgroup")
         #for i in range(5):
@@ -186,22 +191,29 @@ class Metaform(ConfigTree):
         addTag(Fs, "legend", contents="Modify parameters")
         Fs.append(tbl)
         addTag(Fs,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
-        addTag(Fs,"input",{"type":"submit","name":"update","value":"Update"})
-        if nDeleteable:
-            addTag(Fs,"input",{"type":"submit","name":"delete","value":"Delete Marked"})
-
         gp.append(F)
         
         Fp = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
-        Fsp = addTag(F, "fieldset")
+        Fsp = addTag(Fp, "fieldset")
         addTag(Fsp, "legend", contents="Add new parameter")
         rows = [(["Name", "Value"], {"class":"tblhead"}),]
         addTag(Fsp,"input", {"type":"text", "name":"newnm", "size":"20"})
         addTag(Fsp,"input", {"type":"text", "name":"newval", "size":"20"})
-        #addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions... duplicated above
+        addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions... duplicated above
         addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
-        
         gp.append(Fp)
+        
+        Frn = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
+        Frns = addTag(Frn, "fieldset")
+        mergecontents(Frns, (addTag(None, "legend", contents="Rename parameter"),
+                           "old name:",
+                           ET.Element('input', {"type":"text", "name":"fromname", "size":"10"}),
+                           " new name:",
+                           ET.Element('input', {"type":"text", "name":"toname", "size":"10"}),
+                           ET.Element("input",{"type":"hidden","name":"edit","value":edname}),
+                           ET.Element("input",{"type":"submit","name":"rename","value":"Rename"})))
+        gp.append(Frn)
+        
         return gp
         
     def linkedname(self, iid, toptag, mode = "edit"):
@@ -263,6 +275,15 @@ if __name__ == "__main__":
             newval = None if newval == "@" else newval
             if not C.has_been_applied(iid[0]):
                 C.set_config_value(iid[0], ".".join(iid[1:]+(form.getvalue("newnm"),)), newval)
+                conn.commit()
+    
+    if "rename" in form and "edit" in form and "fromname" in form and "toname" in form:
+        iid = C.iid_fromstr(form.getvalue("edit"))
+        if iid is not None:
+            if not C.has_been_applied(iid[0]):
+                fromnm = ".".join(iid[1:]+(form.getvalue("fromname"),))
+                tonm = ".".join(iid[1:]+(form.getvalue("toname"),))
+                C.rename_configs(iid[0], fromnm, tonm)
                 conn.commit()
     
     if "edit" in form:

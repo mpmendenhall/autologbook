@@ -44,6 +44,12 @@ class ConfigDB:
                 return
         self.curs.execute(*insert_val_string("INSERT OR REPLACE INTO config_values", {"csid":csid, "name":name, "value":value}))
         
+    def rename_configs(self, csid, oldname, newname):
+        """Rename configurations within a set, matching oldname and oldname.*"""
+        self.curs.execute("SELECT rowid,name FROM config_values WHERE csid = ? AND name = ? OR name LIKE ?", (csid, oldname, oldname+".%"))
+        for r in self.curs.fetchall():
+            self.curs.execute("UPDATE config_values SET name = ? WHERE rowid = ?", (newname + r[1][len(oldname):], r[0]))
+
     def get_config(self, csid):
         """Get configuration parameter values by set ID"""
         self.curs.execute("SELECT name,value FROM config_values WHERE csid = ?", (csid,))
