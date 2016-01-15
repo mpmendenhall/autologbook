@@ -52,7 +52,7 @@ def makeList(items, xargs={}, toptag='ul', itmtag='li'):
     """HTML list"""
     L = ET.Element(toptag, xargs)
     for i in items:
-        if type(i) == type(tuple()):
+        if isinstance(i, tuple) and len(i)==2 and isinstance(i[1],dict):
             addTag(L, itmtag, xargs=i[1], contents = i[0])
         else:
             addTag(L, itmtag, contents = i)
@@ -69,7 +69,7 @@ def makeTable(rows, xargs={}, T = None):
            T.append(r)
            continue
         
-        if type(r) == type(tuple()):
+        if isinstance(r, tuple) and len(r)==2 and isinstance(r[1],dict):
             rw = makeList(r[0], xargs=r[1], toptag='tr', itmtag='td')
         else:
             rw = makeList(r, toptag='tr', itmtag='td')

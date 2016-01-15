@@ -37,6 +37,11 @@ class ConfigDB:
 
     def set_config_value(self, csid, name, value):
         """Set a configuration parameter"""
+        if name is None: # workaround for special case: sqlite3 does not enforce uniqueness on NULL
+            self.curs.execute("SELECT COUNT(*) FROM config_values WHERE csid = ? AND name is NULL", (csid,))
+            if self.curs.fetchone()[0]:
+                self.curs.execute("UPDATE config_values SET value = ? WHERE csid = ? AND name is NULL", (value, csid))
+                return
         self.curs.execute(*insert_val_string("INSERT OR REPLACE INTO config_values", {"csid":csid, "name":name, "value":value}))
         
     def get_config(self, csid):

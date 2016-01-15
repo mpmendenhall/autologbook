@@ -132,18 +132,17 @@ class Metaform(ConfigTree):
             v = obj.get(k, {})
             islink = v.get(0,None) if k is not None else obj.get(0,None)
             kname = "(this)" if k is None else "''" if not k else k # display name for key
-            kname = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), kname+" "+islink[1]) if islink else kname
+            kname = (kname,makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), islink[1])) if islink else kname
             subedname = (edname+"."+k) if k is not None else edname
             basenum = None      # entry ID for this object, if belonging to top object (TODO problematic with internal links)
             updf = None         # update/create field for (this)
             edlink = None       # link to object editor page
             
             if k is None:
-                if None in obj: # node has a (this) value
-                    basenum = v[0] if v[0] in topkeys else None
-                    newrow = [(kname, {"class":"warning"}) if basenum else kname, (v[1] if v[1] is not None else "None", {"class":"good"})]
-                else:
-                    newrow = [kname, None]
+                basenum = v[0] if None in obj and v[0] in topkeys else None
+                if islink:
+                    basenum = islink[0] if islink[0] in topkeys else None
+                newrow = [(kname, {"class":"warning"}) if basenum else kname, (v[1] if v[1] is not None else "None", {"class":"good"}) if None in obj else None]
                     
             elif tuple(v.keys()) == (None,): # simple editable final node value
                 vv = v[None]
@@ -155,7 +154,7 @@ class Metaform(ConfigTree):
                 if None in v: # object's "this" defined
                     basenum = v[None][0] if v[None][0] in topkeys else None
                 if islink:
-                    basenum = v[0][0] if v[0][0] in topkeys else None
+                    basenum = islink[0] if islink[0] in topkeys else None
                 edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
                 newrow = [(kname, {"class":"warning"}) if basenum else kname, self.aselement(self.displayform(v))]            
             
