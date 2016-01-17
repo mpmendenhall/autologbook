@@ -1,0 +1,55 @@
+\documentclass[12pt,english]{article}
+
+\usepackage{geometry}
+\geometry{letterpaper, margin=1in}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{amssymb,amsmath}
+\usepackage{subfig}
+\usepackage{fancyvrb}
+
+\newcommand{\cd}[1]{\texttt{#1}}
+\newcommand{\cmd}[1]{\cd{`#1'}}
+\newcommand{\cmake}{\cd{cmake}}
+\newcommand{\alb}{\cd{autologbook}}
+
+
+\begin{document}
+
+\title{\alb\ lab database utilities}
+\author{Michael P. Mendenhall}
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+
+\alb\ is a set of utilities designed to help in common lab tasks:
+	data logging and monitoring, equipment configuration, ``checklist'' routine monitoring forms.
+Information is stored in \cd{sqlite3} (\url{http://www.sqlite.org}) database files,
+	a highly robust and widely-used embedded database system.
+Various \cd{python3} scripts facilitate reading and writing the database information,
+	including a suite of \cd{cgi} scripts providing an \cd{html} web interface.
+
+The \alb\ utilities are structured around two independent databases,
+	organized for different types of information.
+The ``logger'' database is intended for series of timestamped readings automatically logged
+	from instruments, alongside textual annotations of lab events.
+The data can be monitored and plotted through a web interface.
+The ``configuration'' database is for storing configuration information for
+	laboratory equipment (such as sets of voltages for power supplies),
+	along with a mechanism for generating and archiving forms such as ``shift change checklist'' records.
+
+\section{Data logger}
+
+
+\section{Configurations and forms}
+
+
+
+\end{document}
+

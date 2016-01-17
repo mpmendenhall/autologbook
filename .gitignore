@@ -1,6 +1,13 @@
+*~
 sqlite_apply_RBU
 *.db
 *.o
 *.pyc
 __pycache__
 RBU_Data
+
+*.aux
+*.log
+*.out
+*.toc
+
