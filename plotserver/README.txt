@@ -5,13 +5,8 @@ launch server in this directory:
 export PYTHONPATH=${APP_DIR}/autologbook/:$PYTHONPATH
 python3 -m http.server --cgi 8001 --bind 127.0.0.1
 
-TODO
-handle ; in descrip
-handle --- in object value
-fix relative link edit-link path
-
-
-Metaform object structure:
+------------------------------------------
+Metaform information
 
 == basic object structure ==
 
@@ -111,14 +106,13 @@ obj:submitbutton    form submit button
 !xml.#type      submit
 !xml.#value     Submit
 
-obj:fieldset    form fieldset wrapper object (fill in #0 with legend text; #1...#n with contents)
+obj:fieldset    form fieldset wrapper object (fill in #0 with legend text, #1...#n with contents)
 
 !list           None
 !xml            fieldset
 #0.!xml         legend
 
-obj:form        Metaform form outline
-# top-level form with submit button and automatic return to viewing form
+obj:form        Form outline, with submit button and hidden return-to-page-view
 
 !list           None
 !xml            form
@@ -142,9 +136,15 @@ forms:ctable_???        embed checklines in a table object, then edit their para
 ...
 
 
+== quirks ==
+
+Semicolons are not handled correctly in form values; they, and everything following, are truncated.
+This appears to be a python3(.4.3) cgi.FieldStorage bug.
 
 
 --------------- TO DO ----------------
+"starter" forms DB
+fix relative link edit-link path
 multi-plot graphs
 PMT I,V plots
 saved-state sessions

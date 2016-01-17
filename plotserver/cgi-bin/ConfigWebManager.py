@@ -242,12 +242,12 @@ class ConfigWebManager(ConfigDB):
     
     
 if __name__ == "__main__":
-    dbname = "../config_test.db"
-    conn = sqlite3.connect(dbname)
+    
+    conn = open_or_init_config_DB("..")
     C = ConfigWebManager(conn)
     
     form = cgi.FieldStorage()
-    
+            
     if "dump" in form:
         print("Content-Type: text/plain\n")
         try:

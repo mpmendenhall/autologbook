@@ -2,6 +2,7 @@
 
 import sqlite3
 import time
+import os
 
 def insert_val_string(pfx, d):
     """Dictionary to string and tuple for insert statement"""
@@ -94,13 +95,21 @@ class ConfigDB:
         """Set a parameter only if from a non-applied configuration set"""
         self.curs.execute("UPDATE config_values SET value = ? WHERE rowid = ? AND NOT (SELECT COUNT(*) FROM config_history WHERE config_history.csid = config_values.csid)", (value, paramid,))
         
-if __name__ == "__main__":
-    import os
-    dbname = "config_test.db"
-    if not os.path.exists(dbname):
-        os.system("sqlite3 %s < config_DB_description.txt"%dbname)
+        
+def open_or_init_config_DB(basepath, dbname = "configDB.db", template = "configDB_starter.db", schema = "config_DB_description.txt"):
+    """Open connection to config DB, creating it (copy from template or by schema) if non-existent"""
+    if not  os.path.exists(basepath+"/"+dbname):
+        if template and os.path.exists(basepath+"/"+template):
+            os.system("cp %s/%s %s/%s"%(basepath,template,basepath,dbname))
+        else:
+            os.system("sqlite3 %s/%s < %s/%s"%(basepath,dbname,basepath,schema))
+    return sqlite3.connect(basepath+"/"+dbname)
 
-    conn = sqlite3.connect(dbname)
+
+
+if __name__ == "__main__":
+
+    conn = sqlite3.connect(".")
     C = ConfigDB(conn)
     
     csid = C.make_configset("all_1000", "PMT_HV", "all PMTs at 1000V")
