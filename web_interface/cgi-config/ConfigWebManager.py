@@ -16,14 +16,14 @@ class ConfigWebManager(ConfigDB):
         """Page for browsing/creating configuration set families"""
         self.curs.execute("SELECT DISTINCT family FROM config_set")
         families = [r[0] for r in self.curs.fetchall()]
-        fl = makeList([makeLink("/cgi-bin/ConfigWebManager.py?family=%s"%f, f) for f in families])
+        fl = makeList([makeLink("/cgi-config/ConfigWebManager.py?family=%s"%f, f) for f in families])
         
         P,b = makePageStructure("Configuration Families")
         addTag(b,"h1",contents="Configuration set families")
         b.append(fl)
         
         if not self.readonly:
-            F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
+            F = ET.Element("form", {"action":"/cgi-config/ConfigWebManager.py"})
             Fs = addTag(F, "fieldset")
             addTag(Fs, "legend", contents="Make new configuration set family")
             addTag(Fs, 'input', {"type":"text", "name":"famname", "size":"10"})
@@ -42,7 +42,7 @@ class ConfigWebManager(ConfigDB):
             isdeleteable = not self.has_been_applied(r[0])
             ndeleteable += isdeleteable
             rw = [makeCheckbox("rmr_%i"%r[0]) if isdeleteable else "",
-                  makeLink("/cgi-bin/ConfigWebManager.py?cset=%i"%r[0], r[1]), r[2], time.ctime(r[3])]
+                  makeLink("/cgi-config/ConfigWebManager.py?cset=%i"%r[0], r[1]), r[2], time.ctime(r[3])]
             rows.append((rw,{"class":"good"}) if r[0]==selected else rw)
         if len(rows) == 1:
             return self.make_families_page()
@@ -50,11 +50,11 @@ class ConfigWebManager(ConfigDB):
         
         P,b = makePageStructure("%s Configurations"%f)
         h1 = addTag(b,"h1")
-        clnk = makeLink("/cgi-bin/ConfigWebManager.py", "Configuration sets")
+        clnk = makeLink("/cgi-config/ConfigWebManager.py", "Configuration sets")
         clnk.tail = "in %s"%f
         h1.append(clnk)
         if ndeleteable:
-            F = addTag(b, "form", {"action":"/cgi-bin/ConfigWebManager.py"})
+            F = addTag(b, "form", {"action":"/cgi-config/ConfigWebManager.py"})
             F.append(tbl)
             addTag(F,"input",{"type":"hidden","name":"family","value":f})
             addTag(F,"input",{"type":"submit","name":"del_csets","value":"Delete Marked"})
@@ -70,12 +70,12 @@ class ConfigWebManager(ConfigDB):
         
         P,b = makePageStructure("%s:%s"%setname[:2])
         h1 = addTag(b, "h1", contents="Configuration set ")
-        flnk = makeLink("/cgi-bin/ConfigWebManager.py?family=%s"%setname[0], setname[0])
+        flnk = makeLink("/cgi-config/ConfigWebManager.py?family=%s"%setname[0], setname[0])
         flnk.tail = " : %s"%setname[1]
         h1.append(flnk)
         h3 = addTag(b, "h3", contents='"%s"'%setname[2])
-        h3.append(makeLink("/cgi-bin/ConfigWebManager.py?dump=%i"%cset, "(text dump)"))
-        h3.append(makeLink("/cgi-bin/Metaform.py?view=%i"%cset, "(tree view)"))
+        h3.append(makeLink("/cgi-config/ConfigWebManager.py?dump=%i"%cset, "(text dump)"))
+        h3.append(makeLink("/cgi-config/Metaform.py?view=%i"%cset, "(tree view)"))
         b.append(self.update_params_form(cset, not (self.readonly or applied), ncols))
         if not applied:
             b.append(self.new_params_form(cset))
@@ -95,7 +95,7 @@ class ConfigWebManager(ConfigDB):
             setgroups = fillColumns(setgroups, ncols)
             setgroups = [ [x for l in g for x in l] for g in setgroups]
             
-            F =  ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py", "method":"post"})
+            F =  ET.Element("form", {"action":"/cgi-config/ConfigWebManager.py", "method":"post"})
             Fs = addTag(F, "fieldset")
             addTag(Fs, "legend", contents="Current parameter values")
             Fs.append(makeTable(setgroups,{"class":"neutral"}))
@@ -112,7 +112,7 @@ class ConfigWebManager(ConfigDB):
         
     def new_params_form(self,cset):
         """Form for new parameters"""
-        F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
+        F = ET.Element("form", {"action":"/cgi-config/ConfigWebManager.py"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Add new parameters")
         rows = [(["Name", "Value"], {"class":"tblhead"}),] 
@@ -123,7 +123,7 @@ class ConfigWebManager(ConfigDB):
         return F
     
     def rename_params_form(self, cset):
-        F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
+        F = ET.Element("form", {"action":"/cgi-config/ConfigWebManager.py"})
         Fs = addTag(F, "fieldset")
         mergecontents(Fs, (addTag(None, "legend", contents="Rename parameters"),
                            "old name:",
@@ -136,7 +136,7 @@ class ConfigWebManager(ConfigDB):
     
     def copy_params_form(self, cset):
         """Form to copy a configuration set"""
-        F = ET.Element("form", {"action":"/cgi-bin/ConfigWebManager.py"})
+        F = ET.Element("form", {"action":"/cgi-config/ConfigWebManager.py"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Copy to new configuration set")
         rows = [(["set name", "description"], {"class":"tblhead"}),] 

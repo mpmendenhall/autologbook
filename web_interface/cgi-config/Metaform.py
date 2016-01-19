@@ -123,7 +123,7 @@ class Metaform(ConfigTree):
             v = obj.get(k, {})
             islink = v.get(0,None) if k is not None else obj.get(0,None)
             kname = "(this)" if k is None else "''" if not k else k # display name for key
-            kname = (kname,makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), islink[1])) if islink else kname
+            kname = (kname,makeLink("/cgi-config/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), islink[1])) if islink else kname
             subedname = (edname+"."+k) if k is not None else edname
             basenum = None      # entry ID for this object, if belonging to top object (TODO problematic with internal links)
             updf = None         # update/create field for (this)
@@ -146,7 +146,7 @@ class Metaform(ConfigTree):
                     basenum = v[None][0] if v[None][0] in topkeys else None
                 if islink:
                     basenum = islink[0] if islink[0] in topkeys else None
-                edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
+                edlink = makeLink("/cgi-config/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
                 newrow = [(kname, {"class":"warning"}) if basenum else kname, self.displayform(v)]            
             
             if basenum:
@@ -176,14 +176,14 @@ class Metaform(ConfigTree):
         
         gp =  []
    
-        F =  ET.Element("form", {"action":"/cgi-bin/Metaform.py", "method":"post"})
+        F =  ET.Element("form", {"action":"/cgi-config/Metaform.py", "method":"post"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Modify parameters")
         Fs.append(tbl)
         addTag(Fs,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
         gp.append(F)
         
-        Fp = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
+        Fp = ET.Element("form", {"action":"/cgi-config/Metaform.py"})
         Fsp = addTag(Fp, "fieldset")
         addTag(Fsp, "legend", contents="Add new parameter")
         rows = [(["Name", "Value"], {"class":"tblhead"}),]
@@ -193,7 +193,7 @@ class Metaform(ConfigTree):
         addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
         gp.append(Fp)
         
-        Frn = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
+        Frn = ET.Element("form", {"action":"/cgi-config/Metaform.py"})
         Frns = addTag(Frn, "fieldset")
         mergecontents(Frns, (addTag(None, "legend", contents="Rename parameter"),
                            "old name:",
@@ -209,12 +209,12 @@ class Metaform(ConfigTree):
     def linkedname(self, iid, toptag, mode = "edit"):
         """Object name with links to editor"""
         vstr = "%i"%iid[0]
-        prev = makeLink("/cgi-bin/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), "%s:%s"%self.get_setname(iid[0]))
+        prev = makeLink("/cgi-config/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), "%s:%s"%self.get_setname(iid[0]))
         toptag.append(prev)
         for v in iid[1:]:
             vstr += ".%s"%v
             prev.tail = "."
-            prev = makeLink("/cgi-bin/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), v)
+            prev = makeLink("/cgi-config/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), v)
             toptag.append(prev)
 
 
@@ -285,8 +285,8 @@ if __name__ == "__main__":
             Page,b = makePageStructure("Metaform")
             h1 = addTag(None,"h1", contents = "Editing ")
             C.linkedname(iid ,h1)
-            h1.append(makeLink("/cgi-bin/Metaform.py?view=%s"%urlp.quote(vstr), "(view)"))
-            h1.append(makeLink("/cgi-bin/ConfigWebManager.py?cset=%i&ncols=2"%iid[0], "(flat)"))
+            h1.append(makeLink("/cgi-config/Metaform.py?view=%s"%urlp.quote(vstr), "(view)"))
+            h1.append(makeLink("/cgi-config/ConfigWebManager.py?cset=%i&ncols=2"%iid[0], "(flat)"))
             mergecontents(b, (h1, C.edit_object(iid)))
     
     elif "view" in form:
@@ -296,7 +296,7 @@ if __name__ == "__main__":
             Page,b = makePageStructure("Metaform")
             h1 = addTag(None,"h1", contents = "Viewing ")
             C.linkedname(iid,h1,mode="view")
-            h1.append(makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), "(edit)"))
+            h1.append(makeLink("/cgi-config/Metaform.py?edit=%s"%urlp.quote(vstr), "(edit)"))
             obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
             obj = C.traverse_context(obj, ppath=iid)
             mergecontents(b, (h1, C.displayform(obj)))

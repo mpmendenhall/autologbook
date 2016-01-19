@@ -5,6 +5,7 @@ import time
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 import os
+from optparse import OptionParser
 
 class instr_info:
     """Information on instrument entry in DB"""
@@ -121,7 +122,7 @@ class DB_Logger(RBU_cloner):
         # xmlrpc web interface for data updates
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
-        server = SimpleXMLRPCServer(("localhost", 8000), requestHandler=RequestHandler, allow_none=True)
+        server = SimpleXMLRPCServer(("localhost", self.readport), requestHandler=RequestHandler, allow_none=True)
         #server.register_introspection_functions()
         #server.register_function(self.get_updates, 'update')
         server.register_function(self.get_newest, 'newest')
@@ -222,7 +223,7 @@ class DB_Logger(RBU_cloner):
         # xmlrpc web interface for data updates
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
-        server = SimpleXMLRPCServer(("localhost", 8002), requestHandler=RequestHandler, allow_none=True)
+        server = SimpleXMLRPCServer(("localhost", self.rwport), requestHandler=RequestHandler, allow_none=True)
         server.register_function(self.ws_create_instrument, 'create_instrument')
         server.register_function(self.ws_create_readout, 'create_readout')
         server.register_function(self.set_ChangeFilter, 'set_ChangeFilter')
@@ -284,11 +285,18 @@ class ChangeFilter:
 
 if __name__=="__main__":
     # database file
-    dbname = "test.db"
+    dbname = "loggerDB.db"
     if not os.path.exists(dbname):
         os.system("sqlite3 %s < logger_DB_description.txt"%dbname)
 
     D = DB_Logger(dbname)
+
+    parser = OptionParser()
+    parser.add_option("--readport",  dest="readport",    action="store", type="int", default = 8002, help="Localhost port for read access")
+    parser.add_option("--rwport",  dest="rwport",    action="store", type="int", default = 8003, help="Localhost port for read/write access")
+    options, args = parser.parse_args()
+    D.readport = options.readport
+    D.rwport = options.rwport
 
     # start RBU duplication thread
     D.restart_stuffer()

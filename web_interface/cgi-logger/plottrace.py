@@ -18,7 +18,7 @@ class TracePlotter:
         self.channels = {}
     
     def get_readings(self, rid):
-        s = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
+        s = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
         self.readings[rid] = s.datapoints(rid, self.tm, self.t0)
         chn = s.readout(rid)
         self.channels[rid] = chn

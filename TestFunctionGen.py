@@ -3,8 +3,13 @@
 import xmlrpc.client
 from math import *
 import time
+from optparse import OptionParser
 
-DBL = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
+parser = OptionParser()
+parser.add_option("--port",  dest="port",    action="store", type="int", default = 8003, help="Localhost port for logger server read/write")
+options, args = parser.parse_args()
+
+DBL = xmlrpc.client.ServerProxy('http://localhost:%i'%options.port, allow_none=True)
 DBL.log_message("TestFunctionGen.py", "Starting function generator.")
 
 # set up channels and filters

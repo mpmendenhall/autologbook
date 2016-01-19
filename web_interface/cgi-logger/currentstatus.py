@@ -9,7 +9,7 @@ import cgi
 class WebChecklist:
     
     def get_readings(self):
-        s = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
+        s = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
         self.readings = s.newest()
     
     def makeChecklistTable(self):
@@ -22,7 +22,7 @@ class WebChecklist:
             rdat = [cgi.escape(r["name"]),
                     r["val"],
                     r["units"],
-                    "---", makeLink("/cgi-bin/plottrace.py?rid=%i"%r["rid"], "plot")]
+                    "---", makeLink("/cgi-logger/plottrace.py?rid=%i"%r["rid"], "plot")]
             cls = "good"
             vt = r["time"]
             if vt is not None:

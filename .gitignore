@@ -5,6 +5,7 @@ sqlite_apply_RBU
 *.pyc
 __pycache__
 RBU_Data
+*db-journal
 
 *.aux
 *.log

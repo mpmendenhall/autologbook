@@ -11,7 +11,7 @@ class HVArray:
         self.ivnames = ivnames
     
     def get_readings(self):
-        s = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
+        s = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
         self.readings = s.newest()
     
     def makeHVTable(self):
@@ -42,7 +42,7 @@ class HVArray:
                 pcls = "turnedoff"
             if t0 - nameidx[i[0]]["time"] > 60 or t0 - nameidx[i[1]]["time"] > 60:
                 pcls = "unknown"
-            trows[-1].append(makeLink("/cgi-bin/plottrace.py?rid=%i"%nameidx[i[0]]["rid"], makeTable([["%i V"%vv],["%.2f mA"%ii],["%i k\u03a9"%oo]], {"class":pcls})))
+            trows[-1].append(makeLink("/cgi-logger/plottrace.py?rid=%i"%nameidx[i[0]]["rid"], makeTable([["%i V"%vv],["%.2f mA"%ii],["%i k\u03a9"%oo]], {"class":pcls})))
         
         return makeTable(trows, {"style":"text-align:center"})
         

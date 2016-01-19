@@ -9,7 +9,7 @@ import cgi
 class LogMessagesDisplay:
 
     def makeMessageTable(self):
-        s = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
+        s = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
         self.t0 = time.time()
         self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7)
 
