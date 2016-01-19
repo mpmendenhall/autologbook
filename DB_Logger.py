@@ -286,7 +286,7 @@ if __name__=="__main__":
     # database file
     dbname = "test.db"
     if not os.path.exists(dbname):
-        os.system("sqlite3 %s < base_DB_description.txt"%dbname)
+        os.system("sqlite3 %s < logger_DB_description.txt"%dbname)
 
     D = DB_Logger(dbname)
 

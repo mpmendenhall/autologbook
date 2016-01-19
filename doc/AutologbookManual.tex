@@ -32,7 +32,7 @@
 	data logging and monitoring, equipment configuration, ``checklist'' routine monitoring forms.
 Information is stored in \cd{sqlite3} (\url{http://www.sqlite.org}) database files,
 	a highly robust and widely-used embedded database system.
-Various \cd{python3} scripts facilitate reading and writing the database information,
+Various \cd{Python 3} scripts facilitate reading and writing the database information,
 	including a suite of \cd{cgi} scripts providing an \cd{html} web interface.
 
 The \alb\ utilities are structured around two independent databases,
@@ -44,9 +44,57 @@ The ``configuration'' database is for storing configuration information for
 	laboratory equipment (such as sets of voltages for power supplies),
 	along with a mechanism for generating and archiving forms such as ``shift change checklist'' records.
 
+%
+%
+%
 \section{Data logger}
 
+%
+%
+\subsection{Database structure}
+The logger database schema is defined in \cd{logger\_DB\_description.txt}.
+This is organized into ``instruments'' (describing initial sources of data),
+	``readouts'' (describing one particular aspect of an instrument providing a numerical readout),
+	and ``readings'' (timestamped values for a readout).
+An additional table of of ``log messages'' holds timestamped textual notes,
+	whether automatically generated (such as run start/stop annotations from a DAQ) or hand-entered.
 
+%
+%
+\subsection{Interface scripts}
+
+%
+\subsubsection{Logger server}
+
+\cd{DB\_Logger.py} provides a local server for database interactions, providing database query and modification functions
+	through an \cd{XMLRPC} interface.
+Two separate server processes are launched with read-only and read/write access to the database,
+	permitting database write functions to be restricted to processes on the same machine (localhost network),
+	with potentially broader access for data queries.
+Currently, both read and read/write servers are run on localhost only,
+	until a reasonable system for broader but still restricted network access is implemented.
+
+The logger server also provides a ``data filter'' mechanism for thinning out frequent readouts
+	to a smaller number of points to be saved
+	(either by simple decimation to one in every $n$,
+	or recording points when (user-defined) ``significant'' changes occur).
+
+%
+\subsection{Data sources}
+
+Data sources, capturing readings from instruments and sending them to the server,
+	will need to be written for specific experimental applications.
+Example ``fake'' data sources are provided in \cd{TestFunctionGen.py} and \cd{FakeHVControl.py},
+	demonstrating how to set up instruments/readouts and send readings to the server process.
+
+%
+\subsection{Web monitors}
+
+
+
+%
+%
+%
 \section{Configurations and forms}
 
 

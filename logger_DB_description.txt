@@ -1,5 +1,5 @@
 -- Lab "slow control" logging system sqlite3 database setup
--- sqlite3 <db name> < base_DB_description.txt
+-- sqlite3 <db name> < logger_DB_description.txt
 
 -- generic configuration key:value pairs
 CREATE TABLE config_kv (
