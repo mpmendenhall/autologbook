@@ -221,7 +221,8 @@ class Metaform(ConfigTree):
 
 if __name__ == "__main__":
 
-    conn = open_or_init_config_DB("..")
+    conn = sqlite3.connect(os.environ["CONFIGWEBMANAGER_DB"]) if "CONFIGWEBMANAGER_DB" in os.environ else None
+    assert conn
     C = Metaform(conn)
     
     form = cgi.FieldStorage()

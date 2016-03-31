@@ -6,8 +6,7 @@ SHELL = /bin/sh
 .SUFFIXES: .c .cc .cpp .o
 
 # compiler command to use
-CXXFLAGS = -std=c++11 -O3 -fPIC -pedantic -Wall -Wextra -I. -Isqlite-amalgamation \
-	-lpthread -ldl
+CXXFLAGS = -std=c++11 -O3 -fPIC -pedantic -Wall -Wextra -I. -Isqlite-amalgamation -lpthread -ldl
 CFLAGS = -O3 -DSQLITE_ENABLE_RBU
 
 VPATH = sqlite-amalgamation

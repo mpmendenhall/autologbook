@@ -230,6 +230,7 @@ export PYTHONPATH=<... path to ...>/autologbook/:$PYTHONPATH
 Start the configuration DB webserver on localhost port 8001:
 \begin{verbatim}
 cd web_interface
+export CONFIGWEBMANAGER_DB=<path to configuration DB>
 ../HTTPServer.py --host localhost --port 8001 --mode config
 \end{verbatim}
 which will also automatically create an initial \cd{configDB.db} if none previously exists.

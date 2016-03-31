@@ -9,6 +9,7 @@ See doc/AutologbookManual.pdf for overview documentation.
 
 --------------------------------------
 --------------- TO DO ----------------
+fix display of 0 in tree form
 fix relative link edit-link path
 multi-plot graphs
 PMT I,V plots

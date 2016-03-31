@@ -4,6 +4,7 @@ from WebpageUtils import *
 from configDBcontrol import *
 import time
 import cgi
+import os
 
 class ConfigWebManager(ConfigDB):
     """Web interface for managing configuration DB"""
@@ -242,8 +243,9 @@ class ConfigWebManager(ConfigDB):
     
     
 if __name__ == "__main__":
-    
-    conn = open_or_init_config_DB("..")
+
+    conn = conn = sqlite3.connect(os.environ["CONFIGWEBMANAGER_DB"]) if "CONFIGWEBMANAGER_DB" in os.environ else None
+    assert conn
     C = ConfigWebManager(conn)
     
     form = cgi.FieldStorage()
