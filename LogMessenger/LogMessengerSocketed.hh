@@ -4,6 +4,9 @@
 #define LOGMESSENGERSOCKETED_HH
 
 #include "LogMessenger.hh"
+#ifdef WITH_MPMUTILS
+#include "LocklessCircleBuffer.hh"
+#endif
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -86,7 +89,7 @@ public:
     }
     
     /// add datapoint to log
-    void add_datapoint(int64_t id, double val, double ts = 0) override {
+    void _add_datapoint(int64_t id, double val, double ts = 0) override {
         if(auto_timestamp && !ts) ts = time(nullptr);
         send(ADD_DATAPT);
         send(id);
@@ -95,7 +98,7 @@ public:
     }
     
     /// add message to log
-    void add_message(const string& m, double ts = 0) override {
+    void _add_message(const string& m, double ts = 0) override {
         if(auto_timestamp && !ts) ts = time(nullptr);
         send(ADD_MESSAGE);
         send(origin_id);
@@ -121,5 +124,30 @@ protected:
     struct sockaddr_in serv_addr;
     struct hostent* server = nullptr;       ///< server
 };
+
+#ifdef WITH_MPMUTILS
+/// Buffered connection for datapoints, moving I/O delays to separate thread
+class DataptBuffer: public LocklessCircleBuffer<LogMessenger::datapoint>, public LogMessengerSocketed {
+public:
+    /// Constructor
+    DataptBuffer(const string& host, int port): LocklessCircleBuffer(10000) { open_socket(host,port); }
+    /// forward datapoint to database
+    void process_item() override { add_datapoint(current); }
+    /// add datapoint to queue
+    void send_datapoint(int64_t id, double val, double ts = 0) { write(datapoint(id,val,ts)); }
+
+};
+
+/// Buffered connection for log messages, moving I/O delays to separate thread
+class MessageBuffer: public LocklessCircleBuffer<LogMessenger::message>, public LogMessengerSocketed {
+public:
+    /// Constructor
+    MessageBuffer(const string& host, int port): LocklessCircleBuffer(1000) { open_socket(host,port); }
+    /// forward message to database
+    void process_item() override { add_message(current); }
+    /// add message to queue
+    void send_message(const string& m, double ts = 0) { write(message(m,ts)); }
+};
+#endif
 
 #endif
