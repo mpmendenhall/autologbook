@@ -65,17 +65,21 @@ public:
     void close_socket() { close(sockfd); sockfd = 0; }
     
     /// set origin identifier
-    void set_origin(const string& name) override {
+    void set_origin(const string& name, const string& descrip) override {
         send(REQ_ORIGIN);
         send(name);
+        send(descrip);
         read(sockfd, &origin_id, sizeof(origin_id));
         printf("Set origin ID to %zu\n", origin_id);
     }
     
     /// get datapoint identifier
-    int64_t get_datapoint_id(const string& name) override {
+    int64_t get_datapoint_id(const string& name, const string& descrip, const string& unit) override {
         send(REQ_VAR_ID);
+        send(origin_id);
         send(name);
+        send(descrip);
+        send(unit);
         int64_t dpid;
         read(sockfd, &dpid, sizeof(dpid));
         return dpid;
@@ -94,7 +98,9 @@ public:
     void add_message(const string& m, double ts = 0) override {
         if(auto_timestamp && !ts) ts = time(nullptr);
         send(ADD_MESSAGE);
+        send(origin_id);
         send(m);
+        send(ts);
     }
 
 protected:

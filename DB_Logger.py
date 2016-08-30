@@ -1,33 +1,12 @@
 #!/usr/bin/python3
 
 from sqlite3_RBU import *
+from logger_DB_interface import *
 import time
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 import os
 from optparse import OptionParser
-
-class instr_info:
-    """Information on instrument entry in DB"""
-    def __init__(self, rid, nm, ds, dn, sn):
-        self.rid = rid
-        self.name = nm
-        self.descrip = ds
-        self.dev_name = dn
-        self.sn = sn
-
-class readout_info:
-    """Information on readout entry in DB, with most recent values"""
-    def __init__(self, rid, nm, ds, un, iid):
-        self.rid = rid
-        self.name = nm
-        self.descrip = ds
-        self.units = un
-        self.instrument_id = iid
-       
-        self.time = None
-        self.val = None
-         
 
 class DB_Logger(RBU_cloner):
     """Base class for writing data log"""
@@ -49,30 +28,6 @@ class DB_Logger(RBU_cloner):
     
     #######################
     # read server functions
-    
-    @staticmethod
-    def get_inst_type(curs, name):
-        """Get instrument identifier by name"""
-        curs.execute("SELECT rowid,name,descrip,dev_name,serial FROM instrument_types WHERE name = ?", (name,))
-        r = curs.fetchall()
-        return instr_info(*r[0]) if len(r) == 1 else None
-    
-    @staticmethod
-    def get_readout_id(curs, name, inst_name = None):
-        """Get identifier for readout by name and optional instrument name"""
-        if inst_name is None:
-            curs.execute("SELECT rowid FROM readout_types WHERE name = ?", (name,))
-        else:
-            curs.execute("SELECT readout_types.rowid FROM readout_types JOIN instrument_types ON instrument_id = instrument_types.rowid WHERE readout_types.name = ? AND instrument_types.name = ?", (name, inst_name))
-        r = curs.fetchall()
-        return r[0][0] if len(r) == 1 else None
-    
-    @staticmethod
-    def get_readout_info(curs, rid):
-        """Get readout information by rowid"""
-        curs.execute("SELECT rowid,name,descrip,units,instrument_id FROM readout_types WHERE rowid = ?", (rid,))
-        r = curs.fetchall()
-        return readout_info(*r[0]) if len(r) == 1 else None
         
     def get_updates(self):
         """Return filename, if available, of RBU updates info"""
@@ -100,12 +55,12 @@ class DB_Logger(RBU_cloner):
         """Get all newest readouts for one instrument"""
         if instrname not in self.instr_idx:
             return None
-        self.servcurs.execute("SELECT rowid FROM readout_types WHERE instrument_id = ?", (self.instr_idx[instrname],))
+        self.servcurs.execute("SELECT rowid FROM readout_types WHERE readgroup_id = ?", (self.instr_idx[instrname],))
         return [self.readouts[r[0]] for r in self.servcurs.fetchall()]
     
     def get_datapoints(self, rid, t0, t1):
         """Get datapoints for specified readout ID in time stamp range"""
-        self.servcurs.execute("SELECT time,value FROM readings WHERE type_id = ? AND time >= ? AND time <= ? ORDER BY time LIMIT 2000", (int(rid), t0, t1))
+        self.servcurs.execute("SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time LIMIT 2000", (int(rid), t0, t1))
         return self.servcurs.fetchall()
     
     def get_messages(self, t0, t1):
@@ -139,8 +94,8 @@ class DB_Logger(RBU_cloner):
     
     def create_instrument(self, curs, nm, descrip, devnm, sn, overwrite = False):
         """Assure instrument entry exists, creating/updating as needed"""
-        curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO instrument_types(name,descrip,dev_name,serial) VALUES (?,?,?,?)", (nm,descrip,devnm,sn))
-        inst = self.get_inst_type(curs,nm)
+        curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO readout_groups(name,descrip,dev_name,serial) VALUES (?,?,?,?)", (nm,descrip,devnm,sn))
+        inst = get_readrgoup(curs,nm)
         self.instruments[inst.rid] = inst
         self.instr_idx[inst.name] = inst.rid
         return inst.rid
@@ -149,22 +104,22 @@ class DB_Logger(RBU_cloner):
         """Write server version of create_instrument"""
         return self.create_instrument(self.rbu_curs, nm, descrip, devnm, sn, overwrite)
     
-    def create_readout(self, curs, name, inst_name, descrip, units, overwrite = False):
+    def create_readout(self, curs, name, group_name, descrip, units, overwrite = False):
         """Assure a readout exists, creating as necessary; return readout ID"""
-        inst = self.get_inst_type(curs, inst_name)
+        inst = get_readrgoup(curs, group_name)
         if inst is None:
             return None
-        curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO readout_types(name,descrip,units,instrument_id) VALUES (?,?,?,?)", (name,descrip,units,inst.rid))
-        curs.execute("SELECT rowid FROM readout_types WHERE name = ? AND instrument_id = ?", (name,inst.rid))
+        curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO readout_types(name,descrip,units,readgroup_id) VALUES (?,?,?,?)", (name,descrip,units,inst.rid))
+        curs.execute("SELECT rowid FROM readout_types WHERE name = ? AND group_id = ?", (name,inst.rid))
         r = curs.fetchall()
         rid = r[0][0] if len(r) == 1 else None
         if rid is not None:
             self.readouts[rid] = self.get_readout_info(curs,rid)
         return rid
     
-    def ws_create_readout(self, name, inst_name, descrip, units, overwrite = False):
+    def ws_create_readout(self, name, group_name, descrip, units, overwrite = False):
         """Write server version of create_readout"""
-        return self.create_readout(self.rbu_curs, name, inst_name, descrip, units, overwrite)
+        return self.create_readout(self.rbu_curs, name, group_name, descrip, units, overwrite)
     
     def log_readout(self, tid, value, t = None):
         """Log reading, using current time for timestamp if not specified"""        
@@ -174,7 +129,7 @@ class DB_Logger(RBU_cloner):
         
         self.log_readout_hook(tid, value, t)
         if self.filters.get(tid, (lambda a,b,c: True))(tid,t,value):
-            self.insert("readings", {"type_id":tid, "time":t, "value":value})
+            self.insert("readings", {"readout_id":tid, "time":t, "value":value})
             
         # update latest readout value
         self.readouts[tid].time = t
@@ -273,7 +228,7 @@ class ChangeFilter:
             keep_prev |= ((vold <= vprev >= v) or (vold >= vprev <= v)) and not (vold == vprev == v)
         if keep_prev:
             if not self.prev_saved == (tprev,vprev):
-                self.DBL.insert("readings", {"type_id":tid, "time":tprev, "value":vprev})
+                self.DBL.insert("readings", {"readout_id":tid, "time":tprev, "value":vprev})
                 self.prev_saved = (tprev,vprev)
                 
         # comparison to previously saved point

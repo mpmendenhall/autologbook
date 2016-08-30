@@ -18,9 +18,9 @@ public:
     bool auto_timestamp = true;    ///< whether to fill in timestamps with current time
     
     /// set origin identifier
-    virtual void set_origin(const string& name) = 0;
+    virtual void set_origin(const string& name, const string& descrip) = 0;
     /// get datapoint identifier
-    virtual int64_t get_datapoint_id(const string& name) = 0;
+    virtual int64_t get_datapoint_id(const string& name, const string& descrip, const string& unit) = 0;
     /// add datapoint to log
     virtual void add_datapoint(int64_t id, double val, double ts = 0) = 0;
     /// add message to log
