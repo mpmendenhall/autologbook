@@ -100,7 +100,7 @@ public:
     /// add message to log
     void _add_message(const string& m, double ts = 0) override {
         if(auto_timestamp && !ts) ts = time(nullptr);
-        if(message_stdout) printf("[%.0f] %s\n", m.c_str());
+        if(message_stdout) printf("[%.0f] %s\n", ts, m.c_str());
         send(ADD_MESSAGE);
         send(origin_id);
         send(m);
