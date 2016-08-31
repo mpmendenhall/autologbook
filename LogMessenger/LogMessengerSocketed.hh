@@ -100,12 +100,15 @@ public:
     /// add message to log
     void _add_message(const string& m, double ts = 0) override {
         if(auto_timestamp && !ts) ts = time(nullptr);
+        if(message_stdout) printf("[%.0f] %s\n", m.c_str());
         send(ADD_MESSAGE);
         send(origin_id);
         send(m);
         send(ts);
     }
 
+    bool message_stdout = false;  ///< whether to print added messages to stdout
+    
 protected:
     /// send request type
     void send(const request_type& r) { write(sockfd, &r, sizeof(r)); }
@@ -143,6 +146,7 @@ class MessageBuffer: public LocklessCircleBuffer<LogMessenger::message>, public 
 public:
     /// Constructor
     MessageBuffer(const string& host, int port): LocklessCircleBuffer(1000) { open_socket(host,port); }
+    ~MessageBuffer() { finish_mythread(); }
     /// forward message to database
     void process_item() override { add_message(current); }
     /// add message to queue

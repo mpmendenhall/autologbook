@@ -46,7 +46,7 @@ public:
     /// add message to log
     void add_message(const message& m) { _add_message(m.msg, m.ts); }
     
-    int64_t origin_id = 0;  ///< identifier for message originating process
+    int64_t origin_id = 0;          ///< identifier for message originating process
 };
 
 #endif
