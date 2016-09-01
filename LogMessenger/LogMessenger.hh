@@ -45,6 +45,8 @@ public:
     virtual void _add_message(const string& m, double ts = 0) = 0;
     /// add message to log
     void add_message(const message& m) { _add_message(m.msg, m.ts); }
+    /// send status notification
+    virtual void set_status(int64_t s) = 0;
     
     int64_t origin_id = 0;          ///< identifier for message originating process
 };

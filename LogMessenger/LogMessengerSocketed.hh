@@ -4,9 +4,7 @@
 #define LOGMESSENGERSOCKETED_HH
 
 #include "LogMessenger.hh"
-#ifdef WITH_MPMUTILS
 #include "LocklessCircleBuffer.hh"
-#endif
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -61,7 +59,8 @@ public:
         REQ_ORIGIN = 1, ///< origin ID
         REQ_VAR_ID = 2, ///< variable ID request
         ADD_DATAPT = 3, ///< add datapoint
-        ADD_MESSAGE= 4  ///< add log message
+        ADD_MESSAGE= 4, ///< add log message
+        SET_STATUS = 5  ///< notify of current status
     };
     
     /// close socket
@@ -73,7 +72,6 @@ public:
         send(name);
         send(descrip);
         read(sockfd, &origin_id, sizeof(origin_id));
-        printf("Set origin ID to %zu\n", origin_id);
     }
     
     /// get datapoint identifier
@@ -106,6 +104,13 @@ public:
         send(m);
         send(ts);
     }
+    
+    /// send status notification
+    void set_status(int64_t s) override {
+        send(SET_STATUS);
+        send(origin_id);
+        send(s);
+    }
 
     bool message_stdout = false;  ///< whether to print added messages to stdout
     
@@ -128,7 +133,6 @@ protected:
     struct hostent* server = nullptr;       ///< server
 };
 
-#ifdef WITH_MPMUTILS
 /// Buffered connection for datapoints, moving I/O delays to separate thread
 class DataptBuffer: public LocklessCircleBuffer<LogMessenger::datapoint>, public LogMessengerSocketed {
 public:
@@ -152,6 +156,5 @@ public:
     /// add message to queue
     void send_message(const string& m, double ts = 0) { write(message(m,ts)); }
 };
-#endif
 
 #endif
