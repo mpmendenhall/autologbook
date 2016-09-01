@@ -111,7 +111,7 @@ public:
         send(origin_id);
         send(s);
     }
-
+    
     bool message_stdout = false;  ///< whether to print added messages to stdout
     
 protected:
@@ -133,28 +133,38 @@ protected:
     struct hostent* server = nullptr;       ///< server
 };
 
-/// Buffered connection for datapoints, moving I/O delays to separate thread
-class DataptBuffer: public LocklessCircleBuffer<LogMessenger::datapoint>, public LogMessengerSocketed {
+/// Bufferable request for IO task
+class LogMessengerIOTask {
 public:
     /// Constructor
-    DataptBuffer(const string& host, int port): LocklessCircleBuffer(10000) { open_socket(host,port); }
-    /// forward datapoint to database
-    void process_item() override { add_datapoint(current); }
-    /// add datapoint to queue
-    void send_datapoint(int64_t id, double val, double ts = 0) { write(datapoint(id,val,ts)); }
-
+    LogMessengerIOTask(double v = 0, double t = 0, int64_t id = 0, int64_t s = 0, const string& m = ""): 
+    val(v), ts(t), datid(id), status(s), msg(m) { }
+    
+    double val;         ///< datapoint value
+    double ts;          ///< timestampstamp
+    int64_t datid;      ///< datapoint ID
+    int64_t status;     ///< status number
+    string msg;         ///< log message text
 };
 
-/// Buffered connection for log messages, moving I/O delays to separate thread
-class MessageBuffer: public LocklessCircleBuffer<LogMessenger::message>, public LogMessengerSocketed {
+/// Buffered connection for datapoints, moving I/O delays to separate thread
+class MessengerBuffer: public LocklessCircleBuffer<LogMessengerIOTask>, public LogMessengerSocketed {
 public:
     /// Constructor
-    MessageBuffer(const string& host, int port): LocklessCircleBuffer(1000) { open_socket(host,port); }
-    ~MessageBuffer() { finish_mythread(); }
-    /// forward message to database
-    void process_item() override { add_message(current); }
-    /// add message to queue
-    void send_message(const string& m, double ts = 0) { write(message(m,ts)); }
+    MessengerBuffer(const string& host, int port): LocklessCircleBuffer(1000) { open_socket(host,port); }
+    
+    /// forward datapoint to database
+    void process_item() override { 
+        if(current.msg.size()) _add_message(current.msg, current.ts);
+        if(current.status) set_status(current.status);
+        if(current.datid) _add_datapoint(current.datid, current.val, current.ts);
+    }
+    /// add datapoint to queue
+    void send_datapoint(int64_t id, double val, double ts = 0) { write(LogMessengerIOTask(val,ts,id)); }
+    /// add message to queue (optional combined with status)
+    void send_message(const string& m, double ts = 0, int64_t s = 0) { write(LogMessengerIOTask(0,ts,0,s,m)); }
+    /// add status to queue
+    void send_status(int64_t s) { write(LogMessengerIOTask(0,0,0,s)); }
 };
 
 #endif
