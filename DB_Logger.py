@@ -239,17 +239,16 @@ class ChangeFilter:
 
 
 if __name__=="__main__":
-    # database file
-    dbname = "loggerDB.db"
-    if not os.path.exists(dbname):
-        os.system("sqlite3 %s < logger_DB_description.txt"%dbname)
-
-    D = DB_Logger(dbname)
-
     parser = OptionParser()
     parser.add_option("--readport",  dest="readport",    action="store", type="int", default = 8002, help="Localhost port for read access")
     parser.add_option("--rwport",  dest="rwport",    action="store", type="int", default = 8003, help="Localhost port for read/write access")
+    parser.add_option("--db",    dest="db",      action="store", type="string", help="path to database")
     options, args = parser.parse_args()
+    
+    if not os.path.exists(options.db):
+        os.system("sqlite3 %s < logger_DB_schema.sql"%options.db)
+
+    D = DB_Logger(options.db)
     D.readport = options.readport
     D.rwport = options.rwport
 

@@ -2,6 +2,7 @@
 ## \file LogMessengerSocketServer.py Daemon accepting socket connections to fill logger DB
 # ./LogMessengerSocketServer.py --db test.db --port 9999
 
+import os
 import socket
 import threading
 import socketserver
@@ -131,6 +132,10 @@ if __name__ == "__main__":
     parser.add_option("--db",    dest="db",      action="store", type="string", help="path to database")
     options, args = parser.parse_args()
 
+    if not os.path.exists(options.db):
+        print("\nLogging database '%s' not found.\nPerhaps initialize it with:\nsqlite3 '%s' < ../logger_DB_schema.sql\n"%(options.db, options.db))
+        exit(1)
+        
     callq = queue.Queue()
     conn = sqlite3.connect(options.db)
     curs = conn.cursor()
