@@ -25,24 +25,23 @@ class LogServer():
         
         
         
-    def get_newest(self):
-        """Return newest readings for xmlrpc interface"""
-        return list(self.readouts.values())
+    #def get_newest(self,i):
+    #    """Return one newest reading for xmlrpc interface"""
+    #    self.curs.execute("SELECT time,value FROM readings WHERE readout_id = ? ORDER BY time DESC LIMIT 1", (i,))
+    #    return list(self.readouts.values())
     
-    def get_readout(self, i):
-        """Get one newest readout for xmlrpc interface"""
-        return self.readouts.get(i,None)
+    def get_readout_info(self, i):
+        """Get description of readout by ID"""
+        self.curs.execute("SELECT name,descrip,units,readgroup_id FROM readout_types WHERE readout_id = ?", (i,))
+        r = self.curs.fetchone()
+        return {"name": r[0], "descrip": r[1], "units":r[2],"readgroup_id":r[3]} if r else r
     
-    def get_instrument(self, i):
-        """Get instrument for xmlrpc interface"""
-        return self.instruments.get(i, None)
-    
-    def get_instrument_readouts(self, instrname):
-        """Get all newest readouts for one instrument"""
-        if instrname not in self.instr_idx:
-            return None
-        self.curs.execute("SELECT rowid FROM readout_types WHERE readgroup_id = ?", (self.instr_idx[instrname],))
-        return [self.readouts[r[0]] for r in self.curs.fetchall()]
+    #def get_instrument_readouts(self, instrname):
+    #    """Get all newest readouts for one instrument"""
+    #    if instrname not in self.instr_idx:
+    #        return None
+    #    self.curs.execute("SELECT rowid FROM readout_types WHERE readgroup_id = ?", (self.instr_idx[instrname],))
+    #    return [self.readouts[r[0]] for r in self.curs.fetchall()]
     
     def get_datapoints(self, rid, t0, t1):
         """Get datapoints for specified readout ID in time stamp range"""
@@ -77,13 +76,12 @@ class LogServer():
         server = SimpleXMLRPCServer(("localhost", self.port), requestHandler=RequestHandler, allow_none=True)
         #server.register_introspection_functions()
         #server.register_function(self.get_updates, 'update')
-        server.register_function(self.get_newest, 'newest')
+        
         server.register_function(self.get_readgroups, 'readgroups')
-        server.register_function(self.get_instrument_readouts, 'instrument_readouts')
-        server.register_function(self.get_datapoints, 'datapoints')
-        server.register_function(self.get_readout, 'readout')
-        server.register_function(self.get_instrument, 'instrument')
         server.register_function(self.get_messages, 'messages')
+        server.register_function(self.get_readout_info, 'readout_info')
+        server.register_function(self.get_datapoints, 'datapoints')
+        
         server.serve_forever()
 
 if __name__=="__main__":

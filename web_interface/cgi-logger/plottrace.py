@@ -14,25 +14,31 @@ class TracePlotter:
         self.t0 = time.time()
         self.tm = self.t0 - 2*3600
         self.readings = {}
-        self.instruments = {}
         self.channels = {}
     
     def get_readings(self, rid):
         s = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
-        self.readings[rid] = s.datapoints(rid, self.tm, self.t0)
-        chn = s.readout(rid)
-        self.channels[rid] = chn
-        self.readings[rid].append((chn["time"], chn["val"])) # append most up-to-date point
-        self.instruments[chn["instrument_id"]] = s.instrument(chn["instrument_id"])
+        ri = s.readout_info(rid)
+        if ri:
+            self.channels[rid] = ri
+            self.readings[rid] = s.datapoints(rid, self.tm, self.t0)
     
     def makePage(self, rid):
         self.get_readings(rid)
+        
+        if rid not in self.channels:
+            P,b = makePageStructure("plotter fail!")
+            addTag(b,"h1",contents="dataset %i not found!"%rid)
+            print(docHeaderString())
+            print(prettystring(P))
+            return
+        
         chn = self.channels[rid]
-        cname = self.instruments[chn["instrument_id"]]["name"] + ":" + chn["name"]
+        cname = chn["name"]
         
         P,b = makePageStructure("%s plot"%cname, refresh=300)
         addTag(b,"h1",contents="%s as of %s"%(cname, time.asctime()))
-        
+    
         with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as gpt:
 
             pwrite(gpt,"set autoscale\n")
@@ -55,8 +61,10 @@ class TracePlotter:
             PM.pass_gnuplot_data(["trace"], gpt)
             
             pstr = gpt.communicate()[0].decode("utf-8").replace("\n",'').replace('\t','') # strip internal whitespace
-            pstr = mangle_xlink_namespace(pstr)
-            b.append(ET.fromstring(pstr))
+            pstr = pstr[pstr.find("<"):] # skip to start of XML, in case of junk warnings
+            if pstr:
+                pstr = mangle_xlink_namespace(pstr)
+                b.append(ET.fromstring(pstr))
 
         print(docHeaderString())
         print(unmangle_xlink_namespace(prettystring(P)))

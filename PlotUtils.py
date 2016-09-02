@@ -24,8 +24,8 @@ class PlotMaker:
         """Pass data to gnuplot for keys in k"""
         k = [p for p in k if self.datasets.get(p,None)]
         if not len(k):
-                print("No data to plot!")
-                return False
+            print("No data to plot!")
+            return False
         pwrite(gpt,"plot")
         pstr = ', '.join(['"-" title "" %s'%self.plotsty.get(p,'') for p in k])
         if self.with_key:
@@ -34,13 +34,14 @@ class PlotMaker:
         time.sleep(0.01)
         
         for p in k:
-                xtx = self.x_txs.get(p,(lambda x: x))
-                ytx = self.y_txs.get(p,(lambda y: y))
-                for d in self.datasets[p]:
-                        pwrite(gpt,"%f\t%f\n"%(xtx(d[0]), ytx(d[1])))
-                pwrite(gpt,"e\n")
-                gpt.stdin.flush()
-                time.sleep(0.01)
+            xtx = self.x_txs.get(p,(lambda x: x))
+            ytx = self.y_txs.get(p,(lambda y: y))
+            for d in self.datasets[p]:
+                x,y = xtx(d[0]), ytx(d[1])
+                if x is not None and y is not None: pwrite(gpt,"%f\t%f\n"%(xtx(d[0]), ytx(d[1])))
+            pwrite(gpt,"e\n")
+            gpt.stdin.flush()
+            time.sleep(0.01)
         gpt.stdin.flush()
         time.sleep(0.1)
         
