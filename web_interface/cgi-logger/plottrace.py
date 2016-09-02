@@ -7,12 +7,11 @@ import xmlrpc.client
 import cgi
 import time
 import os
-from subprocess import *
     
 class TracePlotter:
     def __init__(self):
         self.t0 = time.time()
-        self.tm = self.t0 - 2*3600
+        self.tm = self.t0 - 12*3600
         self.readings = {}
         self.channels = {}
     
@@ -39,32 +38,14 @@ class TracePlotter:
         P,b = makePageStructure("%s plot"%cname, refresh=300)
         addTag(b,"h1",contents="%s as of %s"%(cname, time.asctime()))
     
-        with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as gpt:
-
-            pwrite(gpt,"set autoscale\n")
-            pwrite(gpt,"set xtic auto\n")
-            pwrite(gpt,"set ytic auto\n")
-            pwrite(gpt,"unset label\n")
-            #pwrite(gpt,'set title "live monitor"\n')
-            if chn["units"] is not None:
-                pwrite(gpt,'set ylabel "reading [%s]"\n'%chn["units"])
-            else:
-                pwrite(gpt,'set ylabel ""\n')
-            pwrite(gpt,'set xlabel "time [hours]"\n')
-            #pwrite(gpt,"set key on left top\n")
-            pwrite(gpt,"set terminal svg enhanced background rgb 'white'\n")
-        
-            PM = PlotMaker()
-            PM.datasets = {"trace":self.readings[rid]}
-            PM.plotsty["trace"] = "with linespoints pt 7 ps 0.4"
-            PM.x_txs["trace"] = (lambda x, t0=self.t0: (x-t0)/3600.)
-            PM.pass_gnuplot_data(["trace"], gpt)
-            
-            pstr = gpt.communicate()[0].decode("utf-8").replace("\n",'').replace('\t','') # strip internal whitespace
-            pstr = pstr[pstr.find("<"):] # skip to start of XML, in case of junk warnings
-            if pstr:
-                pstr = mangle_xlink_namespace(pstr)
-                b.append(ET.fromstring(pstr))
+        PM = PlotMaker()
+        PM.datasets = {"trace":self.readings[rid]}
+        if chn["units"]: PM.ylabel = 'reading [%s]'%chn["units"]
+        PM.xlabel = 'time from present [hours]'
+        PM.plotsty["trace"] = "with linespoints pt 7 ps 0.4"
+        PM.x_txs["trace"] = (lambda x, t0=self.t0: (x-t0)/3600.)
+        pstr = PM.make_svg()
+        if pstr: b.append(ET.fromstring(pstr))
 
         print(docHeaderString())
         print(unmangle_xlink_namespace(prettystring(P)))
