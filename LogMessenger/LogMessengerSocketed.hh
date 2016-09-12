@@ -151,7 +151,7 @@ public:
 class MessengerBuffer: public LocklessCircleBuffer<LogMessengerIOTask>, public LogMessengerSocketed {
 public:
     /// Constructor
-    MessengerBuffer(const string& host, int port): LocklessCircleBuffer(1000) { open_socket(host,port); }
+    MessengerBuffer(const string& host = "", int port = 0): LocklessCircleBuffer(1000) { if(host.size() && port) open_socket(host,port); }
     
     /// forward datapoint to database
     void process_item() override { 

@@ -45,14 +45,14 @@ class LogServer():
     
     def get_datapoints(self, rid, t0, t1):
         """Get datapoints for specified readout ID in time stamp range"""
-        self.curs.execute("SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time LIMIT 2000", (int(rid), t0, t1))
+        self.curs.execute("SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time DESC LIMIT 2000", (int(rid), t0, t1))
         return self.curs.fetchall()
     
     def get_readgroups(self):
         """Get complete list of readout groups {id: name,descrip}"""
-        if not self.readgroups:
-            self.curs.execute("SELECT readgroup_id,name,descrip FROM readout_groups")
-            self.readgroups = self.curs.fetchall()
+        #if not self.readgroups:
+        self.curs.execute("SELECT readgroup_id,name,descrip FROM readout_groups")
+        self.readgroups = self.curs.fetchall()
         return self.readgroups
     
     def get_messages(self, t0, t1, nmax=100, srcid=None):
