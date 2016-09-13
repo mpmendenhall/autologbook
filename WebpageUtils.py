@@ -27,7 +27,7 @@ def mergecontents(e, contents, prevel = None):
                 prevel = c
             elif c is not None:
                 mergecontents(e, c, prevel)
-    elif contents:
+    elif contents is not None:
         cs = str(contents)
         if prevel is not None:
             prevel.tail = prevel.tail + cs if prevel.tail else cs
