@@ -24,7 +24,7 @@ class TracePlotter:
         ri = s.readout_info(rid)
         if ri:
             self.channels[rid] = ri
-            self.readings[rid] = s.datapoints(rid, self.tm, self.t0)
+            self.readings[rid] = s.datapoints(rid, self.tm, self.t0)[::-1]
             self.ids.append(rid)
     
     def makePage(self):        
@@ -35,18 +35,25 @@ class TracePlotter:
             print(prettystring(P))
             return
         
+        # single or multiple plots?
         ptitle = "plottrace"
-        ylabel = "readings"
         subtitle = "readings as of %s"%time.asctime()
         chn = None
         if len(self.readings) == 1:
-            rid = self.ids[0]
-            chn = self.channels[rid]
-            cname = chn["name"]
-            ptitle = "%s plot"%cname
-            if chn["units"]: ylabel = 'value [%s]'%chn["units"]
-            subtitle = "%s %s"%(cname, subtitle)
-            
+            chn = self.channels[self.ids[0]]
+            ptitle = "%s plot"%chn["name"]
+            subtitle = "%s %s"%(chn["name"], subtitle)
+        
+        # common units?
+        units = None
+        ylabel = "readings"
+        for c in self.channels.values():
+            if units is None: units = c["units"]
+            elif units != c["units"]:
+                units = None
+                break
+        if units: ylabel = 'value [%s]'%units
+        
         P,b = makePageStructure(ptitle, refresh=300)
         addTag(b,"h1",contents=subtitle)
         if chn: addTag(b,"h2",contents=chn["descrip"])
