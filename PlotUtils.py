@@ -74,7 +74,7 @@ class PlotMaker:
             self.setup_axes(gpt)
             pwrite(gpt,xcmds)
             
-            for k in ds: self.pass_gnuplot_data(["trace"], gpt)
+            self.pass_gnuplot_data(ds, gpt)
             
             pstr = gpt.communicate()[0].decode("utf-8").replace("\n",'').replace('\t','') # strip internal whitespace
             pstr = pstr[pstr.find("<"):] # skip to start of XML, in case of junk warnings
