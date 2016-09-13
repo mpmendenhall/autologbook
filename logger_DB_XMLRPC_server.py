@@ -20,16 +20,8 @@ class LogServer():
         self.readgroups = []     # cache of readout groups (id,name,descrip)
         #self.instr_idx = {}     # instruments name -> rowid index
         #self.readouts = {}      # cache of readout information
-        #self.filters = {}       # data reduction filters per channel
         #self.readsets = []      # pre-defined sets of readouts for negotiating bulk transfers
-        
-        
-        
-    #def get_newest(self,i):
-    #    """Return one newest reading for xmlrpc interface"""
-    #    self.curs.execute("SELECT time,value FROM readings WHERE readout_id = ? ORDER BY time DESC LIMIT 1", (i,))
-    #    return list(self.readouts.values())
-    
+
     def get_readout_info(self, i):
         """Get description of readout by ID"""
         self.curs.execute("SELECT name,descrip,units,readgroup_id FROM readout_types WHERE readout_id = ?", (i,))
@@ -49,11 +41,17 @@ class LogServer():
         return self.curs.fetchall()
     
     def get_readgroups(self):
-        """Get complete list of readout groups {id: name,descrip}"""
+        """Get complete list of readout groups (id, name, descrip)"""
         #if not self.readgroups:
         self.curs.execute("SELECT readgroup_id,name,descrip FROM readout_groups")
         self.readgroups = self.curs.fetchall()
         return self.readgroups
+    
+    def get_readtypes(self, rgroup=None):
+        """Get list of readout types (id, name, descrip, units[, readgroup_id]) for all or group"""
+        if rgroup is None: self.curs.execute("SELECT readout_id,name,descrip,units,readgroup_id FROM readout_types")
+        else: self.curs.execute("SELECT readout_id,name,descrip,units FROM readout_types WHERE readgroup_id = ?", (rgroup,))
+        return self.curs.fetchall()
     
     def get_messages(self, t0, t1, nmax=100, srcid=None):
         """Get messages in time range, (time, srcid, message)"""
@@ -63,7 +61,15 @@ class LogServer():
         else:
             self.curs.execute("SELECT time,src,msg FROM textlog WHERE time >= ? AND time <= ? AND src=? ORDER BY time DESC LIMIT ?", (t0, t1, srcid, nmax))
         return self.curs.fetchall()
-        
+    
+    def get_newest(self, ilist):
+        """Return newest (id,time,value) for each list item"""
+        rs = []
+        for i in ilist:
+            self.curs.execute("SELECT readout_id,time,value FROM readings WHERE readout_id = ? ORDER BY time DESC LIMIT 1", (i,))
+            rs.append(self.curs.fetchone())
+        return rs
+    
     def launch_dataserver(self):
         """Launch server providing database read access"""
         # server thread interface to DB
@@ -75,12 +81,13 @@ class LogServer():
             rpc_paths = ('/RPC2',)
         server = SimpleXMLRPCServer(("localhost", self.port), requestHandler=RequestHandler, allow_none=True)
         #server.register_introspection_functions()
-        #server.register_function(self.get_updates, 'update')
         
         server.register_function(self.get_readgroups, 'readgroups')
+        server.register_function(self.get_readtypes, 'readtypes')
         server.register_function(self.get_messages, 'messages')
         server.register_function(self.get_readout_info, 'readout_info')
         server.register_function(self.get_datapoints, 'datapoints')
+        server.register_function(self.get_newest, 'newest')
         
         server.serve_forever()
 
