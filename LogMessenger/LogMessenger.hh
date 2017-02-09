@@ -14,9 +14,9 @@ public:
     LogMessenger() { }
     /// Destructor
     virtual ~LogMessenger() { }
-    
+
     bool auto_timestamp = true;    ///< whether to fill in timestamps with current time
-    
+
     /// struct describing datapoint
     struct datapoint {
         datapoint() { }
@@ -32,7 +32,7 @@ public:
         string msg;
         double ts;
     };
-    
+
     /// set origin identifier
     virtual void set_origin(const string& name, const string& descrip) = 0;
     /// get datapoint identifier
@@ -47,7 +47,7 @@ public:
     void add_message(const message& m) { _add_message(m.msg, m.ts); }
     /// send status notification
     virtual void set_status(int64_t s) = 0;
-    
+
     int64_t origin_id = 0;          ///< identifier for message originating process
 };
 

@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h> 
+#include <netdb.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@ public:
     LogMessengerSocketed() { }
     /// Destructor
     ~LogMessengerSocketed() { close_socket(); }
-    
+
     /// (try to) open socket connection
     bool open_socket(const string& host, int port) {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -33,14 +33,14 @@ public:
             fprintf(stderr, "ERROR opening socket\n");
             return false;
         }
-        
+
         server = gethostbyname(host.c_str());
         if(server == nullptr) {
             fprintf(stderr, "ERROR: Host '%s' not found!\n",host.c_str());
             close_socket();
             return false;
         }
-        
+
         bzero((char*) &serv_addr, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
         bcopy((char*)server->h_addr, (char*)&serv_addr.sin_addr.s_addr, server->h_length);
@@ -50,10 +50,10 @@ public:
             close_socket();
             return false;
         }
-        
+
         return true;
     }
-    
+
     /// request types in socket communication
     enum request_type {
         REQ_ORIGIN = 1, ///< origin ID
@@ -62,20 +62,22 @@ public:
         ADD_MESSAGE= 4, ///< add log message
         SET_STATUS = 5  ///< notify of current status
     };
-    
+
     /// close socket
     void close_socket() { close(sockfd); sockfd = 0; }
-    
+
     /// set origin identifier
     void set_origin(const string& name, const string& descrip) override {
+        if(!sockfd) return;
         send(REQ_ORIGIN);
         send(name);
         send(descrip);
         read(sockfd, &origin_id, sizeof(origin_id));
     }
-    
+
     /// get datapoint identifier
     int64_t get_datapoint_id(const string& name, const string& descrip, const string& unit) override {
+        if(!sockfd) return 0;
         send(REQ_VAR_ID);
         send(origin_id);
         send(name);
@@ -85,35 +87,38 @@ public:
         read(sockfd, &dpid, sizeof(dpid));
         return dpid;
     }
-    
+
     /// add datapoint to log
     void _add_datapoint(int64_t id, double val, double ts = 0) override {
+        if(!sockfd) return;
         if(auto_timestamp && !ts) ts = time(nullptr);
         send(ADD_DATAPT);
         send(id);
         send(val);
         send(ts);
     }
-    
+
     /// add message to log
     void _add_message(const string& m, double ts = 0) override {
         if(auto_timestamp && !ts) ts = time(nullptr);
         if(message_stdout) printf("[%.0f] %s\n", ts, m.c_str());
+        if(!sockfd) return;
         send(ADD_MESSAGE);
         send(origin_id);
         send(m);
         send(ts);
     }
-    
+
     /// send status notification
     void set_status(int64_t s) override {
+        if(!sockfd) return;
         send(SET_STATUS);
         send(origin_id);
         send(s);
     }
-    
+
     bool message_stdout = false;  ///< whether to print added messages to stdout
-    
+
 protected:
     /// send request type
     void send(const request_type& r) { write(sockfd, &r, sizeof(r)); }
@@ -122,12 +127,12 @@ protected:
     /// send int64_t
     void send(const int64_t& i) { write(sockfd, &i, sizeof(i)); }
     /// send (length, string) over connection
-    void send(const string& s) { 
+    void send(const string& s) {
         auto l = s.size();
         write(sockfd, &l, sizeof(l));
         write(sockfd, s.c_str(), l);
     }
-    
+
     int sockfd = 0;                         ///< file descriptor number for socket
     struct sockaddr_in serv_addr;
     struct hostent* server = nullptr;       ///< server
@@ -137,9 +142,9 @@ protected:
 class LogMessengerIOTask {
 public:
     /// Constructor
-    LogMessengerIOTask(double v = 0, double t = 0, int64_t id = 0, int64_t s = 0, const string& m = ""): 
+    LogMessengerIOTask(double v = 0, double t = 0, int64_t id = 0, int64_t s = 0, const string& m = ""):
     val(v), ts(t), datid(id), status(s), msg(m) { }
-    
+
     double val;         ///< datapoint value
     double ts;          ///< timestampstamp
     int64_t datid;      ///< datapoint ID
@@ -152,9 +157,9 @@ class MessengerBuffer: public LocklessCircleBuffer<LogMessengerIOTask>, public L
 public:
     /// Constructor
     MessengerBuffer(const string& host = "", int port = 0): LocklessCircleBuffer(1000) { if(host.size() && port) open_socket(host,port); }
-    
+
     /// forward datapoint to database
-    void process_item() override { 
+    void process_item() override {
         if(current.msg.size()) _add_message(current.msg, current.ts);
         if(current.status) set_status(current.status);
         if(current.datid) _add_datapoint(current.datid, current.val, current.ts);
