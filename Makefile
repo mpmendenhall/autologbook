@@ -9,9 +9,10 @@ SHELL = /bin/sh
 CXXFLAGS = -std=c++11 -O3 -fPIC -pedantic -Wall -Wextra -I. -Isqlite-amalgamation -lpthread -ldl
 CFLAGS = -O3 -DSQLITE_ENABLE_RBU
 
-VPATH = sqlite-amalgamation
+VPATH = sqlite-amalgamation:LogMessenger
 execs = sqlite_apply_RBU
-all: sqlite3.o $(execs)
+objs = sqlite3.o
+all: $(objs) $(execs)
 
 # generic rule for everything else .cc
 % : %.cc sqlite3.o

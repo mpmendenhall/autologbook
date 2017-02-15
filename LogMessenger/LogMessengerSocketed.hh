@@ -165,11 +165,11 @@ public:
         if(current.datid) _add_datapoint(current.datid, current.val, current.ts);
     }
     /// add datapoint to queue
-    void send_datapoint(int64_t id, double val, double ts = 0) { write(LogMessengerIOTask(val,ts,id)); }
+    void send_datapoint(int64_t id, double val, double ts = 0) { push_buffer(LogMessengerIOTask(val,ts,id)); }
     /// add message to queue (optional combined with status)
-    void send_message(const string& m, double ts = 0, int64_t s = 0) { write(LogMessengerIOTask(0,ts,0,s,m)); }
+    void send_message(const string& m, double ts = 0, int64_t s = 0) { push_buffer(LogMessengerIOTask(0,ts,0,s,m)); }
     /// add status to queue
-    void send_status(int64_t s) { write(LogMessengerIOTask(0,0,0,s)); }
+    void send_status(int64_t s) { push_buffer(LogMessengerIOTask(0,0,0,s)); }
 };
 
 #endif
