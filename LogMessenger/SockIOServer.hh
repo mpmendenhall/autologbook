@@ -48,5 +48,27 @@ protected:
     void handle_connection(int csockfd) override;
 };
 
+//////////////////////////////
+//////////////////////////////
+
+/// Simple block data transfer protocol: int32_t bsize, data[bsize]
+class BlockHandler: public ConnHandler {
+public:
+    /// Constructor
+    BlockHandler(int sfd): ConnHandler(sfd) { }
+    /// Receive block size and whole of expected data
+    void handle() override;
+
+protected:
+    /// Read block data of expected size
+    virtual void read_block(int32_t bsize);
+    /// Allocate block buffer space
+    virtual char* alloc_block(int32_t bsize) { dbuff.resize(bsize); return dbuff.data(); }
+    /// Process data after buffer read; return false to end communication
+    virtual bool process(int32_t bsize);
+
+    vector<char> dbuff; ///< default buffer space
+};
+
 
 #endif

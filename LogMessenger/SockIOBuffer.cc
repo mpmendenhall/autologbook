@@ -34,12 +34,11 @@ bool SockIOBuffer::open_socket(const string& host, int port) {
 
 void SockIOBuffer::process_item() {
     if(sockfd) {
-        write(sockfd, (const void*)&current.datatype, sizeof(current.datatype));
-        auto s = current.data.size();
-        write(sockfd, (const void*)&s, sizeof(s));
-        write(sockfd, (const void*)current.data.data(), s);
+        int32_t bsize = current.size();
+        write(sockfd, &bsize, sizeof(bsize));
+        write(sockfd, current.data(), bsize);
     }
-    current.data.clear();
+    current.clear();
 }
 
 ////////////////////
@@ -54,11 +53,10 @@ int main(int, char **) {
 
     for(int i=0; i<10; i++) {
         printf("Sending some data...\n");
-
         auto wp = SIB.get_writepoint();
-        for(int j=0; j<10; j++) wp->data.push_back('*');
+        for(int j=0; j<10; j++) wp->push_back('*');
         SIB.finish_write();
-        usleep(500000);
+        usleep(1000000);
     }
 }
 #endif

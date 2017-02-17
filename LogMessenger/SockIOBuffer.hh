@@ -11,14 +11,8 @@ using std::string;
 #include <vector>
 using std::vector;
 
-/// Generic data block to send
-struct SockIOData {
-    int datatype;       ///< contents type identifier
-    vector<char> data;  ///< data contents
-};
-
-/// LogMessenger passing data to socket connection
-class SockIOBuffer: public LocklessCircleBuffer<SockIOData> {
+/// Buffered data block output to socket connection
+class SockIOBuffer: public LocklessCircleBuffer<vector<char>> {
 public:
     /// Constructor
     SockIOBuffer(const string& host = "", int port = 0, size_t nbuff = 100):
