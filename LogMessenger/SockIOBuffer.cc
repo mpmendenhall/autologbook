@@ -45,7 +45,7 @@ void SockIOBuffer::process_item() {
 ////////////////////
 ////////////////////
 
-#ifdef SOCKET_TEST
+#ifdef SOCKET_BUFFTEST
 int main(int, char **) {
     SockIOBuffer SIB;
     SIB.launch_mythread();

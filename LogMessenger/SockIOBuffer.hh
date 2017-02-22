@@ -15,8 +15,8 @@ using std::vector;
 class SockIOBuffer: public LocklessCircleBuffer<vector<char>> {
 public:
     /// Constructor
-    SockIOBuffer(const string& host = "", int port = 0, size_t nbuff = 100):
-    LocklessCircleBuffer(nbuff) { if(host.size() && port) open_socket(host,port); }
+    SockIOBuffer(const string& host = "", int port = 0, size_t nbuff = 1000):
+    LocklessCircleBuffer(nbuff) { sleep_us = 1000; if(host.size() && port) open_socket(host,port); }
     /// Destructor
     virtual ~SockIOBuffer() { close_socket(); }
 
