@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 ## \file LogMessengerSocketServer.py Daemon accepting socket connections to fill logger DB
 # ./LogMessengerSocketServer.py --db test.db --port 9999
 
@@ -72,7 +72,11 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                 status = self.recv_i64()
                 callq.put( (count_status, (status,), rq) )
                 self.request.sendall(struct.pack("q", rq.get()))
-                 
+            
+            elif rqtp == 8: # clear all
+                callq.put( (clear_all, (), rq) )
+                rq.get()
+
             else:
                 # unrecognized request type
                 assert False
@@ -108,6 +112,10 @@ def clear_status(status):
     try: status_sets.pop(status)
     except: pass
 
+def clear_all():
+    current_status.clear()
+    status_sets.clear()
+
 def count_status(status):
     try: return len(status_sets[status])
     except: return 0
@@ -115,15 +123,39 @@ def count_status(status):
 def DB_stuffer_process():
     """Database communication process"""
     while True:
+        nwait = 0
         while True:
             try:
                 item = callq.get_nowait()
                 item[2].put(item[0](*item[1]))
                 callq.task_done()
-            except queue.Empty: break
-           
+                nwait = 0
+            except queue.Empty:
+                nwait += 1
+                time.sleep(0.001)
+                if nwait > 100: break
+
         conn.commit()
         time.sleep(0.1)
+
+class LogServerConnection:
+    """Connection to logging server"""
+    def __init__(self, host, port):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((host, port))
+    def clear_all(self):
+        self.send(8,"i")
+    def clear_status(self,status):
+        self.send(6,"i")
+        self.send(status,"q")   
+    def count_status(self, status):
+        self.send(7,"i")
+        self.send(status,"q")   
+        return self.recv_i64()
+    def send(self,i,tp):
+        self.sock.send(struct.pack(tp,i))
+    def recv_i64(self):
+        return struct.unpack("q", self.sock.recv(8))[0]
 
 if __name__ == "__main__":
     parser = OptionParser()
