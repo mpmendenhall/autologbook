@@ -172,7 +172,11 @@ if __name__ == "__main__":
     conn = sqlite3.connect(options.db)
     curs = conn.cursor()
     curs.execute("PRAGMA foreign_keys = ON") 
-        
+    
+    my_id = create_readgroup(curs, "LogMessengerSocketServer.py", "Log messages database TCP sockets server").rid
+    add_message(curs, my_id, "Starting LogMessenger socket server on %s:%i"%(options.host, options.port))
+    conn.commit()
+    
     server = ThreadedTCPServer((options.host, options.port), ThreadedTCPRequestHandler)
     ip, port = server.server_address
     
@@ -184,7 +188,14 @@ if __name__ == "__main__":
     server_thread.daemon = True
     server_thread.start()
     
-    DB_stuffer_process()
-    
+    try:
+        DB_stuffer_process()
+    except:
+        pass
+
     server.shutdown()
     server.server_close()
+
+    add_message(curs, my_id, "Stopping LogMessenger socket server on %s:%i"%(options.host,options.port))
+    conn.commit()
+
