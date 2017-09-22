@@ -169,9 +169,7 @@ if __name__ == "__main__":
         exit(1)
         
     callq = queue.Queue()
-    conn = sqlite3.connect(options.db)
-    curs = conn.cursor()
-    curs.execute("PRAGMA foreign_keys = ON") 
+    conn,curs = logdb_cxn(options.db)
     
     my_id = create_readgroup(curs, "LogMessengerSocketServer.py", "Log messages database TCP sockets server").rid
     add_message(curs, my_id, "Starting LogMessenger socket server on %s:%i"%(options.host, options.port))

@@ -3,6 +3,13 @@
 import sqlite3
 import time
 
+def logdb_cxn(db):
+    """Connection to logger DB"""
+    conn = sqlite3.connect(db)
+    curs = conn.cursor()
+    curs.execute("PRAGMA foreign_keys = ON")
+    return conn,curs
+
 class readgroup_info:
     """Information on instrument entry in DB"""
     def __init__(self, rid, nm, ds):
