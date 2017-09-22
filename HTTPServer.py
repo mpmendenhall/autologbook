@@ -16,10 +16,12 @@ parser.add_option("--port",  dest="port",    action="store", type="int", default
 parser.add_option("--host",  dest="host",    action="store", type="string", default="localhost", help="server host")
 parser.add_option("--mode",  dest="mode",    action="store", type="string", default="logger", help="server mode: logger or config")
 parser.add_option("--db",    dest="db",      action="store", type="string", help="path to database")
+parser.add_option("--dir",   dest="dir",     action="store", type="string", help="base directory for served content")
 options, args = parser.parse_args()
 
-if options.db:
-    os.environ["CONFIGWEBMANAGER_DB"] = options.db
+if options.dir: os.chdir(options.dir)
+
+if options.db: os.environ["CONFIGWEBMANAGER_DB"] = options.db
 
 if  options.mode == "config":
     print("Webserver for autologbook Configuration DB")
@@ -28,5 +30,6 @@ else:
     print("Webserver for autologbook Logger DB")
     httpd = http.server.HTTPServer((options.host, options.port), LoggerCGIHander)
 
-print("serving from %s:%i"%(options.host, options.port))
+print("serving from '%s' on %s:%i"%(os.getcwd(), options.host, options.port))
 httpd.serve_forever()
+
