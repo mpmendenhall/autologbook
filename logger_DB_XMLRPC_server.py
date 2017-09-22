@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 ## \file logger_DB_XMLRPC_server.py server to provide logger DB data over http
 
 from logger_DB_interface import *

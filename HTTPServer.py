@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 ## \file HTTPServer.py CGI server for autologbook web interfaces
 
 import http.server
