@@ -8,6 +8,7 @@ import ssl
 import base64
 
 class PWAuthHandler(http.server.CGIHTTPRequestHandler):
+
     def checkAuthentication(self):
         if self.server.auth is None: return True
         auth = self.headers.get('Authorization')
@@ -18,6 +19,10 @@ class PWAuthHandler(http.server.CGIHTTPRequestHandler):
             return False
         return True
 
+    def do_HEAD(self):
+        if not self.checkAuthentication(): return
+        super().do_HEAD()
+
     def do_GET(self):
         if not self.checkAuthentication(): return
         super().do_GET()
@@ -25,12 +30,6 @@ class PWAuthHandler(http.server.CGIHTTPRequestHandler):
     def do_POST(self):
         if not self.checkAuthentication(): return
         super().do_POST()
-
-class LoggerCGIHander(PWAuthHandler):
-    cgi_directories = ['/cgi-logger']
-
-class ConfigCGIHandler(PWAuthHandler):
-    cgi_directories = ['/cgi-config', '/cgi-logger']
 
 parser = OptionParser()
 parser.add_option("--port", type="int", default = 8005, help="server port")
@@ -47,19 +46,18 @@ if options.dir: os.chdir(options.dir)
 
 if options.db: os.environ["CONFIGWEBMANAGER_DB"] = options.db
 
+if options.pwd: handler = PWAuthHandler
+else: handler = http.server.CGIHTTPRequestHandler
+
 if  options.mode == "config":
     print("Webserver for autologbook Configuration DB")
-    handler = ConfigCGIHandler
+    handler.cgi_directories = ['/cgi-logger']
 else:
     print("Webserver for autologbook Logger DB")
-    handler = LoggerCGIHander
+    handler.cgi_directories = ['/cgi-config', '/cgi-logger']
 
 httpd = http.server.HTTPServer((options.host, options.port), handler)
-
-if options.pwd:
-    httpd.auth = base64.b64encode(options.pwd.encode()).decode()
-else:
-    httpd.auth = None    
+if options.pwd: httpd.auth = base64.b64encode(options.pwd.encode()).decode()
 
 # openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -subj "/C=US/ST=California/L=Livermore/O=Company Name/OU=Org/CN=www.example.com" -nodes
 if options.cert:
