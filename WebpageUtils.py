@@ -5,7 +5,7 @@ import cgitb
 cgitb.enable()
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
- 
+
 def makeLink(href, content, xargs = {}):
     xargs["href"] = href
     a = ET.Element('a', xargs)
@@ -56,25 +56,25 @@ def makeList(items, xargs={}, toptag='ul', itmtag='li'):
             addTag(L, itmtag, xargs=i[1], contents = i[0])
         else:
             addTag(L, itmtag, contents = i)
-            
+
     return L
 
 def makeTable(rows, xargs={}, T = None):
     """HTML table from array of lists or {"class":c "data":d}"""
     if T is None:
         T = ET.Element('table', xargs)
-    
+
     for r in rows:
         if ET.iselement(r):
            T.append(r)
            continue
-        
+
         if isinstance(r, tuple) and len(r)==2 and isinstance(r[1],dict):
             rw = makeList(r[0], xargs=r[1], toptag='tr', itmtag='td')
         else:
             rw = makeList(r, toptag='tr', itmtag='td')
         T.append(rw)
-    
+
     return T
 
 
@@ -103,7 +103,7 @@ def fillColumns(itms, cols):
             cn += 1
         bcols[cn].append(b)
         rn += 1
-    
+
     # fill table data
     tdat = []
     for r in range(nrows):
@@ -112,13 +112,13 @@ def fillColumns(itms, cols):
             if r >= len(bcols[c]):
                 continue
             tdat[-1].append(bcols[c][r])
-        
+
     return tdat
 
 def fillTable(itms,xargs={},cols=4):
     """Flow items into table with specified number of columns"""
     return makeTable(fillColumns(itms,cols),xargs)
-    
+
 
 def docHeaderString():
     """XHTML5 MIME type header string"""
@@ -127,7 +127,7 @@ def docHeaderString():
 def makePageStructure(title="", refresh=None):
     """Generic page skeleton"""
     P = ET.Element('html', {"lang":"en-US", "xml:lang":"en-US", "xmlns":"http://www.w3.org/1999/xhtml"})
-    
+
     hd = ET.SubElement(P, 'head')
     if title:
         ttl = ET.SubElement(hd, 'title')
@@ -135,7 +135,7 @@ def makePageStructure(title="", refresh=None):
     ET.SubElement(hd, 'link', {"rel":"stylesheet", "href":"../sitestyle.css"})
     if refresh:
         ET.SubElement(hd, 'meta', {"http-equiv":"refresh", "content":"%i"%refresh})
-    
+
     b = ET.SubElement(P, "body")
     return (P,b)
 
@@ -147,4 +147,4 @@ def timeWriter(t):
         return "%.1f minutes"%(t/60.0)
     if abs(t) < 3600*24:
         return "%.1f hours"%(t/3600.0)
-    return "%.1f days"%(t/3600.0/3600.0)
+    return "%.1f days"%(t/(24*3600.0))
