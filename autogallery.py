@@ -9,7 +9,7 @@ from optparse import OptionParser
 def pdfs_to_svgs(basedir):
     for f in glob.glob(basedir+"/*.pdf"):
         fsvg = f[:-3]+"svg"
-        os.system("rm "+fsvg)
+        #os.system("rm "+fsvg)
         if not os.path.exists(fsvg): os.system("pdf2svg %s %s"%(f,fsvg))
 
 def makegallery(basedir, css=None, logo=None):
