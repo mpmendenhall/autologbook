@@ -133,6 +133,7 @@ def makePageStructure(title="", refresh=None, css="../sitestyle.css"):
         ttl = ET.SubElement(hd, 'title')
         ttl.text = title
     ET.SubElement(hd, 'link', {"rel":"stylesheet", "href":css})
+    ET.SubElement(hd, 'meta', {"charset":"utf-8"})
     if refresh:
         ET.SubElement(hd, 'meta', {"http-equiv":"refresh", "content":"%i"%refresh})
 
