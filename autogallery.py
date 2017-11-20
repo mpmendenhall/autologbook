@@ -41,7 +41,7 @@ def makegallery(basedir, css=None, logo=None):
                 li = addTag(ul,"li")
                 addTag(li, "a", {"href":"%s/index.html"%d},d)
 
-        open(path+"/index.html","w").write(prettystring(Page))
+        open(path+"/index.html","w").write("<!DOCTYPE html>\n"+prettystring(Page))
 
 if __name__ == "__main__":
     parser = OptionParser()
