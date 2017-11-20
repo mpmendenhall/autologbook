@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 # cgi web-printable tracebacks
 import cgitb
@@ -124,7 +124,7 @@ def docHeaderString():
     """XHTML5 MIME type header string"""
     return 'Content-Type: application/xhtml+xml\n\n<!DOCTYPE html>\n'
 
-def makePageStructure(title="", refresh=None):
+def makePageStructure(title="", refresh=None, css="../sitestyle.css"):
     """Generic page skeleton"""
     P = ET.Element('html', {"lang":"en-US", "xml:lang":"en-US", "xmlns":"http://www.w3.org/1999/xhtml"})
 
@@ -132,7 +132,7 @@ def makePageStructure(title="", refresh=None):
     if title:
         ttl = ET.SubElement(hd, 'title')
         ttl.text = title
-    ET.SubElement(hd, 'link', {"rel":"stylesheet", "href":"../sitestyle.css"})
+    ET.SubElement(hd, 'link', {"rel":"stylesheet", "href":css})
     if refresh:
         ET.SubElement(hd, 'meta', {"http-equiv":"refresh", "content":"%i"%refresh})
 
