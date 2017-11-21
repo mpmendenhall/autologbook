@@ -7,10 +7,11 @@ import sys
 from optparse import OptionParser
 import datetime
 
-def pdfs_to_svgs(basedir):
+def pdfs_to_svgs(basedir, do_gzip = True):
     for f in glob.glob(basedir+"/*.pdf"):
         fsvg = f[:-3]+"svg"
-        if not os.path.exists(fsvg): os.system("pdf2svg %s %s"%(f,fsvg))
+        if not os.path.exists(fsvg+('z' if do_gzip else '')): os.system("pdf2svg %s %s"%(f,fsvg))
+        if do_gzip: os.system("gzip %s -S .svgz"%fsvg)
 
 def makegallery(basedir, css=None, logo=None):
     if css: os.system("cp "+css+" "+basedir)
@@ -31,11 +32,11 @@ def makegallery(basedir, css=None, logo=None):
 
         fs.sort()
         for f in fs:
-            if f == "logo.svg": continue
-            if(f[-4:]==".svg"):
+            if f == "logo.svg" or f == "logo.svgz": continue
+            if f[-4:]==".svg" or f[-5:]==".svgz":
                 li = addTag(ul,"li")
                 addTag(li,"img", {"src":f})
-            if(f[-4:]==".pdf"):
+            if f[-4:]==".pdf":
                 li = addTag(ul,"li")
                 addTag(li,"a", {"href":f}, f+", generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
 
