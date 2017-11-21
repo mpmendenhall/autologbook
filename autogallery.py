@@ -5,11 +5,11 @@ import os
 import glob
 import sys
 from optparse import OptionParser
+import datetime
 
 def pdfs_to_svgs(basedir):
     for f in glob.glob(basedir+"/*.pdf"):
         fsvg = f[:-3]+"svg"
-        #os.system("rm "+fsvg)
         if not os.path.exists(fsvg): os.system("pdf2svg %s %s"%(f,fsvg))
 
 def makegallery(basedir, css=None, logo=None):
@@ -26,20 +26,23 @@ def makegallery(basedir, css=None, logo=None):
             addTag(h1,"a",{"href":"../index.html"},"[Up]")
             #addTag(h1,"a",{"href":"/index.html"},"[Top]")
 
+        ul = addTag(b,"ul")
+
         fs.sort()
         for f in fs:
             ff = os.path.basename(f)
             if ff == "logo.svg": continue
             if(f[-4:]==".svg"):
-                addTag(b,"img", {"src":ff})
-            if(f[-4:]==".pdf"):
-                addTag(b,"a", {"href":ff}, ff)
-
-        if ds:
-            ul = addTag(b,"ul")
-            for d in ds:
                 li = addTag(ul,"li")
-                addTag(li, "a", {"href":"%s/index.html"%d},d)
+                addTag(li,"img", {"src":ff})
+            if(f[-4:]==".pdf"):
+                li = addTag(ul,"li")
+                addTag(li,"a", {"href":ff}, ff+", generated "+datetime.datetime.fromtimestamp(os.stat(f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
+
+        ds.sort()
+        for d in ds:
+            li = addTag(ul,"li")
+            addTag(li, "a", {"href":"%s/index.html"%d},d)
 
         open(path+"/index.html","w").write("<!DOCTYPE html>\n"+prettystring(Page))
 
