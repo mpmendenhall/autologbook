@@ -19,6 +19,7 @@ def makegallery(basedir, css=None, logo=None):
     for path, ds, fs in os.walk(basedir):
         pdfs_to_svgs(path)
 
+    for path, ds, fs in os.walk(basedir):
         pname = path.strip("/").split("/")[-1]
         Page,b = makePageStructure(pname, css="/sitestyle.css")
         h1 = addTag(b,"h1",{},pname)
