@@ -15,7 +15,7 @@ def pdfs_to_svgs(basedir, do_gzip = True):
 
 def makegallery(basedir, css=None, logo=None):
     if css: os.system("cp "+css+" "+basedir)
-    if logo: os.system("cp %s %s/logo.svg"%(logo,basedir))
+    if logo: os.system("cp %s %s/logo.%s"%(logo,basedir,logo.split('.')[-1]))
 
     for path, ds, fs in os.walk(basedir):
         pdfs_to_svgs(path)
@@ -32,7 +32,7 @@ def makegallery(basedir, css=None, logo=None):
 
         fs.sort()
         for f in fs:
-            if f == "logo.svg" or f == "logo.svgz": continue
+            if f[:5] == "logo.": continue
             if f[-4:]==".svg" or f[-5:]==".svgz":
                 li = addTag(ul,"li")
                 addTag(li,"img", {"src":f})
