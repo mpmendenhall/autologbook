@@ -25,6 +25,7 @@ class PWAuthHandler(http.server.CGIHTTPRequestHandler):
 
     def do_GET(self):
         if not self.checkAuthentication(): return
+        if self.reset_dir: os.chdir(self.reset_dir) # follow moving symbolic link
         super().do_GET()
 
     def do_POST(self):
@@ -48,6 +49,7 @@ if options.db: os.environ["CONFIGWEBMANAGER_DB"] = options.db
 
 if options.pwd: handler = PWAuthHandler
 else: handler = http.server.CGIHTTPRequestHandler
+handler.reset_dir = options.dir
 
 if  options.mode == "config":
     print("Webserver for autologbook Configuration DB")
