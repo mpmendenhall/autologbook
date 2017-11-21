@@ -50,6 +50,8 @@ if options.db: os.environ["CONFIGWEBMANAGER_DB"] = options.db
 if options.pwd: handler = PWAuthHandler
 else: handler = http.server.CGIHTTPRequestHandler
 handler.reset_dir = options.dir
+# hack to include proper Content-encoding header for .svgz files
+handler.extensions_map['.svgz'] = "image/svg+xml\r\nContent-encoding: gzip"
 
 if  options.mode == "config":
     print("Webserver for autologbook Configuration DB")
