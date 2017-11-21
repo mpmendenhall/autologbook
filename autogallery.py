@@ -30,14 +30,13 @@ def makegallery(basedir, css=None, logo=None):
 
         fs.sort()
         for f in fs:
-            ff = os.path.basename(f)
-            if ff == "logo.svg": continue
+            if f == "logo.svg": continue
             if(f[-4:]==".svg"):
                 li = addTag(ul,"li")
-                addTag(li,"img", {"src":ff})
+                addTag(li,"img", {"src":f})
             if(f[-4:]==".pdf"):
                 li = addTag(ul,"li")
-                addTag(li,"a", {"href":ff}, ff+", generated "+datetime.datetime.fromtimestamp(os.stat(f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
+                addTag(li,"a", {"href":f}, f+", generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
 
         ds.sort()
         for d in ds:
