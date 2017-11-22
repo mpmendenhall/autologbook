@@ -10,11 +10,12 @@ import datetime
 def pdfs_to_svgs(basedir, do_gzip = True):
     for f in glob.glob(basedir+"/*.pdf"):
         fsvg = f[:-3]+"svg"
-        if not os.path.exists(fsvg+('z' if do_gzip else '')): os.system("pdf2svg %s %s"%(f,fsvg))
-        if do_gzip: os.system("gzip %s; mv %s.gz %sz"%(fsvg,fsvg,fsvg))
+        if not os.path.exists(fsvg+('z' if do_gzip else '')):
+            os.system("pdf2svg %s %s"%(f,fsvg))
+            if do_gzip: os.system("gzip %s; mv %s.gz %sz"%(fsvg,fsvg,fsvg))
 
 def makegallery(basedir, css=None, logo=None):
-    if css: os.system("cp "+css+" "+basedir)
+    if css: os.system("cp "+css+" "+basedir+"/sitestyle.css")
     if logo: os.system("cp %s %s/logo.%s"%(logo,basedir,logo.split('.')[-1]))
 
     for path, ds, fs in os.walk(basedir):
