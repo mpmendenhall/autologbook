@@ -82,5 +82,8 @@ def add_message(curs, src, msg, t = None):
     """Log a textual message, using current time for timestamp if not specified"""
     t = time.time() if t is None else t
     curs.execute(*make_insert_command("textlog",{"src":src, "time":t, "msg":msg}))
-    if warn_wall and ("ERROR" in msg.upper() or "WARNING" in msg.upper()):
-        os.system("echo '%s' | cowsay -d | wall"%shlex.quote(msg))
+    is_err = "ERROR" in msg.upper()
+    if warn_wall and (is_err or "WARNING" in msg.upper()):
+        if os.path.exists('/usr/bin/cowsay'):
+            os.system("echo '%s' | cowsay %s | wall"%(shlex.quote(msg), '-d' if is_err else '-p'))
+        else: os.system("echo '%s' | wall"%shlex.quote(msg))
