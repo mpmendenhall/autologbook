@@ -85,5 +85,5 @@ def add_message(curs, src, msg, t = None):
     is_err = "ERROR" in msg.upper()
     if warn_wall and (is_err or "WARNING" in msg.upper()):
         if os.path.exists('/usr/bin/cowsay'):
-            os.system("echo '%s' | cowsay %s | wall"%(shlex.quote(msg), '-d' if is_err else '-p'))
-        else: os.system("echo '%s' | wall"%shlex.quote(msg))
+            os.system("echo %s | cowsay %s | wall"%(shlex.quote(msg), '-d' if is_err else '-p'))
+        else: os.system("echo %s | wall"%shlex.quote(msg))
