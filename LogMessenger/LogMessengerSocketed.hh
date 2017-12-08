@@ -72,7 +72,7 @@ public:
         send(REQ_ORIGIN);
         send(name);
         send(descrip);
-        read(sockfd, &origin_id, sizeof(origin_id));
+        ioret = read(sockfd, &origin_id, sizeof(origin_id));
     }
 
     /// get datapoint identifier
@@ -84,7 +84,7 @@ public:
         send(descrip);
         send(unit);
         int64_t dpid;
-        read(sockfd, &dpid, sizeof(dpid));
+        ioret = read(sockfd, &dpid, sizeof(dpid));
         return dpid;
     }
 
@@ -101,7 +101,7 @@ public:
     /// add message to log
     void _add_message(const string& m, double ts = 0) override {
         if(auto_timestamp && !ts) ts = time(nullptr);
-        if(message_stdout) printf("[%.0f] %s\n", ts, m.c_str());
+        if(message_stdout) { printf("[%.0f] %s\n", ts, m.c_str()); fflush(stdout); }
         if(!sockfd) return;
         send(ADD_MESSAGE);
         send(origin_id);
@@ -121,19 +121,20 @@ public:
 
 protected:
     /// send request type
-    void send(const request_type& r) { write(sockfd, &r, sizeof(r)); }
+    void send(const request_type& r) { ioret = write(sockfd, &r, sizeof(r)); }
     /// send double
-    void send(const double& d) { write(sockfd, &d, sizeof(d)); }
+    void send(const double& d) { ioret = write(sockfd, &d, sizeof(d)); }
     /// send int64_t
-    void send(const int64_t& i) { write(sockfd, &i, sizeof(i)); }
+    void send(const int64_t& i) { ioret = write(sockfd, &i, sizeof(i)); }
     /// send (length, string) over connection
     void send(const string& s) {
         auto l = s.size();
-        write(sockfd, &l, sizeof(l));
-        write(sockfd, s.c_str(), l);
+        ioret = write(sockfd, &l, sizeof(l));
+        ioret = write(sockfd, s.c_str(), l);
     }
 
     int sockfd = 0;                         ///< file descriptor number for socket
+    int ioret = 0;                          ///< return code from IO operation
     struct sockaddr_in serv_addr;
     struct hostent* server = nullptr;       ///< server
 };

@@ -13,7 +13,7 @@ class LogMessagesDisplay:
         if "ERROR" in r[2]: return "error"
         if "WARNING" in r[2]: return "warning"
         return None
-    
+
     def makeMessageTable(self,groupid=None):
         self.t0 = time.time()
         s = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
@@ -26,12 +26,12 @@ class LogMessagesDisplay:
         trows = [(["time","source","message"], {"class":"tblhead"}),]
         for m in self.messages:
             m[2] = m[2] if m[2] else ""
-            row = [time.ctime(m[0]), makeLink("/cgi-logger/LogMessages.py?groupid=%i"%m[1], self.groups[m[1]][0]), m[2]]
+            row = [time.ctime(m[0]), makeLink("/cgi-logger/LogMessages.py?groupid=%i"%m[1], self.groups[m[1]][0]) if m[1] is not None else "---", m[2]]
             rclass = self.classify_row(row)
             if rclass: trows.append((row,{"class":rclass}))
             else: trows.append(row)
         return makeTable(trows)
-        
+
     def makePage(self, groupid=None):
         P,b = makePageStructure("Autologbook messages", refresh=300)
         addTag(b,"h1",contents="Messages as of %s"%time.asctime())
@@ -41,7 +41,7 @@ class LogMessagesDisplay:
         b.append(mtable)
         print(docHeaderString())
         print(prettystring(P))
-        
+
 if __name__=="__main__":
     form = cgi.FieldStorage()
     groupid = form.getvalue("groupid", None)
