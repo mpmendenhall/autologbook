@@ -19,7 +19,7 @@ class LogMessagesDisplay:
         s = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
         self.groups = dict([(x[0], (x[1],x[2])) for x in s.readgroups()])
         if groupid is not None:
-            self.messages = s.messages(self.t0 - 1e7, self.t0 + 1e7, 100, groupid)
+            self.messages = s.messages(self.t0 - 1e7, self.t0 + 1e7, 400, groupid)
         else:
             self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7)
 
