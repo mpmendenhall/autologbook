@@ -55,7 +55,7 @@ class LogServer():
 
     def get_messages(self, t0, t1, nmax=100, srcid=None):
         """Get messages in time range, (time, srcid, message)"""
-        if not (nmax < 1000): nmax = 1000
+        if not (nmax < 10000): nmax = 10000
         if srcid is None:
             self.curs.execute("SELECT time,src,msg FROM textlog WHERE time >= ? AND time <= ? ORDER BY time DESC LIMIT ?", (t0, t1, nmax))
         else:

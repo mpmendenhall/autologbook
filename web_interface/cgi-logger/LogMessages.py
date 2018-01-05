@@ -21,7 +21,7 @@ class LogMessagesDisplay:
         if groupid is not None:
             self.messages = s.messages(self.t0 - 1e7, self.t0 + 1e7, 400, groupid)
         else:
-            self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7)
+            self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7, 2000)
 
         trows = [(["time","source","message"], {"class":"tblhead"}),]
         for m in self.messages:

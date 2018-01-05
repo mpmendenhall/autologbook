@@ -65,7 +65,9 @@ if options.pwd: httpd.auth = base64.b64encode(options.pwd.encode()).decode()
 
 # openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -subj "/C=US/ST=California/L=Livermore/O=Company Name/OU=Org/CN=www.example.com" -nodes
 if options.cert:
-    httpd.socket = ssl.wrap_socket(httpd.socket, certfile=options.cert, keyfile=options.key, server_side=True)
+    sctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+    sctx.load_cert_chain(options.cert, options.key)
+    httpd.socket = sctx.wrap_socket(httpd.socket, server_side=True)
     http.server.CGIHTTPRequestHandler.have_fork = False # Force the use of a subprocess ... otherwise get SSL_ERROR_RX_RECORD_TOO_LONG
 
 print("serving from '%s' on %s:%i"%(os.getcwd(), options.host, options.port))
