@@ -12,10 +12,11 @@ from optparse import OptionParser
 class LogServer():
     """Base class for writing data log"""
 
-    def __init__(self, dbname, port):
+    def __init__(self, dbname, port, host=None):
         """Initialize with name of database to open"""
         self.dbname = dbname    # database file
         self.port = port        # server port
+        self.host = host if host is not None else "localhost" # server host
 
         self.readgroups = []     # cache of readout groups (id,name,descrip)
         #self.instr_idx = {}     # instruments name -> rowid index
@@ -79,7 +80,7 @@ class LogServer():
         # xmlrpc web interface for data updates
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
-        server = SimpleXMLRPCServer(("localhost", self.port), requestHandler=RequestHandler, allow_none=True)
+        server = SimpleXMLRPCServer((self.host, self.port), requestHandler=RequestHandler, allow_none=True)
         #server.register_introspection_functions()
 
         server.register_function(self.get_readgroups, 'readgroups')
@@ -93,9 +94,10 @@ class LogServer():
 
 if __name__=="__main__":
     parser = OptionParser()
-    parser.add_option("--port",  dest="port",    action="store", type="int",    help="Localhost port")
-    parser.add_option("--db",    dest="db",      action="store", type="string", help="path to database")
+    parser.add_option("--port",  type="int",    help="Server port")
+    parser.add_option("--host",  help="Server hostname")
+    parser.add_option("--db",    help="path to database")
     options, args = parser.parse_args()
 
-    D = LogServer(options.db, options.port)
+    D = LogServer(options.db, options.port, options.host)
     threading.Thread(target = D.launch_dataserver).start()
