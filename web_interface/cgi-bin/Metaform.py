@@ -8,11 +8,11 @@ import urllib.parse as urlp
 
 class Metaform(ConfigTree):
     """Web forms interface to ConfigTree, allowing web form generation"""
-    
+
     def __init__(self, conn = None):
         ConfigTree.__init__(self,conn)
         self.readonly = False
-    
+
     @staticmethod
     def asstring(clist):
         """flatten display list to string"""
@@ -23,16 +23,16 @@ class Metaform(ConfigTree):
             elif c:
                 s += str(c)
         return s
-    
+
     def displayform(self, obj):
         """Display form of object tree: returns tuple of mixed text/tag objects"""
-        
+
         # remove extra link information unused by display
         islink = None
         if 0 in obj:
             islink = obj[0]
             obj.pop(0)
-        
+
         # create xml tag if specified; delete link information
         wraptag = None
         if "!xml" in obj and None in obj["!xml"] and obj["!xml"][None][1]:
@@ -41,7 +41,7 @@ class Metaform(ConfigTree):
                 xargs[k[1:]] = self.asstring(self.displayform(obj["!xml"][k]))
             wraptag = ET.Element(obj["!xml"][None][1], xargs)
             obj.pop("!xml")
-            
+
         # simple single-value objects
         if len(obj)==1 and None in obj:
             o = obj[None][1]
@@ -55,27 +55,27 @@ class Metaform(ConfigTree):
         if "!list" in obj:
             klist = [ k for k in obj.keys() if k and k[:1]=="#" and k[-1:] != '*']
             klist.sort()
-        
+
             itms = [self.displayform(obj[k]) for k in klist]
             itmtag = obj.get("!list", {None: (None,None)})[None][1]
             if itmtag:
                 itms = [addTag(None, itmtag, contents = i) for i in itms]
             else: # "glom mode"
                 itms = [i for itm in itms for i in itm]
-            
+
             if wraptag is None:
                 return tuple(itms)
-            
+
             mergecontents(wraptag, itms)
             return (wraptag,)
-        
+
         # "displayable" objects ordered by name
         rlist = []
         klist = [ k for k in obj.keys() if  k is not None and k[-1:] != '*']
         klist.sort()
         if None in obj:
             klist = [None,] + klist
-            
+
         # simple leaf nodes
         if klist == [None,]:
             v = obj[None][1]
@@ -96,7 +96,7 @@ class Metaform(ConfigTree):
 
         if not rlist:
             return (wraptag,) if wraptag is not None else tuple()
-            
+
         tbl = makeTable(rlist)
         if wraptag is not None:
             wraptag.append(tbl)
@@ -105,85 +105,85 @@ class Metaform(ConfigTree):
 
     def edit_object(self, iid):
         """Object editor page, given object type config and instance"""
-        
+
         idat = self.load_toplevel(iid[0])
         topkeys = set([v[0] for v in idat.values()])
         obj = self.traverse_context(idat, iid)
         obj = self.traverse_context(obj, wildcard = False, ppath=iid)
-        
+
         # fix sort order by variable name, with "(this)" at top
         rlist = []
         klist = [ k for k in obj.keys() if k not in (None, 0)]
         klist.sort()
         klist = [None,] + klist
-            
+
         nDeleteable = 0
         edname = ".".join((str(iid[0]),)+iid[1:])
         for k in klist:
             v = obj.get(k, {})
             islink = v.get(0,None) if k is not None else obj.get(0,None)
             kname = "(this)" if k is None else "''" if not k else k # display name for key
-            kname = (kname,makeLink("/cgi-config/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), islink[1])) if islink else kname
+            kname = (kname,makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(islink[1][1:]), islink[1])) if islink else kname
             subedname = (edname+"."+k) if k is not None else edname
             basenum = None      # entry ID for this object, if belonging to top object (TODO problematic with internal links)
             updf = None         # update/create field for (this)
             edlink = None       # link to object editor page
-            
+
             if k is None:
                 basenum = v[0] if None in obj and v[0] in topkeys else None
                 if islink:
                     basenum = islink[0] if islink[0] in topkeys else None
                 newrow = [(kname, {"class":"warning"}) if basenum else kname, (v[1] if v[1] is not None else "None", {"class":"good"}) if None in obj else None]
-                    
+
             elif tuple(v.keys()) == (None,): # simple editable final node value
                 vv = v[None]
                 if type(vv) == type(tuple()):
                     basenum = vv[0] if vv[0] in topkeys else None
                     newrow = [(kname, {"class":"warning"}) if basenum else kname, (vv[1] if vv[1] is not None else "None",{"class":"good"})]
-            
+
             else: # more complex objects...
                 if None in v: # object's "this" defined
                     basenum = v[None][0] if v[None][0] in topkeys else None
                 if islink:
                     basenum = islink[0] if islink[0] in topkeys else None
-                edlink = makeLink("/cgi-config/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
-                newrow = [(kname, {"class":"warning"}) if basenum else kname, self.displayform(v)]            
-            
+                edlink = makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(subedname), "Edit")
+                newrow = [(kname, {"class":"warning"}) if basenum else kname, self.displayform(v)]
+
             if basenum:
                 updf = ET.Element('input', {"type":"text", "name":"val_%i"%basenum, "size":"20"})
             elif subedname:
                 updf = (ET.Element('input', {"type":"text", "name":"new_%s"%subedname, "size":"20"}), {"class":"warning"})
-                
+
             newrow += [updf, (edlink, {"style":"text-align:center", "class":"neutral"}) if edlink is not None else None]
-            
+
             # object (self) defined here and deletable
             if basenum is not None:
                 newrow.append((makeCheckbox("del_%i"%basenum), {"style":"text-align:center", "class":"error"}))
                 nDeleteable += 1
-            
+
             rlist.append(newrow)
-       
+
         finalrow = [None, None, (ET.Element("input",{"type":"submit","name":"update","value":"Update"}), {"style":"text-align:center"}), None]
         if nDeleteable:
             finalrow.append(ET.Element("input",{"type":"submit","name":"delete","value":"Delete"}))
         rlist.append(finalrow)
-        
+
         tbl = ET.Element('table')
         #cs = addTag(tbl, "colgroup")
         #for i in range(5):
         #    c = addTag(cs, "col", {"class":"neutral"} if i == 2 else {})
         makeTable(rlist, T = tbl)
-        
+
         gp =  []
-   
-        F =  ET.Element("form", {"action":"/cgi-config/Metaform.py", "method":"post"})
+
+        F =  ET.Element("form", {"action":"/cgi-bin/Metaform.py", "method":"post"})
         Fs = addTag(F, "fieldset")
         addTag(Fs, "legend", contents="Modify parameters")
         Fs.append(tbl)
         addTag(Fs,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions
         gp.append(F)
-        
-        Fp = ET.Element("form", {"action":"/cgi-config/Metaform.py"})
+
+        Fp = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
         Fsp = addTag(Fp, "fieldset")
         addTag(Fsp, "legend", contents="Add new parameter")
         rows = [(["Name", "Value"], {"class":"tblhead"}),]
@@ -192,8 +192,8 @@ class Metaform(ConfigTree):
         addTag(Fsp,"input",{"type":"hidden","name":"edit","value":edname}) # returns to this edit page after form actions... duplicated above
         addTag(Fsp,"input",{"type":"submit","name":"addparam","value":"Add Parameter"})
         gp.append(Fp)
-        
-        Frn = ET.Element("form", {"action":"/cgi-config/Metaform.py"})
+
+        Frn = ET.Element("form", {"action":"/cgi-bin/Metaform.py"})
         Frns = addTag(Frn, "fieldset")
         mergecontents(Frns, (addTag(None, "legend", contents="Rename parameter"),
                            "old name:",
@@ -203,18 +203,18 @@ class Metaform(ConfigTree):
                            ET.Element("input",{"type":"hidden","name":"edit","value":edname}),
                            ET.Element("input",{"type":"submit","name":"rename","value":"Rename"})))
         gp.append(Frn)
-        
+
         return gp
-        
+
     def linkedname(self, iid, toptag, mode = "edit"):
         """Object name with links to editor"""
         vstr = "%i"%iid[0]
-        prev = makeLink("/cgi-config/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), "%s:%s"%self.get_setname(iid[0]))
+        prev = makeLink("/cgi-bin/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), "%s:%s"%self.get_setname(iid[0]))
         toptag.append(prev)
         for v in iid[1:]:
             vstr += ".%s"%v
             prev.tail = "."
-            prev = makeLink("/cgi-config/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), v)
+            prev = makeLink("/cgi-bin/Metaform.py?%s=%s"%(mode, urlp.quote(vstr)), v)
             toptag.append(prev)
 
 
@@ -224,11 +224,11 @@ if __name__ == "__main__":
     conn = sqlite3.connect(os.environ["CONFIGWEBMANAGER_DB"]) if "CONFIGWEBMANAGER_DB" in os.environ else None
     assert conn
     C = Metaform(conn)
-    
+
     form = cgi.FieldStorage()
     print(docHeaderString())
     Page = None
-    
+
     if "delete" in form:
         for d in [v[4:] for v in form if v[:4]=="del_"]:
             try:
@@ -236,7 +236,7 @@ if __name__ == "__main__":
             except:
                 pass
         conn.commit()
-    
+
     if "update" in form:
         # value update entries, specified by pre-existing ID
         for d in [v[4:] for v in form if v[:4]=="val_"]:
@@ -260,7 +260,7 @@ if __name__ == "__main__":
             except:
                 pass
         conn.commit()
-        
+
     if "addparam" in form and "edit" in form and "newnm" in form and "newval" in form:
         iid = C.iid_fromstr(form.getvalue("edit"))
         if iid is not None:
@@ -269,7 +269,7 @@ if __name__ == "__main__":
             if not C.has_been_applied(iid[0]):
                 C.set_config_value(iid[0], ".".join(iid[1:]+(form.getvalue("newnm"),)), newval)
                 conn.commit()
-    
+
     if "rename" in form and "edit" in form and "fromname" in form and "toname" in form:
         iid = C.iid_fromstr(form.getvalue("edit"))
         if iid is not None:
@@ -278,7 +278,7 @@ if __name__ == "__main__":
                 tonm = ".".join(iid[1:]+(form.getvalue("toname"),))
                 C.rename_configs(iid[0], fromnm, tonm)
                 conn.commit()
-    
+
     if "edit" in form:
         vstr = form.getvalue("edit")
         iid = C.iid_fromstr(vstr)
@@ -286,10 +286,10 @@ if __name__ == "__main__":
             Page,b = makePageStructure("Metaform")
             h1 = addTag(None,"h1", contents = "Editing ")
             C.linkedname(iid ,h1)
-            h1.append(makeLink("/cgi-config/Metaform.py?view=%s"%urlp.quote(vstr), "(view)"))
-            h1.append(makeLink("/cgi-config/ConfigWebManager.py?cset=%i&ncols=2"%iid[0], "(flat)"))
+            h1.append(makeLink("/cgi-bin/Metaform.py?view=%s"%urlp.quote(vstr), "(view)"))
+            h1.append(makeLink("/cgi-bin/ConfigWebManager.py?cset=%i&ncols=2"%iid[0], "(flat)"))
             mergecontents(b, (h1, C.edit_object(iid)))
-    
+
     elif "view" in form:
         vstr = form.getvalue("view")
         iid = C.iid_fromstr(vstr)
@@ -297,12 +297,11 @@ if __name__ == "__main__":
             Page,b = makePageStructure("Metaform")
             h1 = addTag(None,"h1", contents = "Viewing ")
             C.linkedname(iid,h1,mode="view")
-            h1.append(makeLink("/cgi-config/Metaform.py?edit=%s"%urlp.quote(vstr), "(edit)"))
+            h1.append(makeLink("/cgi-bin/Metaform.py?edit=%s"%urlp.quote(vstr), "(edit)"))
             obj = C.traverse_context(C.load_toplevel(iid[0]), iid)
             obj = C.traverse_context(obj, ppath=iid)
             mergecontents(b, (h1, C.displayform(obj)))
 
-    
+
     if Page is not None:
         print(prettystring(Page))
-    

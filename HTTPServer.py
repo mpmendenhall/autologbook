@@ -55,10 +55,10 @@ handler.extensions_map['.svgz'] = "image/svg+xml\r\nContent-encoding: gzip"
 
 if  options.mode == "config":
     print("Webserver for autologbook Configuration DB")
-    handler.cgi_directories = ['/cgi-logger']
+    handler.cgi_directories = ['/cgi-bin']
 else:
     print("Webserver for autologbook Logger DB")
-    handler.cgi_directories = ['/cgi-config', '/cgi-logger']
+    handler.cgi_directories = ['/cgi-bin', '/cgi-bin']
 
 httpd = http.server.HTTPServer((options.host, options.port), handler)
 if options.pwd: httpd.auth = base64.b64encode(options.pwd.encode()).decode()

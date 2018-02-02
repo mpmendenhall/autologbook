@@ -26,7 +26,7 @@ class LogMessagesDisplay:
         trows = [(["time","source","message"], {"class":"tblhead"}),]
         for m in self.messages:
             m[2] = m[2] if m[2] else ""
-            row = [time.ctime(m[0]), makeLink("/cgi-logger/LogMessages.py?groupid=%i"%m[1], self.groups[m[1]][0]) if m[1] is not None else "---", m[2]]
+            row = [time.ctime(m[0]), makeLink("/cgi-bin/LogMessages.py?groupid=%i"%m[1], self.groups[m[1]][0]) if m[1] is not None else "---", m[2]]
             rclass = self.classify_row(row)
             if rclass: trows.append((row,{"class":rclass}))
             else: trows.append(row)
@@ -36,7 +36,7 @@ class LogMessagesDisplay:
         P,b = makePageStructure("Autologbook messages", refresh=300)
         addTag(b,"h1",contents="Messages as of %s"%time.asctime())
         mtable = self.makeMessageTable(groupid)
-        try: addTag(b,"h2",contents=["from %s: %s"%self.groups[int(groupid)],makeLink("/cgi-logger/LogMessages.py","[show all]")])
+        try: addTag(b,"h2",contents=["from %s: %s"%self.groups[int(groupid)],makeLink("/cgi-bin/LogMessages.py","[show all]")])
         except: pass
         b.append(mtable)
         print(docHeaderString())

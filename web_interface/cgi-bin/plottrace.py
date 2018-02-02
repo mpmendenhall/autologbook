@@ -7,7 +7,7 @@ import xmlrpc.client
 import cgi
 import time
 import os
-    
+
 class TracePlotter:
     def __init__(self):
         self.t0 = time.time()
@@ -15,7 +15,7 @@ class TracePlotter:
         self.ids = []
         self.readings = {}
         self.channels = {}
-    
+
     def get_readings(self, rid):
         try: rid = int(rid)
         except: return
@@ -26,15 +26,15 @@ class TracePlotter:
             self.channels[rid] = ri
             self.readings[rid] = s.datapoints(rid, self.tm, self.t0)[::-1]
             self.ids.append(rid)
-    
-    def makePage(self):        
+
+    def makePage(self):
         if not self.readings:
             P,b = makePageStructure("plotter fail!")
             addTag(b,"h1",contents="no plots found!")
             print(docHeaderString())
             print(prettystring(P))
             return
-        
+
         # single or multiple plots?
         ptitle = "plottrace"
         subtitle = "readings as of %s"%time.asctime()
@@ -43,7 +43,7 @@ class TracePlotter:
             chn = self.channels[self.ids[0]]
             ptitle = "%s plot"%chn["name"]
             subtitle = "%s %s"%(chn["name"], subtitle)
-        
+
         # common units?
         units = None
         ylabel = "readings"
@@ -53,11 +53,11 @@ class TracePlotter:
                 units = None
                 break
         if units: ylabel = 'value [%s]'%units
-        
+
         P,b = makePageStructure(ptitle, refresh=300)
         addTag(b,"h1",contents=subtitle)
         if chn: addTag(b,"h2",contents=chn["descrip"])
-    
+
         PM = PlotMaker()
         PM.datasets = dict([(r, self.readings[r]) for r in self.readings])
         PM.ylabel = ylabel
@@ -72,15 +72,15 @@ class TracePlotter:
 
         print(docHeaderString())
         print(unmangle_xlink_namespace(prettystring(P)))
-        
-        
+
+
 if __name__=="__main__":
     tp = TracePlotter()
-    
+
     form = cgi.FieldStorage()
     rid = form.getvalue("rid", None)
     if type(rid) == type([]):
         for r in rid: tp.get_readings(r)
     else: tp.get_readings(rid)
-    
+
     tp.makePage()
