@@ -7,13 +7,14 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
 def makeLink(href, content, xargs = {}):
+    """Make <a href=...>contents</a> link tag"""
     xargs["href"] = href
     a = ET.Element('a', xargs)
-    if ET.iselement(content):
-        a.append(content)
-    else:
-        a.text = str(content)
+    if ET.iselement(content): a.append(content)
+    else: a.text = str(content)
     return a
+
+def isattrtuple(e): return isinstance(e, tuple) and len(e)==2 and isinstance(e[1],dict)
 
 def mergecontents(e, contents, prevel = None):
     """Recursively merge mixed text/tag contents into e"""
@@ -44,36 +45,30 @@ def makeCheckbox(name, value="y", checked=False, radio=False, xargs={}):
     xargs["name"] = name
     xargs["value"] = value
     xargs["type"] = "radio" if radio else "checkbox"
-    if checked:
-        xargs["checked"] = ""
+    if checked: xargs["checked"] = ""
     return ET.Element('input', xargs)
 
 def makeList(items, xargs={}, toptag='ul', itmtag='li'):
     """HTML list"""
+
     L = ET.Element(toptag, xargs)
+
     for i in items:
-        if isinstance(i, tuple) and len(i)==2 and isinstance(i[1],dict):
-            addTag(L, itmtag, xargs=i[1], contents = i[0])
-        else:
-            addTag(L, itmtag, contents = i)
+        if isattrtuple(i): addTag(L, itmtag, xargs=i[1], contents = i[0])
+        else: addTag(L, itmtag, contents = i)
 
     return L
 
 def makeTable(rows, xargs={}, T = None):
-    """HTML table from array of lists or {"class":c "data":d}"""
-    if T is None:
-        T = ET.Element('table', xargs)
+    """HTML table from [r,r,...]; r = elem | [c,c,...] | ([c,c,...], {rowattrs}); c = elem | text | (text,{colattrs})"""
+
+    if isinstance(T,str): T = ET.Element(T, xargs)
+    if T is None: T = ET.Element('table', xargs)
 
     for r in rows:
-        if ET.iselement(r):
-           T.append(r)
-           continue
-
-        if isinstance(r, tuple) and len(r)==2 and isinstance(r[1],dict):
-            rw = makeList(r[0], xargs=r[1], toptag='tr', itmtag='td')
-        else:
-            rw = makeList(r, toptag='tr', itmtag='td')
-        T.append(rw)
+        if ET.iselement(r): T.append(r)
+        elif isattrtuple(r): T.append(makeList(r[0], xargs=r[1], toptag='tr', itmtag='td'))
+        else: T.append(makeList(r, toptag='tr', itmtag='td'))
 
     return T
 
@@ -81,8 +76,7 @@ def makeTable(rows, xargs={}, T = None):
 
 def prettystring(elem, oneline = False):
     """ElementTree element to indented string"""
-    if oneline:
-        return ET.tostring(elem).decode('utf-8')
+    if oneline: return ET.tostring(elem).decode('utf-8')
     reparsed = minidom.parseString(ET.tostring(elem).decode('utf-8'))
     return reparsed.toprettyxml().split('<?xml version="1.0" ?>\n')[-1]
 

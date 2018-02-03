@@ -4,7 +4,7 @@ from configDBcontrol import *
 
 class ConfigTree(ConfigDB):
     """Tree structure parser for configuration database"""
-    
+
     def __init__(self, conn = None):
         ConfigDB.__init__(self,conn)
         self.namecache = {}     # cache of object identifiers
@@ -25,19 +25,19 @@ class ConfigTree(ConfigDB):
                 self.namecache[(n,f)] = iid[0]
 
         return tuple(iid) if iid[0] is not None else None
-    
+
     def load_toplevel(self, csid):
         """Get top-level config information from DB; format into context data"""
-        
+
         if csid in self.dbcache: # check in-memory cache to decrease DB hits
                 return self.dbcache[csid]
-        
+
         self.curs.execute("SELECT name,rowid,value FROM config_values WHERE csid = ?", (csid,))
-        d = dict([((csid,) + (tuple([i for i in r[0].split('.')]) if r[0] is not None else tuple()), (r[1], r[2])) for r in self.curs.fetchall()])
-        
+        d = {(csid,) + (tuple([i for i in r[0].split('.')]) if r[0] is not None else tuple()): (r[1], r[2]) for r in self.curs.fetchall()}
+
         self.dbcache[csid] = d
         return d
-    
+
     @staticmethod
     def subdivide_context(d, find = None):
         """Divide context dictionary into sub-context branches, optionally keeping for only one specific branch"""
@@ -49,18 +49,18 @@ class ConfigTree(ConfigDB):
                 continue
             subdat.setdefault(k[0],{})[k[1:]] = v
         return subdat
-    
+
     # context: { (x,y,z) : (ID, value), (): (ID,value) }
     #   can be merged/updated with other contexts
     #
     # expanded: { x : { y: { z : { None:(ID,value) } }, None:(ID,value) }
-    
+
     def traverse_context(self, context, find = None, cyccheck = None, wildcard = True, ppath = tuple()):
         """Expand context into tree, including links; return target context or whole expanded tree."""
-        
+
         if cyccheck is None: # initialize cyclical references check
             cyccheck = set() #{find} if find is not None else set()
-        
+
         #####################################################################
         # check if top level is link; expand context with link contents if so
         thiso = context.get(tuple(), (None,None)) # "this" value for top-level object in traversal, including link expansion
@@ -81,7 +81,7 @@ class ConfigTree(ConfigDB):
                 else:
                     thiso = (thiso[0], "@"+ltext) if ltext else None
                     #Sprint("<!-- Expanding rel link", thiso, "-->")
-                    
+
             lpath = self.iid_fromstr(thiso[1][1:]) if thiso is not None else None
             if lpath is not None:
                 #print("<!-- following link", thiso, cyccheck, "-->")
@@ -95,12 +95,12 @@ class ConfigTree(ConfigDB):
                 else:
                     #print("<!-- CYCLIC LINK on lpath", lpath, thiso, "-->")
                     context[tuple()] = (thiso[0], "CYCLIC"+thiso[1])
-        
+
         if find == tuple(): # context at end of find mode... before wildcard expansion
             if islink is not None:
                 context[0] = islink # special marker for linked objects
             return context
-        
+
         # expand wildcard items
         if wildcard:
             kset = [k for k in context.keys() if k and isinstance(k[0], str)]
@@ -112,7 +112,7 @@ class ConfigTree(ConfigDB):
                         creplace  = (c2[0],) + c[1:]
                         context[creplace] = context[c]
 
-        
+
         subdat = self.subdivide_context(context, find)
         # follow search path
         if find is not None:
