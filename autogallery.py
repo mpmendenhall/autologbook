@@ -27,7 +27,7 @@ def makegallery(basedir, css=None, logo=None):
         h1 = addTag(b,"h1",{},pname)
         if path != basedir:
             addTag(h1,"a",{"href":"../index.html"},"[Up]")
-            #addTag(h1,"a",{"href":"/index.html"},"[Top]")
+        addTag(h1,"a",{"href":"/index.html"},"[Home]")
 
         ul = addTag(b,"ul")
 
