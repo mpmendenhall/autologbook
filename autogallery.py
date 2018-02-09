@@ -55,4 +55,4 @@ if __name__ == "__main__":
     parser.add_option("--logo", help="logo.svg file to copy to base")
     options, args = parser.parse_args()
 
-    makegallery(options.dir, options.css, options.logo)
+    if options.dir: makegallery(options.dir, options.css, options.logo)

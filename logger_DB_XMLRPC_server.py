@@ -36,10 +36,18 @@ class LogServer():
     #    self.curs.execute("SELECT rowid FROM readout_types WHERE readgroup_id = ?", (self.instr_idx[instrname],))
     #    return [self.readouts[r[0]] for r in self.curs.fetchall()]
 
-    def get_datapoints(self, rid, t0, t1):
+    def get_datapoints(self, rid, t0, t1, nmax = 200):
         """Get datapoints for specified readout ID in time stamp range"""
-        self.curs.execute("SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time DESC LIMIT 2000", (int(rid), t0, t1))
-        return self.curs.fetchall()
+        self.curs.execute("SELECT COUNT(*) FROM readings WHERE readout_id = ? AND time >= ? AND time <= ?", (int(rid), t0, t1))
+        dec = 1 + self.curs.fetchone()[0] // nmax
+        tblname = "tmp_pts_%i"%int(rid)
+        if dec > 1:
+            self.curs.execute("CREATE TEMPORARY TABLE IF NOT EXISTS "+tblname+" AS SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time DESC", (int(rid), t0, t1))
+            self.curs.execute("SELECT * FROM "+tblname+" WHERE rowid % ? = 0", (dec,))
+        else: self.curs.execute("SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time DESC", (int(rid), t0, t1))
+        res = self.curs.fetchall()
+        if dec > 1: self.curs.execute("DROP TABLE "+tblname)
+        return res
 
     def get_readgroups(self):
         """Get complete list of readout groups (id, name, descrip)"""
