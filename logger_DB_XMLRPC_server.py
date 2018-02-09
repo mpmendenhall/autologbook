@@ -8,6 +8,8 @@ from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 import os
 from optparse import OptionParser
+import pickle
+import zlib
 
 class LogServer():
     """Base class for writing data log"""
@@ -48,6 +50,11 @@ class LogServer():
         res = self.curs.fetchall()
         if dec > 1: self.curs.execute("DROP TABLE "+tblname)
         return res
+
+    def get_datapoints_compressed(self, rid, t0, t1, nmax = 200):
+        """Get datapoints as compressed cPickle"""
+        dp = self.get_datapoints(rid, t0, t1, nmax)
+        return zlib.compress(pickle.dumps(dp))
 
     def get_readgroups(self):
         """Get complete list of readout groups (id, name, descrip)"""
@@ -96,6 +103,7 @@ class LogServer():
         server.register_function(self.get_messages, 'messages')
         server.register_function(self.get_readout_info, 'readout_info')
         server.register_function(self.get_datapoints, 'datapoints')
+        server.register_function(self.get_datapoints_compressed, 'datapoints_compressed')
         server.register_function(self.get_newest, 'newest')
 
         server.serve_forever()
