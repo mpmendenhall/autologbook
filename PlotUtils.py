@@ -25,6 +25,8 @@ class PlotMaker:
         self.xtic = "auto"      # x axis tick settings
         self.ylabel = None      # y axis label
         self.ytic = "auto"      # y axis tick settings
+        self.ymin = None        # y axis minimum; None to autoscale
+        self.ymax = None        # y axis maximum; None to autoscale
         self.keypos = None      # whether to generate graph key, and where e.g. "left top"
 
     def pass_gnuplot_data(self,k,gpt):
@@ -57,6 +59,8 @@ class PlotMaker:
     def setup_axes(self,gpt):
         """Axis set-up commands"""
         pwrite(gpt,"set autoscale\n")
+        if self.ymin is not None or self.ymax is not None:
+            pwrite(gpt,"set yrange [%s:%s]\n"%(str(self.ymin) if self.ymin is not None else "", str(self.ymax) if self.ymax is not None else ""))
         pwrite(gpt,"set xtic %s\n"%self.xtic)
         pwrite(gpt,"set ytic %s\n"%self.ytic)
         pwrite(gpt,"unset label\n")
