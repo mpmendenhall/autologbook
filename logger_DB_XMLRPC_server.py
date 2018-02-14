@@ -41,15 +41,11 @@ class LogServer():
     def get_datapoints(self, rid, t0, t1, nmax = 200):
         """Get datapoints for specified readout ID in time stamp range"""
         self.curs.execute("SELECT COUNT(*) FROM readings WHERE readout_id = ? AND time >= ? AND time <= ?", (int(rid), t0, t1))
-        dec = 1 + self.curs.fetchone()[0] // nmax
-        tblname = "tmp_pts_%i"%int(rid)
-        if dec > 1:
-            self.curs.execute("CREATE TEMPORARY TABLE IF NOT EXISTS "+tblname+" AS SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time DESC", (int(rid), t0, t1))
-            self.curs.execute("SELECT * FROM "+tblname+" WHERE rowid % ? = 0", (dec,))
-        else: self.curs.execute("SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time DESC", (int(rid), t0, t1))
-        res = self.curs.fetchall()
-        if dec > 1: self.curs.execute("DROP TABLE "+tblname)
-        return res
+        if self.curs.fetchone()[0] > nmax:
+            self.curs.execute("SELECT avg(time),avg(value) FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? GROUP BY round(time/?) ORDER BY time DESC", (int(rid), t0, t1, (t1-t0)/nmax));
+        else:
+            self.curs.execute("SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time DESC", (int(rid), t0, t1))
+        return self.curs.fetchall()
 
     def get_datapoints_compressed(self, rid, t0, t1, nmax = 200):
         """Get datapoints as compressed cPickle"""
