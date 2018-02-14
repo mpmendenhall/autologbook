@@ -20,7 +20,11 @@ class TracePlotter(PlotMaker):
         self.readings = {}
         self.channels = {}
         self.keypos = "top left"
+        self.tscale = 3600.
         self.xlabel = 'time from present [hours]'
+        if dt > 48:
+            self.tscale = 24*3600.
+            self.xlabel = 'time from present [days]'
 
     def get_readings(self, rid):
         try: rid = int(rid)
@@ -68,7 +72,7 @@ class TracePlotter(PlotMaker):
         self.renames = dict([(c,self.channels[c]["name"].replace("_"," ")) for c in self.channels])
         for r in self.readings:
             self.plotsty[r] = "with linespoints pt 7 ps 0.4"
-            self.x_txs[r] = (lambda x, t0=self.t0: (x-t0)/3600.)
+            self.x_txs[r] = (lambda x, t0=self.t0: (x-t0)/self.tscale)
         pstr = self.make_svg(self.ids)
 
         if img:
@@ -91,7 +95,7 @@ if __name__=="__main__":
     try:
         dt = float(form.getvalue("dt","12"))
         if not dt > 0: dt = 1
-        if not dt < 48: dt = 48
+        if not dt < 31*24: dt = 31*24
     except: dt = 12
     tp = TracePlotter(dt)
     try: tp.ymin = float(form.getvalue("min",None))
