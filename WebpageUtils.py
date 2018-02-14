@@ -116,7 +116,8 @@ def fillTable(itms,xargs={},cols=4):
 
 def docHeaderString():
     """XHTML5 MIME type header string"""
-    return 'Content-Type: application/xhtml+xml\n\n<!DOCTYPE html>\n'
+    #return 'Content-Type: application/xhtml+xml\n\n<!DOCTYPE html>\n'
+    return 'Content-Type: application/xhtml+xml\n\n' # no DOCTYPE with this header
 
 def makePageStructure(title="", refresh=None, css="../sitestyle.css"):
     """Generic page skeleton"""

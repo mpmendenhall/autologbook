@@ -2,6 +2,7 @@
 ## \file LogMessages.py stateless view of recent log messages
 
 from WebpageUtils import *
+from DAQ_Network_Config import *
 import xmlrpc.client
 import time
 import cgi
@@ -10,31 +11,43 @@ class LogMessagesDisplay:
 
     def classify_row(self,r):
         """Determine special marking class for row"""
-        if "ERROR" in r[2]: return "error"
-        if "WARNING" in r[2]: return "warning"
+        if "ERROR" in r[2].upper(): return "error"
+        if "WARNING" in r[2].upper() or "on timeout" in r[2]: return "warning"
+        if "All workers completed" in r[2] or  "at time limit" in r[2] or "at event limit" in r[2] or "on acquisition gate" in r[2]: return "good"
+        if "Launched run" in r[2]: return "neutral"
+        if "Cycling VME" in r[2]: return "unknown"
+        if "Start data" in r[2] and r[1] != "DAQ_Dumper": return "squelch"
         return None
 
     def makeMessageTable(self,groupid=None):
         self.t0 = time.time()
-        s = xmlrpc.client.ServerProxy('http://localhost:8002', allow_none=True)
-        self.groups = dict([(x[0], (x[1],x[2])) for x in s.readgroups()])
-        if groupid is not None:
-            self.messages = s.messages(self.t0 - 1e7, self.t0 + 1e7, 400, groupid)
-        else:
-            self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7, 2000)
+        try:
+            s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
+            self.groups = {x[0]: (x[1],x[2]) for x in s.readgroups()}
+            if groupid is None: self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7, 2000)
+            else: self.messages = s.messages(self.t0 - 1e7, self.t0 + 1e7, 400, groupid)
+        except:
+            self.groups = {0: ["Error","Connection error"]}
+            self.messages = [[time.time(),0,"Error: no connection to log data server %s:%i."%(log_xmlrpc_host,log_xmlrpc_port)]]
 
-        trows = [(["time","source","message"], {"class":"tblhead"}),]
+        trows = [makeTable([["time","source","message"]], T="thead"),]
+
+        prevdate = time.strftime("%A, %B %d",time.localtime(time.time()))
         for m in self.messages:
             m[2] = m[2] if m[2] else ""
-            row = [time.ctime(m[0]), makeLink("/cgi-bin/LogMessages.py?groupid=%i"%m[1], self.groups[m[1]][0]) if m[1] is not None else "---", m[2]]
+            newdate = time.strftime("%A, %B %d",time.localtime(m[0]))
+            if newdate != prevdate: trows.append([(prevdate,{"class":"listbreak", "colspan":"3"})])
+            prevdate = newdate
+            row = [time.strftime("%H:%M:%S",time.localtime(m[0])), makeLink("/cgi-bin/LogMessages.py?groupid=%i"%m[1], self.groups[m[1]][0]) if m[1] is not None else "---", m[2]]
             rclass = self.classify_row(row)
+            if rclass == "squelch": continue
             if rclass: trows.append((row,{"class":rclass}))
             else: trows.append(row)
         return makeTable(trows)
 
     def makePage(self, groupid=None):
         P,b = makePageStructure("Autologbook messages", refresh=300)
-        addTag(b,"h1",contents="Messages as of %s"%time.asctime())
+        addTag(b,"h1",contents=["Messages as of %s"%time.asctime(), makeLink("/index.html","[Home]")])
         mtable = self.makeMessageTable(groupid)
         try: addTag(b,"h2",contents=["from %s: %s"%self.groups[int(groupid)],makeLink("/cgi-bin/LogMessages.py","[show all]")])
         except: pass
