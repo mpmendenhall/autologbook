@@ -25,26 +25,39 @@ def makegallery(basedir, css=None, logo=None):
         pname = path.strip("/").split("/")[-1]
         Page,b = makePageStructure(pname, css="/sitestyle.css")
         h1 = addTag(b,"h1",{},pname)
-        if path != basedir:
-            addTag(h1,"a",{"href":"../index.html"},"[Up]")
+        if path != basedir: addTag(h1,"a",{"href":"../index.html"},"[Up]")
         addTag(h1,"a",{"href":"/index.html"},"[Home]")
 
-        ul = addTag(b,"ul")
-
-        fs.sort()
-        for f in fs:
-            if f[:5] == "logo.": continue
-            if f[-4:]==".svg" or f[-5:]==".svgz":
-                li = addTag(ul,"li")
-                addTag(li,"img", {"src":f})
-            if f[-4:]==".pdf":
-                li = addTag(ul,"li")
-                addTag(li,"a", {"href":f}, f+", generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
-
+        linklist = []
         ds.sort()
         for d in ds:
-            li = addTag(ul,"li")
+            li = ET.Element("li")
             addTag(li, "a", {"href":"%s/index.html"%d},d)
+            linklist.append(li)
+
+        fs.sort()
+        skipme = []
+        for f in fs:
+            if f in skipme: continue
+            sfx = f.split(".")[-1]
+            pfx = f[:-len(sfx)-1]
+            if pfx == "logo": continue
+            if sfx in ["svg", "svgz"]:
+                fg = addTag(b,"figure", {"style":"display:inline-block"})
+                addTag(fg,"img", {"src":f, "class":"lightbg"})
+                cc = []
+                if os.path.exists(path+"/"+pfx+".pdf"):
+                    cc.append(makeLink(pfx+".pdf", pfx+".pdf"))
+                    skipme.append(pfx+".pdf")
+                cc.append(" generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
+                addTag(fg,"figcaption",{},cc)
+            if sfx==".pdf":
+                li = ET.Element("li")
+                addTag(li,"a", {"href":f}, f+", generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
+                linklist.append(li)
+
+        if linklist: addTag(b, "ul", {}, linklist)
+
 
         open(path+"/index.html","w").write("<!DOCTYPE html>\n"+prettystring(Page))
 
