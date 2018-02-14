@@ -10,7 +10,10 @@ import datetime
 def pdfs_to_svgs(basedir, do_gzip = True):
     for f in glob.glob(basedir+"/*.pdf"):
         fsvg = f[:-3]+"svg"
-        if not os.path.exists(fsvg+('z' if do_gzip else '')):
+        fsvgz = fsvg+('z' if do_gzip else '')
+        makesvg = not os.path.exists(fsvgz)
+        if not makesvg: makesvg = os.stat(fsvgz).st_mtime < os.stat(f).st_mtime
+        if makesvg:
             os.system("pdf2svg %s %s"%(f,fsvg))
             if do_gzip: os.system("gzip %s; mv %s.gz %sz"%(fsvg,fsvg,fsvg))
 
@@ -49,7 +52,8 @@ def makegallery(basedir, css=None, logo=None):
                 if os.path.exists(path+"/"+pfx+".pdf"):
                     cc.append(makeLink(pfx+".pdf", pfx+".pdf"))
                     skipme.append(pfx+".pdf")
-                cc.append(" generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
+                else: cc.append(f+" ")
+                cc.append("generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
                 addTag(fg,"figcaption",{},cc)
             if sfx==".pdf":
                 li = ET.Element("li")
