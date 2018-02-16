@@ -55,7 +55,7 @@ def makegallery(basedir, css=None, logo=None):
                 else: cc.append(f+" ")
                 cc.append("generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
                 addTag(fg,"figcaption",{},cc)
-            if sfx==".pdf":
+            if sfx in ["pdf", "txt", "tsv"]:
                 li = ET.Element("li")
                 addTag(li,"a", {"href":f}, f+", generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
                 linklist.append(li)
