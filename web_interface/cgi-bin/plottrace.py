@@ -97,7 +97,6 @@ class TracePlotter(PlotMaker):
 if __name__=="__main__":
 
     form = cgi.FieldStorage()
-    rid = form.getvalue("rid", None)
     try:
         dt = abs(float(form.getvalue("dt","12")))
         if not dt < 31*24: dt = 31*24
@@ -109,9 +108,7 @@ if __name__=="__main__":
     except: pass
     try: tp.ymax = float(form.getvalue("max",None))
     except: pass
-    if type(rid) == type([]):
-        for r in rid: tp.get_readings(r)
-    else: tp.get_readings(rid)
-    if "nokey" in form: tp.keypos = None
+    for r in form.getlist("rid"): tp.get_readings(r)
+    if "nokey" in form or "xtime" in form: tp.keypos = None
 
     tp.makePage(img = "img" in form)

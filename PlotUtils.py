@@ -39,7 +39,7 @@ class PlotMaker:
         pwrite(gpt,"plot")
         pstr = ', '.join(['"-" using 1:2 title "" %s'%self.plotsty.get(p,'') for p in k])
         if self.keypos:
-            pstr = ', '.join(['"-" title "%s: %g" %s'%(self.renames.get(p,p), self.datasets[p][-1][1], self.plotsty.get(p,'')) for p in k])
+            pstr = ', '.join(['"-" using 1:2 title "%s: %g" %s'%(self.renames.get(p,p), self.datasets[p][-1][1], self.plotsty.get(p,'')) for p in k])
         pwrite(gpt,pstr+'\n')
         time.sleep(0.01)
 
