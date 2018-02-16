@@ -39,9 +39,7 @@ def makegallery(basedir, css=None, logo=None):
             linklist.append(li)
 
         fs.sort()
-        skipme = []
         for f in fs:
-            if f in skipme: continue
             sfx = f.split(".")[-1]
             pfx = f[:-len(sfx)-1]
             if pfx == "logo": continue
@@ -51,11 +49,11 @@ def makegallery(basedir, css=None, logo=None):
                 cc = []
                 if os.path.exists(path+"/"+pfx+".pdf"):
                     cc.append(makeLink(pfx+".pdf", pfx+".pdf"))
-                    skipme.append(pfx+".pdf")
                 else: cc.append(f+" ")
                 cc.append("generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
                 addTag(fg,"figcaption",{},cc)
             if sfx in ["pdf", "txt", "tsv"]:
+                if sfx == "pdf" and os.path.exists(path+"/"+pfx+".svgz"): continue
                 li = ET.Element("li")
                 addTag(li,"a", {"href":f}, f+", generated "+datetime.datetime.fromtimestamp(os.stat(path+"/"+f).st_mtime).strftime('%a, %b %-d %-H:%M:%S'))
                 linklist.append(li)
