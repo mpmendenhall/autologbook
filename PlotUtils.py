@@ -28,6 +28,7 @@ class PlotMaker:
         self.ymin = None        # y axis minimum; None to autoscale
         self.ymax = None        # y axis maximum; None to autoscale
         self.keypos = None      # whether to generate graph key, and where e.g. "left top"
+        self.xtime = None       # format x axis as time
 
     def pass_gnuplot_data(self,k,gpt):
         """Pass data to gnuplot for keys in k"""
@@ -36,7 +37,7 @@ class PlotMaker:
             print("No data to plot!")
             return False
         pwrite(gpt,"plot")
-        pstr = ', '.join(['"-" title "" %s'%self.plotsty.get(p,'') for p in k])
+        pstr = ', '.join(['"-" using 1:2 title "" %s'%self.plotsty.get(p,'') for p in k])
         if self.keypos:
             pstr = ', '.join(['"-" title "%s: %g" %s'%(self.renames.get(p,p), self.datasets[p][-1][1], self.plotsty.get(p,'')) for p in k])
         pwrite(gpt,pstr+'\n')
@@ -67,6 +68,9 @@ class PlotMaker:
         if self.title: pwrite(gpt,'set title "%s"\n'%self.title)
         pwrite(gpt,'set xlabel "%s"\n'%(self.xlabel if self.xlabel else ''))
         pwrite(gpt,'set ylabel "%s"\n'%(self.ylabel if self.ylabel else ''))
+        if self.xtime:
+            pwrite(gpt,'set timefmt "%s"\n')
+            pwrite(gpt,'set format x "%s"\n'%self.xtime)
         if self.keypos: pwrite(gpt,"set key on %s\n"%self.keypos)
 
     def make_svg(self,ds=None,xcmds=""):

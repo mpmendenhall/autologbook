@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# stateless plot of one reading recent history
 
 from WebpageUtils import *
 from DAQ_Network_Config import *
@@ -10,21 +9,27 @@ import zlib
 import cgi
 import time
 import os
+from datetime import datetime
 
 class TracePlotter(PlotMaker):
-    def __init__(self, dt = 12):
+    def __init__(self, dt = 12, dt0 = 0, xt = False):
         PlotMaker.__init__(self)
-        self.t0 = time.time()
+        self.dt0 = dt0*3600
+        self.t0 = time.time() - dt0*3600
         self.tm = self.t0 - dt*3600
         self.ids = []
         self.readings = {}
         self.channels = {}
         self.keypos = "top left"
         self.tscale = 3600.
-        self.xlabel = 'time from present [hours]'
+        if xt:
+             self.xtime = "%H:%M"
+             self.xlabel = 'time'
+        else: self.xlabel = 'time from present [hours]'
         if dt > 48:
             self.tscale = 24*3600.
-            self.xlabel = 'time from present [days]'
+            if xt: self.xtime = "%d %I%p"
+            else: self.xlabel = 'time from present [days]'
 
     def get_readings(self, rid):
         try: rid = int(rid)
@@ -72,8 +77,9 @@ class TracePlotter(PlotMaker):
         self.renames = dict([(c,self.channels[c]["name"].replace("_"," ")) for c in self.channels])
         for r in self.readings:
             self.plotsty[r] = "with linespoints pt 7 ps 0.4"
-            self.x_txs[r] = (lambda x, t0=self.t0: (x-t0)/self.tscale)
-        pstr = self.make_svg(self.ids)
+            if not self.xtime: self.x_txs[r] = (lambda x, t0=self.t0+self.dt0: (x-t0)/self.tscale)
+            else: self.x_txs[r] = (lambda x, dx=(datetime.now()-datetime.utcnow()).total_seconds(): x+dx)
+        pstr = self.make_svg(self.ids, "set xtics rotate\n" if self.xtime else "")
 
         if img:
             print('Content-Type: image/svg+xml\n')
@@ -93,11 +99,12 @@ if __name__=="__main__":
     form = cgi.FieldStorage()
     rid = form.getvalue("rid", None)
     try:
-        dt = float(form.getvalue("dt","12"))
-        if not dt > 0: dt = 1
+        dt = abs(float(form.getvalue("dt","12")))
         if not dt < 31*24: dt = 31*24
     except: dt = 12
-    tp = TracePlotter(dt)
+    try: dt0 = abs(float(form.getvalue("t0","0")))
+    except: dt0 = 0
+    tp = TracePlotter(dt, dt0, "xtime" in form)
     try: tp.ymin = float(form.getvalue("min",None))
     except: pass
     try: tp.ymax = float(form.getvalue("max",None))
