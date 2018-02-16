@@ -3,6 +3,7 @@
 from WebpageUtils import *
 import cgi
 from DAQ_Network_Config import *
+from PlotUtils import *
 import xmlrpc.client
 
 if __name__=="__main__":
@@ -18,7 +19,9 @@ if __name__=="__main__":
         try: urlargs.append(a+"=%g"%float(form.getvalue(a)))
         except: pass
     if "xtime" in form: urlargs.append("xtime=y")
-    if "nokey" in form: urlargs.append("nokey=y")
+    if "key" in form:
+        if form.getvalue("key") in keypos_opts: urlargs.append("key="+form.getvalue("key"))
+        else: urlargs.append("key=None")
     urlargs = "&".join(urlargs)
 
     P,b = makePageStructure("DAQ Plot Builder")
@@ -26,7 +29,7 @@ if __name__=="__main__":
     g = addTag(b, 'figure', {"style":"display:inline-block"})
     addTag(g, "img", {"class":"lightbg", "width":"600", "height":"480", "src":"/cgi-bin/plottrace.py?img=y&"+urlargs, "alt":"PROSPECT data plot"})
     addTag(g, "figcaption", {}, makeLink("/cgi-bin/plottrace.py?"+urlargs, "customized plot link"))
-    F = addTag(b, 'form', {"action":"/cgi-bin/plotbuilder.py", "method":"POST"})
+    F = addTag(b, 'form', {"action":"/cgi-bin/plotbuilder.py", "method":"POST", "style":"display:inline-block;vertical-align:top"})
 
     sp = addTag(F, 'select', {"name":"rid", "size":"20", "multiple":''})
     try:
@@ -57,10 +60,12 @@ if __name__=="__main__":
     addTag(FS1,"input",{"name":"max", "size":"5", "id":"max", "value":form.getvalue("max","")})
     addTag(FS1,"br")
 
-    attrs = {"type":"checkbox", "name":"nokey", "id":"nokey", "value":"nokey"}
-    if "nokey" in form: attrs["checked"]=""
-    addTag(FS1,"label",{"for":"nokey"}, "suppress legend")
-    addTag(FS1,"input",attrs)
+    addTag(FS1,"label",{"for":"key"}, "legend:")
+    sk = addTag(FS1, 'select', {"name":"key"})
+    for kp in keypos_opts + ["None",]:
+        attrs = {"value":kp}
+        if kp == form.getvalue("key",None): attrs["selected"]=""
+        addTag(sk, 'option', attrs, kp)
     addTag(FS1,"br")
 
     attrs = {"type":"checkbox", "name":"xtime", "id":"xtime", "value":"xtime"}

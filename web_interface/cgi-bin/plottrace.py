@@ -86,7 +86,7 @@ class TracePlotter(PlotMaker):
             print(pstr)
         else:
             P,b = makePageStructure(ptitle, refresh=300)
-            addTag(b,"h1",contents=subtitle)
+            addTag(b,"h1",contents=[subtitle, makeLink("/index.html","[Home]")])
             g = ET.Element('figure', {"style":"display:inline-block"})
             if chn: addTag(g,"figcaption",contents=chn["descrip"])
             if pstr: addTag(g, "div", {"class":"lightbg"}, contents=ET.fromstring(pstr))
@@ -109,6 +109,6 @@ if __name__=="__main__":
     try: tp.ymax = float(form.getvalue("max",None))
     except: pass
     for r in form.getlist("rid"): tp.get_readings(r)
-    if "nokey" in form or "xtime" in form: tp.keypos = None
+    tp.keypos = form.getvalue("key","top left")
 
     tp.makePage(img = "img" in form)

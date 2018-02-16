@@ -10,6 +10,8 @@ def pwrite(p,s):
     """encode string as bytes for write to pipe"""
     p.stdin.write(bytes(s, 'UTF-8'))
 
+keypos_opts = ["top left", "top right", "bottom left", "bottom right"]
+
 class PlotMaker:
     """Wrapper for gnuplot control"""
 
@@ -38,7 +40,7 @@ class PlotMaker:
             return False
         pwrite(gpt,"plot")
         pstr = ', '.join(['"-" using 1:2 title "" %s'%self.plotsty.get(p,'') for p in k])
-        if self.keypos:
+        if self.keypos in keypos_opts:
             pstr = ', '.join(['"-" using 1:2 title "%s: %g" %s'%(self.renames.get(p,p), self.datasets[p][-1][1], self.plotsty.get(p,'')) for p in k])
         pwrite(gpt,pstr+'\n')
         time.sleep(0.01)
@@ -69,9 +71,10 @@ class PlotMaker:
         pwrite(gpt,'set xlabel "%s"\n'%(self.xlabel if self.xlabel else ''))
         pwrite(gpt,'set ylabel "%s"\n'%(self.ylabel if self.ylabel else ''))
         if self.xtime:
+            pwrite(gpt,'set xdata time\n')
             pwrite(gpt,'set timefmt "%s"\n')
             pwrite(gpt,'set format x "%s"\n'%self.xtime)
-        if self.keypos: pwrite(gpt,"set key on %s\n"%self.keypos)
+        if self.keypos in keypos_opts: pwrite(gpt,"set key on %s\n"%self.keypos)
 
     def make_svg(self,ds=None,xcmds=""):
         """Generate and return SVG plot"""
