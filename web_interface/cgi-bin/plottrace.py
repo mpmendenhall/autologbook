@@ -28,7 +28,7 @@ class TracePlotter(PlotMaker):
         else: self.xlabel = 'time from present [hours]'
         if dt > 48:
             self.tscale = 24*3600.
-            if xt: self.xtime = "%d %I%p"
+            if xt: self.xtime = "%d) %I%p"
             else: self.xlabel = 'time from present [days]'
 
     def get_readings(self, rid):
@@ -79,7 +79,7 @@ class TracePlotter(PlotMaker):
             self.plotsty[r] = "with linespoints pt 7 ps 0.4"
             if not self.xtime: self.x_txs[r] = (lambda x, t0=self.t0+self.dt0: (x-t0)/self.tscale)
             else: self.x_txs[r] = (lambda x, dx=(datetime.now()-datetime.utcnow()).total_seconds(): x+dx)
-        pstr = self.make_svg(self.ids, "set xtics rotate\n" if self.xtime else "")
+        pstr = self.make_svg(self.ids, "set xtics rotate by 35 right offset 0,-0.2\n" if self.xtime else "")
 
         if img:
             print('Content-Type: image/svg+xml\n')

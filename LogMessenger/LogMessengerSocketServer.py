@@ -140,20 +140,50 @@ def DB_stuffer_process():
 
 class LogServerConnection:
     """Connection to logging server"""
+
     def __init__(self, host, port):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
+
     def clear_all(self):
         self.send(8,"i")
+
     def clear_status(self,status):
         self.send(6,"i")
         self.send(status,"q")
+
     def count_status(self, status):
         self.send(7,"i")
         self.send(status,"q")
         return self.recv_i64()
+
+    def create_readgroup(self, name, descrip):
+        """Get/create readings group"""
+        self.send(1,"i")
+        self.send(name,"N")
+        self.send(descrip,"N")
+        return self.recv_i64()
+
+    def create_readout(self, gid, name, descrip, units):
+        """Get/create readout"""
+        self.send(2,"i")
+        self.send(gid,"q")
+        self.send(name,"N")
+        self.send(descrip,"N")
+        self.send(units,"N")
+        return self.recv_i64()
+
+    def add_reading(self, rid, value, t = None):
+        """Add readout value"""
+        t = time.time() if t is None else t
+        self.send(3,"i")
+        self.send(rid,"q")
+        self.send(value,"d")
+        self.send(t,"d")
+
     def send(self,i,tp):
         self.sock.send(struct.pack(tp,i))
+
     def recv_i64(self):
         return struct.unpack("q", self.sock.recv(8))[0]
 
