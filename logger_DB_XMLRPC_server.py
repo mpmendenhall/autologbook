@@ -85,7 +85,7 @@ class LogServer():
     def launch_dataserver(self):
         """Launch server providing database read access"""
         # server thread interface to DB
-        self.servconn = sqlite3.connect("file:%s?mode=ro"%self.dbname, uri=True)
+        self.servconn = sqlite3.connect("file:%s?mode=ro"%self.dbname, timeout=30, uri=True)
         self.curs = self.servconn.cursor()
 
         # xmlrpc web interface for data updates

@@ -9,7 +9,7 @@ warn_wall = True # whether to send "wall" messages on warning/errors
 
 def logdb_cxn(db):
     """Connection to logger DB"""
-    conn = sqlite3.connect(db)
+    conn = sqlite3.connect(db, 60)
     curs = conn.cursor()
     curs.execute("PRAGMA foreign_keys = ON")
     return conn,curs

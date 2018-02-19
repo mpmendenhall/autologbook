@@ -11,7 +11,7 @@ def asciistrip(s): return ''.join([x for x in s if ord(x) < 128] if s else s
 
 class ChatMessagesDisplay:
     def __init__(self, db):
-        self.conn = sqlite3.connect(db)
+        self.conn = sqlite3.connect(db, timeout=30)
         self.curs = self.conn.cursor()
         self.src = self.name = None
 
