@@ -160,17 +160,17 @@ class LogServerConnection:
     def create_readgroup(self, name, descrip):
         """Get/create readings group"""
         self.send(1,"i")
-        self.send(name,"N")
-        self.send(descrip,"N")
+        self.send_string(name)
+        self.send_string(descrip)
         return self.recv_i64()
 
     def create_readout(self, gid, name, descrip, units):
         """Get/create readout"""
         self.send(2,"i")
         self.send(gid,"q")
-        self.send(name,"N")
-        self.send(descrip,"N")
-        self.send(units,"N")
+        self.send_string(name)
+        self.send_string(descrip)
+        self.send_string(units)
         return self.recv_i64()
 
     def add_reading(self, rid, value, t = None):
@@ -183,6 +183,10 @@ class LogServerConnection:
 
     def send(self,i,tp):
         self.sock.send(struct.pack(tp,i))
+
+    def send_string(self, s):
+        self.send(len(s),"N")
+        self.sock.send(s,'ascii')
 
     def recv_i64(self):
         return struct.unpack("q", self.sock.recv(8))[0]
