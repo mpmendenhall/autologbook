@@ -130,13 +130,10 @@ def DB_stuffer_process():
                 item[2].put(item[0](*item[1]))
                 callq.task_done()
                 nwait = 0
-            except queue.Empty:
+            except:
                 nwait += 1
-                time.sleep(0.001)
-                if nwait > 100: break
-            finally:
-                time.sleep(0.1)
-                break
+                time.sleep(0.01)
+                if nwait > 10: break
 
         conn.commit()
         time.sleep(0.1)
