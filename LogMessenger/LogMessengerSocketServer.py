@@ -186,7 +186,7 @@ class LogServerConnection:
 
     def send_string(self, s):
         self.send(len(s),"N")
-        self.sock.send(s,'ascii')
+        self.sock.send(bytes(s,"UTF-8"))
 
     def recv_i64(self):
         return struct.unpack("q", self.sock.recv(8))[0]
