@@ -134,6 +134,9 @@ def DB_stuffer_process():
                 nwait += 1
                 time.sleep(0.001)
                 if nwait > 100: break
+            finally:
+                time.sleep(0.1)
+                break
 
         conn.commit()
         time.sleep(0.1)
