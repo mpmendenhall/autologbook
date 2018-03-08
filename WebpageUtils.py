@@ -76,9 +76,11 @@ def makeTable(rows, xargs={}, T = None):
 
 def prettystring(elem, oneline = False):
     """ElementTree element to indented string"""
-    if oneline: return ET.tostring(elem).decode('utf-8')
-    reparsed = minidom.parseString(ET.tostring(elem).decode('utf-8'))
-    return reparsed.toprettyxml().split('<?xml version="1.0" ?>\n')[-1]
+    if oneline: s = ET.tostring(elem).decode('utf-8')
+    else:
+        reparsed = minidom.parseString(ET.tostring(elem).decode('utf-8'))
+        s = reparsed.toprettyxml().split('<?xml version="1.0" ?>\n')[-1]
+    return s.replace('Ω',"&#937;").replace('μ',"&#956;")
 
 
 def fillColumns(itms, cols):
