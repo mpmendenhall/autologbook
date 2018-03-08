@@ -36,7 +36,8 @@ class PlotMaker:
         """Pass data to gnuplot for keys in k"""
         k = [p for p in k if self.datasets.get(p,None)]
         if not len(k):
-            print("No data to plot!")
+            pwrite(gpt,'plot 0 title "no data"\n')
+            time.sleep(0.01)
             return False
         pwrite(gpt,"plot")
         pstr = ', '.join(['"-" using 1:2 title "" %s'%self.plotsty.get(p,'') for p in k])
