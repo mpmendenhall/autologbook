@@ -5,6 +5,7 @@
 
 import time
 from subprocess import *
+import sys
 
 def pwrite(p,s):
     """encode string as bytes for write to pipe"""
@@ -103,6 +104,18 @@ class PlotMaker:
 
             self.pass_gnuplot_data(ds, gpt)
             return gpt.communicate()[0]
+
+    def make_dump(self, fmt="svg", ds=None, xcmds=""):
+        """Dump with headers to stdout for HTTP requests"""
+        if fmt == "pdf":
+            sys.stdout.buffer.write(b"Content-Type: application/pdf\n\n")
+            sys.stdout.buffer.write(self.make_pdf(ds, xcmds))
+        elif fmt == "svg":
+            print('Content-Type: image/svg+xml\n')
+            print(self.make_svg(ds, xcmds))
+        else:
+            print('Content-Type: text/plain\n\nUnsupported output format!')
+
 
 def mangle_xlink_namespace(s):
     """Necessary at one point... maybe not now"""
