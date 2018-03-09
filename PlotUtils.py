@@ -77,7 +77,7 @@ class PlotMaker:
             pwrite(gpt,'set format x "%s"\n'%self.xtime)
         if self.keypos in keypos_opts: pwrite(gpt,"set key on %s\n"%self.keypos)
 
-    def make_svg(self,ds=None,xcmds=""):
+    def make_svg(self, ds=None, xcmds=""):
         """Generate and return SVG plot"""
         if not ds: ds = self.datasets.keys()
 
@@ -91,6 +91,18 @@ class PlotMaker:
             pstr = gpt.communicate()[0].decode("utf-8").replace("\n",'').replace('\t','') # strip internal whitespace
             pstr = pstr[pstr.find("<"):] # skip to start of XML, in case of junk warnings
             return mangle_xlink_namespace(pstr)
+
+    def make_pdf(self, ds=None, xcmds=""):
+        """Generate and return PDF binary data"""
+        if not ds: ds = self.datasets.keys()
+
+        with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as gpt:
+            pwrite(gpt,"set terminal pdf enhanced size 5in,4in\n")
+            self.setup_axes(gpt)
+            pwrite(gpt,xcmds)
+
+            self.pass_gnuplot_data(ds, gpt)
+            return gpt.communicate()[0]
 
 def mangle_xlink_namespace(s):
     """Necessary at one point... maybe not now"""
