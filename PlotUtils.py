@@ -78,6 +78,22 @@ class PlotMaker:
             pwrite(gpt,'set format x "%s"\n'%self.xtime)
         if self.keypos in keypos_opts: pwrite(gpt,"set key on %s\n"%self.keypos)
 
+    def make_txt(self, ds=None):
+        """Text table dump"""
+        if not ds: ds = self.datasets.keys()
+        k = [p for p in ds if self.datasets.get(p,None)]
+
+        s = ""
+        for p in k:
+            s += "# '%s'\t'%s'\n"%(self.xlabel if self.xlabel else 'x', self.renames.get(p,p))
+            xtx = self.x_txs.get(p,(lambda x: x))
+            ytx = self.y_txs.get(p,(lambda y: y))
+            for d in self.datasets[p]:
+                x,y = xtx(d[0]), ytx(d[1])
+                if x is not None and y is not None: s += "%f\t%f\n"%(xtx(d[0]), ytx(d[1]))
+            s += "\n"
+        return s
+
     def make_svg(self, ds=None, xcmds=""):
         """Generate and return SVG plot"""
         if not ds: ds = self.datasets.keys()
@@ -107,7 +123,10 @@ class PlotMaker:
 
     def make_dump(self, fmt="svg", ds=None, xcmds=""):
         """Dump with headers to stdout for HTTP requests"""
-        if fmt == "pdf":
+        if fmt == "txt":
+            print('Content-Type: text/plain\n')
+            print(self.make_txt(ds))
+        elif fmt == "pdf":
             sys.stdout.buffer.write(b"Content-Type: application/pdf\n\n")
             sys.stdout.buffer.write(self.make_pdf(ds, xcmds))
         elif fmt == "svg":
