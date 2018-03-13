@@ -121,19 +121,17 @@ class PlotMaker:
             self.pass_gnuplot_data(ds, gpt)
             return gpt.communicate()[0]
 
-    def make_dump(self, fmt="svg", ds=None, xcmds=""):
+    def make_dump(self, fmt="svg", ds=None, xcmds="", headers=True):
         """Dump with headers to stdout for HTTP requests"""
         if fmt == "txt":
-            print('Content-Type: text/plain\n')
+            if headers: print('Content-Type: text/plain\n')
             print(self.make_txt(ds))
         elif fmt == "pdf":
-            sys.stdout.buffer.write(b"Content-Type: application/pdf\n\n")
+            if headers: sys.stdout.buffer.write(b"Content-Type: application/pdf\n\n")
             sys.stdout.buffer.write(self.make_pdf(ds, xcmds))
-        elif fmt == "svg":
-            print('Content-Type: image/svg+xml\n')
-            print(self.make_svg(ds, xcmds))
         else:
-            print('Content-Type: text/plain\n\nUnsupported output format!')
+            if headers: print('Content-Type: image/svg+xml\n')
+            print(self.make_svg(ds, xcmds))
 
 
 def mangle_xlink_namespace(s):
