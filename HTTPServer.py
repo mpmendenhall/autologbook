@@ -35,7 +35,7 @@ class PWAuthHandler(http.server.CGIHTTPRequestHandler):
 parser = OptionParser()
 parser.add_option("--port", type="int", default = 8005, help="server port")
 parser.add_option("--host", default="localhost", help="server host")
-parser.add_option("--mode", default="logger", help="server mode: logger or config")
+parser.add_option("--mode", help="server mode: 'cgi' to enable cgi-bin/")
 parser.add_option("--db",   help="path to database")
 parser.add_option("--dir",  help="base directory for served content")
 parser.add_option("--pwd",  help="user:password HTTP Basic Authentication")
@@ -44,7 +44,6 @@ parser.add_option("--key",  help="https certifical key file")
 options, args = parser.parse_args()
 
 if options.dir: os.chdir(options.dir)
-
 if options.db: os.environ["CONFIGWEBMANAGER_DB"] = options.db
 
 if options.pwd: handler = PWAuthHandler
@@ -53,12 +52,9 @@ handler.reset_dir = options.dir
 # hack to include proper Content-encoding header for .svgz files
 handler.extensions_map['.svgz'] = "image/svg+xml\r\nContent-encoding: gzip"
 
-if  options.mode == "config":
-    print("Webserver for autologbook Configuration DB")
+if  options.mode == "cgi":
+    print("enabling cgi mode")
     handler.cgi_directories = ['/cgi-bin']
-else:
-    print("Webserver for autologbook Logger DB")
-    handler.cgi_directories = ['/cgi-bin', '/cgi-bin']
 
 httpd = http.server.HTTPServer((options.host, options.port), handler)
 if options.pwd: httpd.auth = base64.b64encode(options.pwd.encode()).decode()
