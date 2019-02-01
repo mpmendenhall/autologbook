@@ -82,7 +82,7 @@ class Webdog(Barker):
             req = urllib.request.Request(self.url, None, headers)
             with urllib.request.urlopen(req) as response:
                 page = response.read()
-                self._check(page)
+                self._check(page.decode("utf-8"))
         except urllib.error.URLError as e:
             if e.reason == 'Not Modified':
                 self.bark('Watchdog is asleep!', "Watchdog webpage '%s' has not been modified within last %g seconds."%(self.url,self.lastup))
@@ -91,10 +91,12 @@ class Webdog(Barker):
             else: print("Web Watchdog has no network connection.")
 
     def _check(self, p):
+        print("\n---- Watchdog report ----")
         print(p)
+
         es = []
-        for l in p.decode("utf-8").split('\n'):
-            if "ERROR" in l: es.append(l)
+        for l in p.split('\n'):
+            if "ERROR" in l.upper(): es.append(l)
 
         if es: self.bark('Watchdog alert!', '\n'.join(es[:10]))
 
