@@ -25,7 +25,7 @@ class Barker:
     def __init__(self):
         self.mailto = None
         self.mailfrom = None
-        self.popup = True
+        self.popup = True       # True to always pop; False to pop if email fails; None to never pop
         self.smtp = None
         self.smtpu = None
         self.smpt_passwd = None
@@ -35,8 +35,10 @@ class Barker:
         print("###",title,"###\n")
         print(text)
 
+        mailgood = True
         if self.smtp and self.mailto:
-            if not self.mailfrom: self.mailfrom = self.mailto
+            if not self.mailfrom:
+                self.mailfrom = self.mailto.split(',')[0].strip()
 
             M = EmailMessage()
             M.set_content(text)
@@ -51,12 +53,12 @@ class Barker:
                 s.send_message(M)
                 s.quit()
                 print("Email alert sent!")
-                return
             except:
+                mailgood = False
                 print("Failed to send email alert.")
-                self.popup = True
+                if self.popup is not None: self.popup = True
 
-        if self.popup:
+        if self.popup or (self.popup is not None and not mailgood):
             try: # Linux via zenity
                     res = subprocess.Popen(['zenity','--warning','--text', text, '--title', title, '--width=800'], stdout=subprocess.PIPE)
                     res.communicate()
@@ -75,6 +77,7 @@ class Webdog(Barker):
         self.url = url
         self.lastup = None
         self.B = Barker()
+        self.checkin = False
 
     def config(self, opts):
         """Configure from OptParse options"""
@@ -85,6 +88,8 @@ class Webdog(Barker):
         self.smtp = opts.smtp
         self.smtpu = opts.smtpu
         self.smpt_passwd = opts.smtp_pwd
+        self.checkin = opts.checkin
+        if options.nopop: self.popup = None
 
     def check(self):
         """Load and check watchdog page"""
@@ -94,8 +99,9 @@ class Webdog(Barker):
                 headers['If-Modified-Since'] = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()-self.lastup))
             req = urllib.request.Request(self.url, None, headers)
             with urllib.request.urlopen(req) as response:
-                page = response.read()
-                self._check(page.decode("utf-8"))
+                page = response.read().decode("utf-8")
+                if not self._check(page): return
+                if self.checkin: self.bark("Watchdog check-in OK", page)
         except urllib.error.URLError as e:
             if e.reason == 'Not Modified':
                 self.bark('Watchdog is asleep!', "Watchdog webpage '%s' has not been modified within the last %g minutes."%(self.url,self.lastup/60.))
@@ -111,19 +117,24 @@ class Webdog(Barker):
         for l in p.split('\n'):
             if "ERROR" in l.upper(): es.append(l)
 
-        if es: self.bark('Watchdog alert!', '\n'.join(es[:10]))
+        if es:
+            self.bark('Watchdog alert!', "Watchdog errors from '%s':\n\n"%self.url + '\n'.join(es[:10]))
+            return False
+        return True
 
 # ./Watchdog.py --url http://www.example.com/ --lastup 600 --mailto "foo@example.com" --smtp "smtp.example.com:587"
 
 def wdParser():
     parser = OptionParser()
     parser.add_option("--url",      help="page url")
+    parser.add_option("--checkin",  action="store_true", help="send report whether or not there are errors")
     parser.add_option("--lastup",   type=float, help="check time since last page updage [seconds]")
     parser.add_option("--mailto",   help="email notifications to this address")
     parser.add_option("--mailfrom", help="email notifications from this address")
     parser.add_option("--loop",     type=float, help="repeat checks every [n] minutes")
     parser.add_option("--smtp",     help="email smtp server address")
     parser.add_option("--smtpu",    help="smtp server username")
+    parser.add_option("--nopop",    action="store_true", help="never use pop-up dialog (headless emailer)")
     return parser
 
 if __name__=="__main__":
