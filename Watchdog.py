@@ -10,6 +10,7 @@ import socket
 import time
 from email.message import EmailMessage
 import smtplib
+import getpass
 
 def is_web_connected(server="www.example.com"):
     """Check if web connection is up to 'reliable' server"""
@@ -25,23 +26,31 @@ class Barker:
         self.mailto = None
         self.mailfrom = None
         self.popup = True
+        self.smtp = None
+        self.smtpu = None
+        self.smpt_passwd = None
 
     def bark(self, title, text):
         """Alert to message"""
         print("###",title,"###\n")
         print(text)
 
-        if self.mailto:
+        if self.smtp and self.mailto:
+            if not self.mailfrom: self.mailfrom = self.mailto
+
             M = EmailMessage()
             M.set_content(text)
             M['Subject'] = title
             M['To'] = self.mailto
-            M['From'] = self.mailfrom if self.mailfrom else self.mailto
-            print(M)
+            M['From'] = self.mailfrom
+
             try:
-                s = smtplib.SMTP('localhost')
-                s.send_message(msg)
+                s = smtplib.SMTP(self.smtp)
+                s.starttls()
+                s.login(self.smtpu if self.smtpu else self.mailfrom, self.smpt_passwd)
+                s.send_message(M)
                 s.quit()
+                print("Email alert sent!")
                 return
             except:
                 print("Failed to send email alert.")
@@ -72,6 +81,10 @@ class Webdog(Barker):
         self.url = opts.url
         self.lastup = opts.lastup
         self.mailto = opts.mailto
+        self.mailfrom = opts.mailfrom
+        self.smtp = opts.smtp
+        self.smtpu = opts.smtpu
+        self.smpt_passwd = opts.smtp_pwd
 
     def check(self):
         """Load and check watchdog page"""
@@ -85,7 +98,7 @@ class Webdog(Barker):
                 self._check(page.decode("utf-8"))
         except urllib.error.URLError as e:
             if e.reason == 'Not Modified':
-                self.bark('Watchdog is asleep!', "Watchdog webpage '%s' has not been modified within last %g seconds."%(self.url,self.lastup))
+                self.bark('Watchdog is asleep!', "Watchdog webpage '%s' has not been modified within the last %g minutes."%(self.url,self.lastup/60.))
                 return
             if is_web_connected(): self.bark('Watchdog is dead!', "Unable to connect to watchdog webpage '%s': %s"%(self.url, str(e.reason)))
             else: print("Web Watchdog has no network connection.")
@@ -100,19 +113,24 @@ class Webdog(Barker):
 
         if es: self.bark('Watchdog alert!', '\n'.join(es[:10]))
 
-# ./Watchdog.py --url http://www.example.com/ --lastup 3600 --mailto "mpmendenhall@llnl.gov"
+# ./Watchdog.py --url http://www.example.com/ --lastup 600 --mailto "foo@example.com" --smtp "smtp.example.com:587"
 
 def wdParser():
     parser = OptionParser()
     parser.add_option("--url",      help="page url")
     parser.add_option("--lastup",   type=float, help="check time since last page updage [seconds]")
     parser.add_option("--mailto",   help="email notifications to this address")
+    parser.add_option("--mailfrom", help="email notifications from this address")
     parser.add_option("--loop",     type=float, help="repeat checks every [n] minutes")
+    parser.add_option("--smtp",     help="email smtp server address")
+    parser.add_option("--smtpu",    help="smtp server username")
     return parser
 
 if __name__=="__main__":
     parser = wdParser()
     options, args = parser.parse_args()
+    options.smtp_pwd = None
+    if options.smtp: options.smtp_pwd = getpass.getpass("Password for '%s': "%options.smtp)
 
     if options.url:
         wd = Webdog()
