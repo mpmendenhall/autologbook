@@ -30,6 +30,15 @@ class Barker:
         self.smtpu = None
         self.smpt_passwd = None
 
+    def config(self, opts):
+        """Configure from OptParse options"""
+        self.mailto = opts.mailto
+        self.mailfrom = opts.mailfrom
+        self.smtp = opts.smtp
+        self.smtpu = opts.smtpu
+        self.smpt_passwd = opts.smtp_pwd
+        if options.nopop: self.popup = None
+
     def bark(self, title, text):
         """Alert to message"""
         print("###",title,"###\n")
@@ -59,40 +68,63 @@ class Barker:
                 if self.popup is not None: self.popup = True
 
         if self.popup or (self.popup is not None and not mailgood):
+            text = text[:1000]
+
             try: # Linux via zenity
-                    res = subprocess.Popen(['zenity','--warning','--text', text, '--title', title, '--width=800'], stdout=subprocess.PIPE)
+                    res = subprocess.Popen(['zenity','--warning','--no-markup','--text', text, '--title', title, '--width=800'], stdout=subprocess.PIPE)
                     res.communicate()
             except:
-                try: # MacOS vi AppleScript
+                try: # MacOS via AppleScript
                     mtxt = lambda x: '"'+x.replace("\\",'\\\\').replace('"','\\"')+'"'
                     s = 'display dialog %s with title %s buttons {"fooey"} default button 1'%(mtxt(text), mtxt(title))
                     res = subprocess.Popen(['osascript','-e', s], stdout=subprocess.PIPE)
                     res.communicate()
-                except: # Windows
+                except: # Windows via why why why?
                     MessageBox = ctypes.windll.user32.MessageBoxW
                     MessageBox(None, text, title, 0)
 
 
-class Webdog(Barker):
-    """Watchdog retrieving webpage"""
-    def __init__(self, url=None):
+class Watchdog(Barker):
+    """Watchdog base class"""
+
+    def __init__(self):
         super().__init__()
-        self.url = url
         self.lastup = None
-        self.B = Barker()
         self.checkin = False
 
     def config(self, opts):
         """Configure from OptParse options"""
+        super().config(opts)
+        self.checkin = opts.checkin
+
+    def _check(self, p):
+        """Parse watchdog file and report errors"""
+        print("\n---- Watchdog report ----")
+        print(p)
+
+        es = []
+        for l in p.split('\n'):
+            if "ERROR" in l.upper(): es.append(l)
+
+        if es:
+            self.bark('Watchdog alert!', "Watchdog errors from '%s':\n\n"%self.url + '\n'.join(es[:10]))
+            return False
+
+        if self.checkin: self.bark("Watchdog check-in OK", p)
+        return True
+
+class Webdog(Watchdog):
+    """Watchdog retrieving webpage"""
+
+    def __init__(self, url=None):
+        super().__init__()
+        self.url = url
+
+    def config(self, opts):
+        """Configure from OptParse options"""
+        super().config(opts)
         self.url = opts.url
         self.lastup = opts.lastup
-        self.mailto = opts.mailto
-        self.mailfrom = opts.mailfrom
-        self.smtp = opts.smtp
-        self.smtpu = opts.smtpu
-        self.smpt_passwd = opts.smtp_pwd
-        self.checkin = opts.checkin
-        if options.nopop: self.popup = None
 
     def check(self):
         """Load and check watchdog page"""
@@ -104,26 +136,18 @@ class Webdog(Barker):
             with urllib.request.urlopen(req) as response:
                 page = response.read().decode("utf-8")
                 if not self._check(page): return
-                if self.checkin: self.bark("Watchdog check-in OK", page)
+
         except urllib.error.URLError as e:
-            if e.reason == 'Not Modified':
+
+            if e.reason == 'Not Modified': # HTTP 304 response
                 self.bark('Watchdog is asleep!', "Watchdog webpage '%s' has not been modified within the last %g minutes."%(self.url,self.lastup/60.))
                 return
+
             if is_web_connected(): self.bark('Watchdog is dead!', "Unable to connect to watchdog webpage '%s': %s"%(self.url, str(e.reason)))
-            else: print("Web Watchdog has no network connection.")
-
-    def _check(self, p):
-        print("\n---- Watchdog report ----")
-        print(p)
-
-        es = []
-        for l in p.split('\n'):
-            if "ERROR" in l.upper(): es.append(l)
-
-        if es:
-            self.bark('Watchdog alert!', "Watchdog errors from '%s':\n\n"%self.url + '\n'.join(es[:10]))
-            return False
-        return True
+            else:
+                msg = "Web Watchdog has no network connection."
+                if self.checkin: self.bark("Webdog check-in FAIL!", msg)
+                else: print(msg)
 
 # ./Watchdog.py --url http://www.example.com/ --lastup 600 --mailto "foo@example.com" --smtp "smtp.example.com:587"
 
