@@ -99,8 +99,8 @@ class Watchdog(Barker):
 
     def __init__(self):
         super().__init__()
-        self.lastup = None
         self.checkin = False
+
 
     def config(self, opts):
         """Configure from OptParse options"""
@@ -130,13 +130,13 @@ class Webdog(Watchdog):
     def __init__(self, url=None):
         super().__init__()
         self.url = url
+        self.lastup = 600
 
     def config(self, opts):
         """Configure from OptParse options"""
         super().config(opts)
         self.url = opts.url
         if opts.lastup is not None: self.lastup = opts.lastup
-        else: self.lastup = 600
 
     def check(self):
         """Load and check watchdog page"""
