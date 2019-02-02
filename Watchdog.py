@@ -30,7 +30,7 @@ class Barker:
         self.smtpu = None
         self.smpt_passwd = None
         self.memory = ".lastbark"   # name of file recording most recent bark emitted
-        self.tsupress = 3600        # suppress repeated warnings for this interval
+        self.tquiet = 3600          # suppress repeated warnings for this interval
 
     def config(self, opts):
         """Configure from OptParse options"""
@@ -39,7 +39,7 @@ class Barker:
         self.smtp = opts.smtp
         self.smtpu = opts.smtpu
         self.smpt_passwd = opts.smtp_pwd
-        if opts.tquiet is not None: self.tsuppress = 60*opts.tquiet
+        if opts.tquiet is not None: self.tquiet = 60*opts.tquiet
         if options.nopop: self.popup = None
 
     def bark(self, title, text):
@@ -50,7 +50,7 @@ class Barker:
         # check bark suppression file
         if os.path.exists(self.memory):
             dt = time.time() - os.stat(self.memory).st_mtime
-            if dt < self.tsuppress: return
+            if dt < self.tquiet: return
 
         open(self.memory,'w').write(title+'\n\n'+text)
 
