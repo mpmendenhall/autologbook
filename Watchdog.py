@@ -71,7 +71,7 @@ class Barker:
             text = text[:1000]
 
             try: # Linux via zenity
-                    res = subprocess.Popen(['zenity','--warning','--no-markup','--text', text, '--title', title, '--width=800'], stdout=subprocess.PIPE)
+                    res = subprocess.Popen(['zenity','--warning','--no-markup','--text', text, '--title', title, '--width=800'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                     res.communicate()
             except:
                 try: # MacOS via AppleScript
