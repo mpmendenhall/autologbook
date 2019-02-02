@@ -64,7 +64,10 @@ class Barker:
                     res.communicate()
             except:
                 try: # MacOS vi AppleScript
-                    res = subprocess.Popen(['osascript','-e', 'tell app "Finder" to display dialog "%s"'%shlex.quote(text)])
+                    mtxt = lambda x: '"'+x.replace("\\",'\\\\').replace('"','\\"')+'"'
+                    s = 'display dialog %s with title %s buttons {"fooey"} default button 1'%(mtxt(text), mtxt(title))
+                    res = subprocess.Popen(['osascript','-e', s], stdout=subprocess.PIPE)
+                    res.communicate()
                 except: # Windows
                     MessageBox = ctypes.windll.user32.MessageBoxW
                     MessageBox(None, text, title, 0)
