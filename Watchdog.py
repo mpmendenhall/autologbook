@@ -135,7 +135,8 @@ class Webdog(Watchdog):
         """Configure from OptParse options"""
         super().config(opts)
         self.url = opts.url
-        self.lastup = opts.lastup
+        if opts.lastup is not None: self.lastup = opts.lastup
+        else: self.lastup = 600
 
     def check(self):
         """Load and check watchdog page"""
@@ -159,8 +160,6 @@ class Webdog(Watchdog):
                 msg = "Web Watchdog has no network connection."
                 if self.checkin: self.bark("Webdog check-in FAIL!", msg)
                 else: print(msg)
-
-# ./Watchdog.py --url http://www.example.com/ --lastup 600 --mailto "foo@example.com" --smtp "smtp.example.com:587"
 
 def wdParser():
     parser = OptionParser()
