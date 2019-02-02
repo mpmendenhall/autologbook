@@ -29,6 +29,8 @@ class Barker:
         self.smtp = None
         self.smtpu = None
         self.smpt_passwd = None
+        self.memory = ".lastbark"   # name of file recording most recent bark emitted
+        self.tsupress = 3600        # suppress repeated warnings for this interval
 
     def config(self, opts):
         """Configure from OptParse options"""
@@ -37,12 +39,20 @@ class Barker:
         self.smtp = opts.smtp
         self.smtpu = opts.smtpu
         self.smpt_passwd = opts.smtp_pwd
+        if opts.tquiet is not None: self.tsuppress = 60*opts.tquiet
         if options.nopop: self.popup = None
 
     def bark(self, title, text):
         """Alert to message"""
         print("###",title,"###\n")
         print(text)
+
+        # check bark suppression file
+        if os.path.exists(self.memory):
+            dt = time.time() - os.stat(self.memory).st_mtime
+            if dt < self.tsuppress: return
+
+        open(self.memory,'w').write(title+'\n\n'+text)
 
         mailgood = True
         if self.smtp and self.mailto:
@@ -111,6 +121,7 @@ class Watchdog(Barker):
             return False
 
         if self.checkin: self.bark("Watchdog check-in OK", p)
+        if os.path.exists(self.memory): os.remove(self.memory)
         return True
 
 class Webdog(Watchdog):
@@ -162,6 +173,7 @@ def wdParser():
     parser.add_option("--smtp",     help="email smtp server address")
     parser.add_option("--smtpu",    help="smtp server username")
     parser.add_option("--nopop",    action="store_true", help="never use pop-up dialog (headless emailer)")
+    parser.add_option("--tquiet",   type=float, help="suppress repeated warnings for [n] minutes")
     return parser
 
 if __name__=="__main__":

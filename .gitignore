@@ -11,4 +11,4 @@ RBU_Data
 *.log
 *.out
 *.toc
-
+.*
