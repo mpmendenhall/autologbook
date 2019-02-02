@@ -9,6 +9,7 @@ def doit():
     parser = OptionParser()
     parser.add_option("--server",   help="XMLRPC server")
     parser.add_option("--cfg",      help="alarm configuration file")
+    parser.add_option("--haslog",   action="store_true", help="Require >= 1 log message")
     parser.add_option("--snooze",   action="store_true", help="Skip checking server")
     parser.add_option("--verbose",  action="store_true", help="extra verbosity")
 
@@ -29,7 +30,7 @@ def doit():
         s = xmlrpc.client.ServerProxy(options.server, allow_none=True)
         groups = {x[0]: (x[1],x[2]) for x in s.readgroups()}
         messages = s.messages(t0 - 48*3600, t0 + 1e7, 2000)
-        if not messages:
+        if not messages and options.haslog:
             print("ERROR no log messages produced in previous 48 hours.")
         for m in messages:
             M = m[-1].upper()
