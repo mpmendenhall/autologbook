@@ -24,7 +24,9 @@ class LogMessagesDisplay:
         try:
             s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
             self.groups = {x[0]: (x[1],x[2]) for x in s.readgroups()}
-            if groupid is None: self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7, 2000)
+            if groupid is None:
+                self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7, 2000)
+                if len(self.messages) < 30: self.messages = s.messages(0, self.t0 + 1e7, 30)
             else: self.messages = s.messages(self.t0 - 1e7, self.t0 + 1e7, 400, groupid)
         except:
             self.groups = {0: ["Error","Connection error"]}
