@@ -12,7 +12,8 @@ parser.add_option("--port",  dest="port",    type="int", default = log_xmlrpc_wr
 options, args = parser.parse_args()
 
 DBL = xmlrpc.client.ServerProxy('http://%s:%i'%(options.host, options.port), allow_none=True)
-DBL.log_message("TestFunctionGen.py", "Starting function generator.")
+myGrp = DBL.create_readgroup("TestFunctionGen.py", "Test log event generator")
+DBL.log_message(myGrp, "Starting function generator.")
 DBL.commit()
 
 # set up channels and filters
@@ -31,5 +32,5 @@ try:
         DBL.commit()
         time.sleep(1)
 except:
-    DBL.log_message("TestFunctionGen.py", "stopping function generator.")
+    DBL.log_message(myGrp, "stopping function generator.")
     DBL.commit()

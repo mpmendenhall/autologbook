@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 from WebpageUtils import *
 from AutologbookConfig import *
@@ -42,7 +42,7 @@ class TracePlotter(PlotMaker):
             self.readings[rid] = pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, 100).data))[::-1]
             self.ids.append(rid)
 
-    def makePage(self, img = False):
+    def makePage(self, img = None):
         if not self.readings:
             if img:
                 print('Content-Type: text/plain\n')
@@ -63,10 +63,13 @@ class TracePlotter(PlotMaker):
             ptitle = "%s plot"%chn["name"]
             subtitle = "%s %s"%(chn["name"], subtitle)
 
+        self.renames = dict([(c,self.channels[c]["name"].replace("_"," ")) for c in self.channels])
+
         # common units?
         units = None
         self.ylabel = "readings"
-        for c in self.channels.values():
+        for (n,c) in self.channels.items():
+            if c["units"]: self.renames[n] += " ["+c["units"]+"]"
             if units is None: units = c["units"]
             elif units != c["units"]:
                 units = None
@@ -74,17 +77,16 @@ class TracePlotter(PlotMaker):
         if units: self.ylabel = 'value [%s]'%units
 
         self.datasets = dict([(r, self.readings[r]) for r in self.readings])
-        self.renames = dict([(c,self.channels[c]["name"].replace("_"," ")) for c in self.channels])
         for r in self.readings:
             self.plotsty[r] = "with linespoints pt 7 ps 0.4"
             if not self.xtime: self.x_txs[r] = (lambda x, t0=self.t0+self.dt0: (x-t0)/self.tscale)
             else: self.x_txs[r] = (lambda x, dx=(datetime.now()-datetime.utcnow()).total_seconds(): x+dx)
-        pstr = self.make_svg(self.ids, "set xtics rotate by 35 right offset 0,-0.2\n" if self.xtime else "")
 
         if img:
-            print('Content-Type: image/svg+xml\n')
-            print(pstr)
+            if img not in ["pdf","svg","txt"]: img = "svg"
+            self.make_dump(img, self.ids, "set xtics rotate by 35 right offset 0,-0.2\n" if self.xtime else "")
         else:
+            pstr = self.make_svg(self.ids, "set xtics rotate by 35 right offset 0,-0.2\n" if self.xtime else "")
             P,b = makePageStructure(ptitle, refresh=300)
             addTag(b,"h1",contents=[subtitle, makeLink("/index.html","[Home]")])
             g = ET.Element('figure', {"style":"display:inline-block"})
@@ -111,4 +113,4 @@ if __name__=="__main__":
     for r in form.getlist("rid"): tp.get_readings(r)
     tp.keypos = form.getvalue("key","top left")
 
-    tp.makePage(img = "img" in form)
+    tp.makePage(img = form.getvalue("img",None))

@@ -28,7 +28,10 @@ if __name__=="__main__":
     addTag(b, "h1", contents=["Plot Builder", makeLink("/index.html","[Home]")])
     g = addTag(b, 'figure', {"style":"display:inline-block"})
     addTag(g, "img", {"class":"lightbg", "width":"600", "height":"480", "src":"/cgi-bin/plottrace.py?img=y&"+urlargs, "alt":"PROSPECT data plot"})
-    addTag(g, "figcaption", {}, makeLink("/cgi-bin/plottrace.py?"+urlargs, "customized plot link"))
+    addTag(g, "figcaption", {},
+           [makeLink("/cgi-bin/plottrace.py?"+urlargs, "customized plot link"),
+            makeLink("/cgi-bin/plottrace.py?"+urlargs+"&img=pdf", "[PDF]"),
+            makeLink("/cgi-bin/plottrace.py?"+urlargs+"&img=txt", "[txt]")])
     F = addTag(b, 'form', {"action":"/cgi-bin/plotbuilder.py", "method":"POST", "style":"display:inline-block;vertical-align:top"})
 
     sp = addTag(F, 'select', {"name":"rid", "size":"20", "multiple":''})
@@ -61,7 +64,7 @@ if __name__=="__main__":
     addTag(FS1,"br")
 
     addTag(FS1,"label",{"for":"key"}, "legend:")
-    sk = addTag(FS1, 'select', {"name":"key"})
+    sk = addTag(FS1, 'select', {"name":"key", "id":"key"})
     for kp in keypos_opts + ["None",]:
         attrs = {"value":kp}
         if kp == form.getvalue("key",None): attrs["selected"]=""

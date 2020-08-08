@@ -81,7 +81,7 @@ def add_reading(curs, tid, value, t = None):
 def add_message(curs, src, msg, t = None):
     """Log a textual message, using current time for timestamp if not specified"""
     t = time.time() if t is None else t
-    curs.execute(*make_insert_command("textlog",{"src":src, "time":t, "msg":msg}))
+    curs.execute(*make_insert_command("textlog",{"readgroup_id":src, "time":t, "msg":msg}))
     is_err = "ERROR" in msg.upper()
     if warn_wall and (is_err or "WARNING" in msg.upper()):
         if os.path.exists('/usr/bin/cowsay'):

@@ -18,7 +18,6 @@ class DB_Logger:
         """Initialize with name of database to open"""
         self.dbname = dbname
 
-        self.instr_idx = {}     # instruments name -> rowid index
         self.readouts = {}      # cache of readout information
         self.filters = {}       # data reduction filters per channel
         self.readsets = []      # pre-defined sets of readouts for negotiating bulk transfers
@@ -30,13 +29,18 @@ class DB_Logger:
     def get_readgroups(self):
         """Get complete list of readout groups (id, name, descrip)"""
         self.read_curs.execute("SELECT readgroup_id,name,descrip FROM readout_groups")
-        return self.curs.fetchall()
+        return self.read_curs.fetchall()
 
     def get_readtypes(self, rgroup=None):
         """Get list of readout types (id, name, descrip, units[, readgroup_id]) for all or group"""
-        if rgroup is None: self.curs.execute("SELECT readout_id,name,descrip,units,readgroup_id FROM readout_types")
-        else: self.curs.execute("SELECT readout_id,name,descrip,units FROM readout_types WHERE readgroup_id = ?", (rgroup,))
-        return self.curs.fetchall()
+        if rgroup is None: self.read_curs.execute("SELECT readout_id,name,descrip,units,readgroup_id FROM readout_types")
+        else: self.read_curs.execute("SELECT readout_id,name,descrip,units FROM readout_types WHERE readgroup_id = ?", (rgroup,))
+        return self.read_curs.fetchall()
+
+    def get_readout_info(self, rid):
+        """Get (name, descrip, units) on one readout"""
+        self.read_curs.execute("SELECT name, descrip, units FROM readout_types WHERE readout_id = ?", (rid,))
+        return self.read_curs.fetchone()
 
     def get_datapoints(self, rid, t0, t1, nmax = 200):
         """Get datapoints for specified readout ID in time stamp range"""
@@ -56,17 +60,17 @@ class DB_Logger:
         """Return newest (id,time,value) for each list item"""
         rs = []
         for i in ilist:
-            self.curs.execute("SELECT readout_id,time,value FROM readings WHERE readout_id = ? ORDER BY time DESC LIMIT 1", (i,))
-            rs.append(self.curs.fetchone())
+            self.read_curs.execute("SELECT readout_id,time,value FROM readings WHERE readout_id = ? ORDER BY time DESC LIMIT 1", (i,))
+            rs.append(self.read_curs.fetchone())
         return rs
 
     def get_messages(self, t0, t1, nmax=100, srcid=None):
         """Get messages in time range, (time, srcid, message)"""
         if not (nmax < 10000): nmax = 10000
         if srcid is None:
-            self.read_curs.execute("SELECT time,src,msg FROM textlog WHERE time >= ? AND time <= ? ORDER BY time DESC LIMIT ?", (t0, t1, nmax))
+            self.read_curs.execute("SELECT time,readgroup_id,msg FROM textlog WHERE time >= ? AND time <= ? ORDER BY time DESC LIMIT ?", (t0, t1, nmax))
         else:
-            self.read_curs.execute("SELECT time,src,msg FROM textlog WHERE time >= ? AND time <= ? AND src=? ORDER BY time DESC LIMIT ?", (t0, t1, srcid, nmax))
+            self.read_curs.execute("SELECT time,readgroup_id,msg FROM textlog WHERE time >= ? AND time <= ? AND readgroup_id=? ORDER BY time DESC LIMIT ?", (t0, t1, srcid, nmax))
         return self.read_curs.fetchall()
 
     def launch_dataserver(self):
@@ -85,9 +89,8 @@ class DB_Logger:
         server.register_function(self.get_readtypes,  'readtypes')
         server.register_function(self.get_datapoints, 'datapoints')
         server.register_function(self.get_datapoints_compressed, 'datapoints_compressed')
-        #server.register_function(self.get_readout,    'readout_info')
-        server.register_function(self.get_instrument, 'instrument')
-        server.register_function(self.get_messages,   'messages')
+        server.register_function(self.get_readout_info, 'readout_info')
+        server.register_function(self.get_messages,     'messages')
 
         server.serve_forever()
 
@@ -103,8 +106,6 @@ class DB_Logger:
         """Assure instrument entry exists, creating/updating as needed"""
         self.write_curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO readout_groups(name,descrip) VALUES (?,?)", (nm,descrip))
         inst = get_readrgoup(self.write_curs, nm)
-        self.instruments[inst.rid] = inst
-        self.instr_idx[inst.name] = inst.rid
         return inst.rid
 
     def create_readout(self, name, group_name, descrip, units, overwrite = False):
@@ -142,10 +143,10 @@ class DB_Logger:
         """Hook for subclass to check readout values"""
         pass
 
-    def log_message(self, src, msg, t = None):
+    def log_message(self, srcid, msg, t = None):
         """Log a textual message, using current time for timestamp if not specified"""
         t = time.time() if t is None else t
-        self.insert("textlog", {"src":src, "time":t, "msg":msg})
+        self.insert("textlog", {"readgroup_id":srcid, "time":t, "msg":msg})
 
     def set_ChangeFilter(self, iid, dv, dt, extrema = True):
         """Set "change" data reduction filter on readout"""
@@ -167,7 +168,7 @@ class DB_Logger:
         # server thread interface to DB
         self.writeconn = sqlite3.connect(self.dbname, timeout = 30)
         self.write_curs = self.writeconn.cursor()
-        self.log_message("DB_Logger.py", "Starting Logger write server.")
+        self.log_message(self.create_readgroup("LogDB_XMLRPC_server.py", "Autologbook DB web interface server"), "Starting Logger write server.")
 
         # xmlrpc web interface for data updates
         class RequestHandler(SimpleXMLRPCRequestHandler):
@@ -251,7 +252,7 @@ if __name__=="__main__":
     # run write server
     if options.writeport: threads.append(threading.Thread(target = D.launch_writeserver))
 
-    print("Launching", len(threads), "DB logger threads")
+    print("Launching", len(threads), "DB logger threads on ports", options.readport, options.writeport)
     for t in threads: t.start()
     for t in threads: t.join()
     print("LogDB server done.")

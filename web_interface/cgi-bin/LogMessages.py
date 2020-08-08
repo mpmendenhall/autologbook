@@ -17,16 +17,16 @@ class LogMessagesDisplay:
 
     def makeMessageTable(self,groupid=None):
         self.t0 = time.time()
-        #try:
-        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
-        self.groups = {x[0]: (x[1],x[2]) for x in s.readgroups()}
-        if groupid is None:
-            self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7, 2000)
-            if len(self.messages) < 30: self.messages = s.messages(0, self.t0 + 1e7, 30)
-        else: self.messages = s.messages(self.t0 - 1e7, self.t0 + 1e7, 400, groupid)
-        #except:
-        #    self.groups = {0: ["Error","Connection error"]}
-        #    self.messages = [[time.time(),0,"Error: no connection to log data server %s:%i."%(log_xmlrpc_host,log_xmlrpc_port)]]
+        try:
+            s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
+            self.groups = {x[0]: (x[1],x[2]) for x in s.readgroups()}
+            if groupid is None:
+                self.messages = s.messages(self.t0 - 48*3600, self.t0 + 1e7, 2000)
+                if len(self.messages) < 30: self.messages = s.messages(0, self.t0 + 1e7, 30)
+            else: self.messages = s.messages(self.t0 - 1e7, self.t0 + 1e7, 400, groupid)
+        except:
+            self.groups = {0: ["Error","Connection error"]}
+            self.messages = [[time.time(), 0, "Error: no connection to log data server %s:%i."%(log_xmlrpc_host, log_xmlrpc_port)]]
 
         trows = [makeTable([["time","source","message"]], T="thead"),]
 
@@ -36,7 +36,10 @@ class LogMessagesDisplay:
             newdate = time.strftime("%A, %B %d",time.localtime(m[0]))
             if newdate != prevdate: trows.append([(prevdate,{"class":"listbreak", "colspan":"3"})])
             prevdate = newdate
-            row = [time.strftime("%H:%M:%S",time.localtime(m[0])), makeLink("/cgi-bin/LogMessages.py?groupid=%i"%m[1], self.groups[m[1]][0]) if m[1] is not None else "---", m[2]]
+
+            slink =  makeLink("/cgi-bin/LogMessages.py?groupid=%i"%m[1], self.groups[m[1]][0]) if m[1] is not None else "---"
+            row = [time.strftime("%H:%M:%S",time.localtime(m[0])), slink, m[2]]
+
             rclass = self.classify_row(row)
             if rclass == "squelch": continue
             if rclass: trows.append((row,{"class":rclass}))

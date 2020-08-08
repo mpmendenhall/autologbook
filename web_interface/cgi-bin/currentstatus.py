@@ -15,12 +15,14 @@ class WebChecklist:
         self.readings = {}
 
     def get_readings(self):
-        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
+        """Load newest readings for all items"""
+        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host, log_xmlrpc_port), allow_none=True)
         self.rtypes = {r[0]: r[1:] for r in s.readtypes(self.grpid)}
         self.readgroups = {r[0]: tuple(r[1:]) for r in s.readgroups()}
         self.readings = {r[0]: r[1:] for r in s.newest([t for t in self.rtypes]) if r}
 
     def makeChecklistTable(self):
+        """Generate display table of readings"""
         t0 = time.time()
         trows = [makeTable([["Readout","Value","Unit","Last updated"]], T="thead"),]
 

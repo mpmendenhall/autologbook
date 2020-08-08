@@ -21,9 +21,9 @@ logdb_file = os.environ["HOME"]+"/autologbook_db.sql"
 # host for log DB XMLRPC server (provides data for web views)
 log_xmlrpc_host = "localhost"
 # port number for log DB XMLRPC (read)server
-log_xmlrpc_port = 8003
+log_xmlrpc_port = 8013
 # port number for log DB write access XMLRPC server; 0 to disable
-log_xmlrpc_writeport = 8004
+log_xmlrpc_writeport = 8014
 
 # host for web view HTTP server
 http_host = "localhost"
@@ -32,7 +32,7 @@ http_webview_port = 8005
 # directory served
 http_datdir = autologbook + "/web_interface/"
 # simple login password
-http_login = "prospect:neutrino"
+http_login = "autologbook:seethedata"
 # certificate, key file for https web view (auto-generated if nonexistent)
 https_certfile = os.environ["PWD"]+"/https_cert.pem"
 https_keyfile = os.environ["PWD"]+"/https_key.pem"
@@ -45,8 +45,8 @@ def network_config_summary():
     """Print summary of configuration parameters"""
     print()
     print("This computer is", thishost)
-    print("Logging database interface runs on", loghost, ":", log_tcp_port)
-    print("Web view at https://%s:%i"%(http_host, http_webview_port), "login", http_login)
+    print("TCP sockets data server on", loghost, ":", log_tcp_port)
     print("XMLRPC data server on ", log_xmlrpc_host, ":", log_xmlrpc_port)
     if log_xmlrpc_writeport: print("\twith write access on", log_xmlrpc_host, ":", log_xmlrpc_writeport)
+    print("Web view at https://%s:%i"%(http_host, http_webview_port), "login", http_login)
     print()

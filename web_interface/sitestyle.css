@@ -3,7 +3,7 @@ body {
     padding: 0;
     background-color: rgb(200,200,255);
     background-image: url(logo.svg);
-    background-size: 120px 320px;
+    background-size: 120px;
     background-position: 10px 10px;
     background-attachment: fixed;
     background-repeat: no-repeat;

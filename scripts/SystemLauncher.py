@@ -8,7 +8,7 @@ from optparse import OptionParser
 import shlex
 
 # names of services to launch/monitor
-service_names = ["HTTPServer.py", "LogDB_XMLRPC_server.py", "LogMessengerSocketServer.py"]
+service_names = ["HTTPServer.py", "LogDB_XMLRPC_server.py"] #, "LogMessengerSocketServer.py"]
 
 def remote_cmd(host, cmd, tout = 5):
     """Run command on remote host or localhost"""
