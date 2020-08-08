@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from WebpageUtils import *
-from DAQ_Network_Config import *
+from AutologbookConfig import *
 from PlotUtils import *
 import xmlrpc.client
 import pickle

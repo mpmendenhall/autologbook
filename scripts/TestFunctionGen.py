@@ -1,26 +1,29 @@
 #!/usr/bin/python3
 
+from AutologbookConfig import *
 import xmlrpc.client
 from math import *
 import time
 from optparse import OptionParser
 
 parser = OptionParser()
-parser.add_option("--port",  dest="port",    action="store", type="int", default = 8003, help="Localhost port for logger server read/write")
+parser.add_option("--host",  dest="host",    default = log_xmlrpc_host, help="Hostname for logger server read/write")
+parser.add_option("--port",  dest="port",    type="int", default = log_xmlrpc_writeport, help="Port for logger server read/write")
 options, args = parser.parse_args()
 
-DBL = xmlrpc.client.ServerProxy('http://localhost:%i'%options.port, allow_none=True)
+DBL = xmlrpc.client.ServerProxy('http://%s:%i'%(options.host, options.port), allow_none=True)
 DBL.log_message("TestFunctionGen.py", "Starting function generator.")
+DBL.commit()
 
 # set up channels and filters
-DBL.create_instrument("funcgen", "test function generator", "ACME Foobar1000", "0001")
+DBL.create_readgroup("funcgen", "ACME Foobar1000 function generator")
 r0 = DBL.create_readout("5min", "funcgen", "5-minute-period wave", None)
 r1 = DBL.create_readout("12h", "funcgen", "12-hour-period wave", None)
 DBL.set_ChangeFilter(r0, 0.2, 30)
 DBL.set_DecimationFilter(r1, 20)
 DBL.commit()
 
-try: 
+try:
     while 1:
         t = time.time()
         DBL.log_readout(r0, sin(2*pi*t/300), t)
@@ -30,4 +33,3 @@ try:
 except:
     DBL.log_message("TestFunctionGen.py", "stopping function generator.")
     DBL.commit()
-    

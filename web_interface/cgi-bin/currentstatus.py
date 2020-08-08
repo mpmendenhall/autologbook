@@ -2,7 +2,7 @@
 # stateless view of current reading values
 
 from WebpageUtils import *
-from DAQ_Network_Config import *
+from AutologbookConfig import *
 import xmlrpc.client
 import time
 import cgi
@@ -15,12 +15,10 @@ class WebChecklist:
         self.readings = {}
 
     def get_readings(self):
-        try:
-            s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
-            self.rtypes = {r[0]: r[1:] for r in s.readtypes(self.grpid)}
-            self.readgroups = {r[0]: tuple(r[1:]) for r in s.readgroups()}
-            self.readings = {r[0]: r[1:] for r in s.newest([t for t in self.rtypes]) if r}
-        except: pass
+        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
+        self.rtypes = {r[0]: r[1:] for r in s.readtypes(self.grpid)}
+        self.readgroups = {r[0]: tuple(r[1:]) for r in s.readgroups()}
+        self.readings = {r[0]: r[1:] for r in s.newest([t for t in self.rtypes]) if r}
 
     def makeChecklistTable(self):
         t0 = time.time()
@@ -29,7 +27,7 @@ class WebChecklist:
         rlist = [((self.rtypes[r][0], None if self.grpid else self.readgroups[self.rtypes[r][-1]][0]), (r,self.rtypes[r])) for r in self.rtypes]
         rlist.sort()
         for r in [x[1] for x in rlist]:
-            tv = self.readings.get(r[0], [None,"???"])
+            tv = self.readings.get(r[0], [None, "???"])
             try: tv[1] = "%.4g"%tv[1]
             except: pass
 
@@ -58,8 +56,8 @@ class WebChecklist:
         P,b = makePageStructure("Readings Monitor", refresh=300)
         addTag(b,"h1",contents=["Readings as of %s"%time.asctime(), makeLink("/index.html","[Home]")])
 
-        try: addTag(b,"h2",contents=["from %s: %s"%self.readgroups[self.grpid], makeLink("/cgi-bin/currentstatus.py","[show all]")])
-        except: pass
+        if self.grpid is not None:
+            addTag(b,"h2",contents=["from %s: %s"%self.readgroups.get(self.grpid, ("?","?")), makeLink("/cgi-bin/currentstatus.py","[show all]")])
 
         b.append(self.makeChecklistTable())
 

@@ -28,9 +28,9 @@ public:
     /// struct describing message
     struct message {
         message() { }
-        message(const string& m, double t=0): msg(m), ts(t) { }
+        explicit message(const string& m, double t=0): msg(m), ts(t) { }
         string msg;
-        double ts;
+        double ts = 0;
     };
 
     /// set origin identifier

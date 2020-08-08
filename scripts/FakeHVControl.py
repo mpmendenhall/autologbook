@@ -14,7 +14,7 @@ DBL = xmlrpc.client.ServerProxy('http://localhost:%i'%options.port, allow_none=T
 DBL.log_message("FakeHVControl.py", "Starting fake HV.")
 
 # set up channels and filters
-DBL.create_instrument("PMT_HV", "simulated PMT HV source", "ACME Foobar4000", "e27182")
+DBL.create_readgroup("PMT_HV", "ACME Foobar4000 simulated PMT HV source")
 Vchans = []
 Ichans = []
 for i in range(32):
@@ -26,7 +26,7 @@ DBL.commit()
 
 rset = DBL.define_readset(Vchans + Ichans)
 
-try:   
+try:
     while 1:
         t = time.time()
         rdata = []
@@ -40,4 +40,3 @@ try:
 except:
     DBL.log_message("FakeHVControl.py", "Stopping fake HV.")
     DBL.commit()
-    

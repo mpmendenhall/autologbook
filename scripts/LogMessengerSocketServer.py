@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/usr/bin/python3
 ## \file LogMessengerSocketServer.py Daemon accepting socket connections to fill logger DB
 # ./LogMessengerSocketServer.py --db test.db --port 9999
 
@@ -200,7 +200,8 @@ if __name__ == "__main__":
     options, args = parser.parse_args()
 
     if not os.path.exists(options.db):
-        print("\nLogging database '%s' not found.\nPerhaps initialize it with:\nsqlite3 '%s' < ../logger_DB_schema.sql\n"%(options.db, options.db))
+        print("\nLogging database '%s' not found; consider trying:"%options.db)
+        print("sqlite3 '%s' < ../db_schema/logger_DB_schema.sql"%options.db)
         exit(1)
 
     warn_wall = options.wall
