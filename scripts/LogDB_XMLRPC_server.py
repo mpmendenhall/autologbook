@@ -110,7 +110,7 @@ class DB_Logger:
 
     def create_readout(self, name, group_name, descrip, units, overwrite = False):
         """Assure a readout exists, creating as necessary; return readout ID"""
-        inst = group_name if type(inst) == type(0) else get_readrgoup(self.write_curs, group_name)
+        inst = group_name if type(group_name) == type(0) else get_readrgoup(self.write_curs, group_name)
         if inst is None: return None
 
         self.write_curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO readout_types(name,descrip,units,readgroup_id) VALUES (?,?,?,?)", (name,descrip,units,inst.rid))

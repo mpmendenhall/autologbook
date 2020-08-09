@@ -15,6 +15,9 @@ h = 160
 P0 = h2P(h)
 
 with xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host, log_xmlrpc_writeport), allow_none=True) as DBL:
+    monitor_group = DBL.create_readgroup("EnvironmentalMonitoring.py", "Environmental sensors readout")
+    DBL.log_message(monitor_group, "Starting environmental monitor.")
+
     bmp3xx_group = DBL.create_readgroup("BMP388", "BMP388 pressure/temperature sensor")
     bmp3xx_T = DBL.create_readout("T", "BMP388", "ambient temperature", "deg. C")
     bmp3xx_P = DBL.create_readout("P", "BMP388", "ambient pressure", "mbar")
@@ -35,6 +38,7 @@ def read_sensors():
     DBL.commit()
 
 while True:
+    print("\nEnvironmental sensors readout");
     try: read_sensors()
     except: traceback.print_exc()
     time.sleep(10)
