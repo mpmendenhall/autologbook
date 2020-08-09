@@ -55,23 +55,25 @@ logflags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
 
 def launch_tcpserver():
     tcpserver_log = os.open('TCPServer_Log.txt', logflags)
-    subprocess.Popen([autologbook+"/scripts/LogMessengerSocketServer.py", "--db", logdb_file, "--port", str(log_tcp_port), "--wall"],
-                     stdout=tcpserver_log, stderr=tcpserver_log, pass_fds=[tcpserver_log])
+    cmd = ["python3", autologbook+"/scripts/LogMessengerSocketServer.py", "--db", logdb_file, "--port", str(log_tcp_port), "--wall"]
+    subprocess.Popen(cmd, stdout=tcpserver_log, stderr=tcpserver_log, pass_fds=[tcpserver_log])
 
 def launch_xmlserver():
     xmlserver_log = os.open('XMLRPCServer_Log.txt', logflags)
-    subprocess.Popen([autologbook+"/scripts/LogDB_XMLRPC_server.py",
-                      "--readport", str(log_xmlrpc_port), "--writeport", str(log_xmlrpc_writeport), "--db", logdb_file],
-                     stdout=xmlserver_log, stderr=xmlserver_log, pass_fds=[xmlserver_log])
+    cmd = ["python3", autologbook+"/scripts/LogDB_XMLRPC_server.py",
+                      "--readport", str(log_xmlrpc_port), "--writeport", str(log_xmlrpc_writeport), "--db", logdb_file]
+    print(cmd)
+    subprocess.Popen(cmd, stdout=xmlserver_log, stderr=xmlserver_log, pass_fds=[xmlserver_log])
 
 def launch_httpserver():
     if https_certfile and not os.path.exists(https_certfile):
         print("Generating self-signed https certificate:")
         os.system('openssl req -x509 -newkey rsa:4096 -keyout %s -out %s -days 365 -subj "/C=US/ST=Confusion/L=Mystery/O=The Illuminati/OU=DAQ/CN=%s" -nodes'%(https_keyfile, https_certfile, http_host))
     httpserver_log = os.open('HTTPServer_Log.txt', logflags)
-    cmd = [autologbook+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", http_host, "--port", str(http_webview_port)]
+    cmd = ["python3", autologbook+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", http_host, "--port", str(http_webview_port)]
     if http_login: cmd += ["--pwd", http_login]
     if https_certfile: cmd += ["--cert", https_certfile, "--key", https_keyfile]
+    print(cmd)
     subprocess.Popen(cmd, stdout=httpserver_log, stderr=httpserver_log, pass_fds=[httpserver_log])
 
 def launch_network_servers():

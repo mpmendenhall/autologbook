@@ -49,5 +49,5 @@ CREATE TABLE textlog (
     msg TEXT,               -- message text
     FOREIGN KEY(readgroup_id) REFERENCES readout_groups(readgroup_id) ON DELETE SET NULL
 );
-CREATE INDEX idx_textlog ON textlog(time, src);
-CREATE INDEX idx_textlog_src ON textlog(src);
+CREATE INDEX idx_textlog ON textlog(time, readgroup_id);
+CREATE INDEX idx_textlog_readgrp ON textlog(readgroup_id);

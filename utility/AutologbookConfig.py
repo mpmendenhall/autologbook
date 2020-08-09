@@ -4,31 +4,32 @@
 import os
 import subprocess
 import time
+import platform
 
 # location of autologbook repository
 autologbook = os.environ["APP_DIR"]+"/autologbook"
 
 # coordinator node where this script is run
-thishost = os.environ["HOSTNAME"]
+thishost = platform.node()
 
 # logging DB server host (ssh tunneled from remote machined)
 loghost = "localhost"
 # logging DB TCP sockets server port
-log_tcp_port = 8001
+log_tcp_port = 50001
 # location of logging DB on loghost
 logdb_file = os.environ["HOME"]+"/autologbook_db.sql"
 
 # host for log DB XMLRPC server (provides data for web views)
 log_xmlrpc_host = "localhost"
 # port number for log DB XMLRPC (read)server
-log_xmlrpc_port = 8013
+log_xmlrpc_port = 50002
 # port number for log DB write access XMLRPC server; 0 to disable
-log_xmlrpc_writeport = 8014
+log_xmlrpc_writeport = 50003
 
-# host for web view HTTP server
-http_host = "localhost"
+# host for web view HTTP server; set to "localhost" for local only
+http_host = thishost
 # port number for web view server
-http_webview_port = 8005
+http_webview_port = 50000
 # directory served
 http_datdir = autologbook + "/web_interface/"
 # simple login password
