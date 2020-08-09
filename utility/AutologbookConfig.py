@@ -38,6 +38,9 @@ https_certfile = os.environ["PWD"]+"/https_cert.pem"
 https_keyfile = os.environ["PWD"]+"/https_key.pem"
 if http_host == "localhost": https_certfile = https_keyfile = http_login = None
 
+# chat log DB file; set None to disable
+chatlog_db = os.environ["HOME"]+"/chatlog_db.sql"
+
 ########################################
 ########################################
 

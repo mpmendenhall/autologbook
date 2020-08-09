@@ -2,10 +2,12 @@
 ## \file ChatLog.py Chat log utility page
 
 from WebpageUtils import *
+from AutologbookConfig import *
 import time
 import sqlite3
 import cgi
 import os
+import shlex
 
 def asciistrip(s): return ''.join([x for x in s if ord(x) < 128]) if s else s
 
@@ -66,15 +68,15 @@ class ChatMessagesDisplay:
         print(prettystring(P))
 
 if __name__=="__main__":
-    db = "/var/www/data/ChatDB.sql"
     form = cgi.FieldStorage()
 
-    # alternate database for local testing:
-    if "REMOTE_ADDR" not in os.environ and not os.path.exists(db):
-        db = "ChatDB.sql"
-        if not os.path.exists(db): os.system("sqlite3 %s < $APP_DIR/autologbook/chat_DB_schema.sql"%db)
+    #"REMOTE_ADDR" not in os.environ and
+    # initialization
+    if not os.path.exists(chatlog_db):
+        cmd = "sqlite3 %s < "%shlex.quote(chatlog_db) + autologbook + "/db_schema/chat_DB_schema.sql"
+        os.system(cmd)
 
-    CMD = ChatMessagesDisplay(db)
+    CMD = ChatMessagesDisplay(chatlog_db)
     CMD.name = asciistrip(form.getvalue("name", "")).strip()[:25]
     CMD.src = os.environ.get("REMOTE_ADDR", None)
     if "delete" in form: CMD.delMessage()
