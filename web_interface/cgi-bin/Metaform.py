@@ -222,7 +222,13 @@ class Metaform(ConfigTree):
 if __name__ == "__main__":
 
     conn = sqlite3.connect(os.environ["CONFIGWEBMANAGER_DB"]) if "CONFIGWEBMANAGER_DB" in os.environ else None
-    assert conn
+    if not conn:
+        P,b = makePageStructure("ConfigWebManager/Metaform disabled")
+        addTag(b,"p",contents="ConfigWebManager/Metaform is not enabled on this server.")
+        print(docHeaderString())
+        print(prettystring(P))
+        exit(0)
+
     C = Metaform(conn)
 
     form = cgi.FieldStorage()

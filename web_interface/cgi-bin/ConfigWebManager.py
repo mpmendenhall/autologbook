@@ -244,10 +244,15 @@ class ConfigWebManager(ConfigDB):
 
 if __name__ == "__main__":
 
-    conn = conn = sqlite3.connect(os.environ["CONFIGWEBMANAGER_DB"]) if "CONFIGWEBMANAGER_DB" in os.environ else None
-    assert conn
-    C = ConfigWebManager(conn)
+    conn = sqlite3.connect(os.environ["CONFIGWEBMANAGER_DB"]) if "CONFIGWEBMANAGER_DB" in os.environ else None
+    if not conn:
+        P,b = makePageStructure("ConfigWebManager disabled")
+        addTag(b,"p",contents="ConfigWebManager is not enabled on this server.")
+        print(docHeaderString())
+        print(prettystring(P))
+        exit(0)
 
+    C = ConfigWebManager(conn)
     form = cgi.FieldStorage()
 
     if "dump" in form:

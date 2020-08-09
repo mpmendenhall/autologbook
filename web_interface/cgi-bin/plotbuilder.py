@@ -2,7 +2,7 @@
 
 from WebpageUtils import *
 import cgi
-from DAQ_Network_Config import *
+from AutologbookConfig import *
 from PlotUtils import *
 import xmlrpc.client
 
@@ -27,7 +27,7 @@ if __name__=="__main__":
     P,b = makePageStructure("DAQ Plot Builder")
     addTag(b, "h1", contents=["Plot Builder", makeLink("/index.html","[Home]")])
     g = addTag(b, 'figure', {"style":"display:inline-block"})
-    addTag(g, "img", {"class":"lightbg", "width":"600", "height":"480", "src":"/cgi-bin/plottrace.py?img=y&"+urlargs, "alt":"PROSPECT data plot"})
+    addTag(g, "img", {"class":"lightbg", "width":"600", "height":"480", "src":"/cgi-bin/plottrace.py?img=y&"+urlargs, "alt":"Autologbook data plot"})
     addTag(g, "figcaption", {},
            [makeLink("/cgi-bin/plottrace.py?"+urlargs, "customized plot link"),
             makeLink("/cgi-bin/plottrace.py?"+urlargs+"&img=pdf", "[PDF]"),

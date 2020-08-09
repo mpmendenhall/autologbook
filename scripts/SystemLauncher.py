@@ -67,7 +67,7 @@ def launch_xmlserver():
 def launch_httpserver():
     if https_certfile and not os.path.exists(https_certfile):
         print("Generating self-signed https certificate:")
-        os.system('openssl req -x509 -newkey rsa:4096 -keyout %s -out %s -days 365 -subj "/C=US/ST=Tennessee/L=Oak Ridge/O=PROSPECT Collaboration/OU=DAQ/CN=%s" -nodes'%(https_keyfile, https_certfile, http_host))
+        os.system('openssl req -x509 -newkey rsa:4096 -keyout %s -out %s -days 365 -subj "/C=US/ST=Confusion/L=Mystery/O=The Illuminati/OU=DAQ/CN=%s" -nodes'%(https_keyfile, https_certfile, http_host))
     httpserver_log = os.open('HTTPServer_Log.txt', logflags)
     cmd = [autologbook+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", http_host, "--port", str(http_webview_port)]
     if http_login: cmd += ["--pwd", http_login]
