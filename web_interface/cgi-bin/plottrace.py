@@ -38,7 +38,7 @@ class TracePlotter(PlotMaker):
         s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
         ri = s.readout_info(rid)
         if ri:
-            self.channels[rid] = ri
+            self.channels[rid] = {"name": ri[0], "descrip": ri[1], "units": ri[2]}
             self.readings[rid] = pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, 100).data))[::-1]
             self.ids.append(rid)
 

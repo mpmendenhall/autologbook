@@ -18,7 +18,7 @@ DBL.commit()
 
 # set up channels and filters
 DBL.create_readgroup("funcgen", "ACME Foobar1000 function generator")
-r0 = DBL.create_readout("5min", "funcgen", "5-minute-period wave", None)
+r0 = DBL.create_readout("5min", "funcgen", "5-minute-period wave", "bogons")
 r1 = DBL.create_readout("12h", "funcgen", "12-hour-period wave", None)
 DBL.set_ChangeFilter(r0, 0.2, 30)
 DBL.set_DecimationFilter(r1, 20)
