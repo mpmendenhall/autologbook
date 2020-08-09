@@ -12,3 +12,6 @@ RBU_Data
 *.out
 *.toc
 .*
+
+*.pem
+
