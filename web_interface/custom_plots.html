@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <link rel="stylesheet" href="/sitestyle.css">
+    <title>Indoor Weather</title>
+    <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content="300" />
+</head>
+
+<body>
+<h1>Indoor Weather <a href="/index.html">[Home]</a></h1>
+
+<figure style="display:inline-block">
+    <img class="lightbg" width="600" height="480" src="/cgi-bin/plottrace.py?rid=1&dt=24&img=y" alt="temperature">
+    <figcaption>Indoor temperature
+    <a href="/cgi-bin/plottrace.py?rid=1&dt=24&img=pdf">[PDF]</a>
+    </figcaption>
+</figure>
+
+<figure style="display:inline-block">
+    <img class="lightbg" width="600" height="480" src="/cgi-bin/plottrace.py?rid=2&dt=24&min=992&max=996&img=y" alt="pressure">
+    <figcaption>Barometric pressure
+    <a href="/cgi-bin/plottrace.py?rid=2&dt=24&min=992&max=996&img=pdf">[PDF]</a>
+    </figcaption>
+</figure>
+
+</body>
+</html>

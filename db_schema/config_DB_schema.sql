@@ -1,5 +1,5 @@
 -- Experiment configuration parameters sqlite3 database setup
--- sqlite3 <db name> < config_DB_description.txt
+-- sqlite3 <db name> < config_DB_schema.txt
 
 -- identifiers for groups of parameters used together
 CREATE TABLE config_set (

@@ -1,4 +1,5 @@
-#!/bin/env python3
+#!/usr/bin/python3
+## \file Watchdog.py Watchdog utility for monitoring other processes
 
 from optparse import OptionParser
 import ctypes

@@ -1,5 +1,5 @@
 #!/bin/env python3
-## \file HTTPServer.py CGI server for autologbook web interfaces
+## \file HTTPServer.py HTTP(S) + CGI server for autologbook web interfaces
 
 import http.server
 import os

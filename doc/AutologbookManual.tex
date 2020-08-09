@@ -32,7 +32,7 @@
 	data logging and monitoring, equipment configuration, ``checklist'' routine monitoring forms.
 Information is stored in \cd{sqlite3} (\url{http://www.sqlite.org}) database files,
 	a highly robust and widely-used embedded database system.
-Various \cd{Python3} scripts facilitate reading and writing the database information,
+Various \cd{python3} scripts facilitate reading and writing the database information,
 	including a suite of \cd{CGI} scripts providing an \cd{HTML} web interface.
 
 The \alb\ utilities are structured around two independent databases,
@@ -53,8 +53,8 @@ The ``configuration'' database is for storing configuration information for
 %
 \subsection{Database structure}
 
-The logger database schema is defined in \cd{logger\_DB\_description.txt}.
-This is organized into ``instruments'' (describing initial sources of data),
+The logger database schema is defined in \cd{db_schema/logger\_DB\_schema.sql}.
+This is organized into ``readout groups'' (describing initial sources of data, such as an instrument),
 	``readouts'' (describing one particular aspect of an instrument providing a numerical readout),
 	and ``readings'' (timestamped values for a readout).
 An additional table of of ``log messages'' holds timestamped textual notes,
@@ -65,10 +65,9 @@ An additional table of of ``log messages'' holds timestamped textual notes,
 \subsection{Interface scripts}
 
 %
-\subsubsection{Logger server}
+\subsubsection{Logger XMLRPC server}
 
-\cd{DB\_Logger.py} provides a local server for database interactions, providing database query and modification functions
-	through an \cd{XMLRPC} interface.
+\cd{LogDB\_XMLRPC\_server.py} provides \cd{XMLRPC} servers for accessing the logger DB over the local network.
 Two separate server processes are launched with read-only and read/write access to the database,
 	permitting database write functions to be restricted to processes on the same machine (localhost network),
 	with potentially broader access for data queries.
@@ -79,14 +78,6 @@ The logger server also provides a ``data filter'' mechanism for thinning out fre
 	to a smaller number of points to be saved
 	(either by simple decimation to one in every $n$,
 	or recording points when (user-defined) ``significant'' changes occur).
-
-%
-\subsubsection{Data sources}
-
-Data sources, capturing readings from instruments and sending them to the server,
-	will need to be written for specific experimental applications.
-Example ``fake'' data sources are provided in \cd{TestFunctionGen.py} and \cd{FakeHVControl.py},
-	demonstrating how to set up instruments/readouts and send readings to the server process.
 
 %
 \subsubsection{Web monitors}

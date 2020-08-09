@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+## \file TestFunctionGen.py Submit test reading points to logging DB
 
 from AutologbookConfig import *
 import xmlrpc.client

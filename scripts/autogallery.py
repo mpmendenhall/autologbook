@@ -1,4 +1,5 @@
 #!/bin/env python3
+## \file autogallery.py Generate static HTML browsable gallery from files hieararchy
 
 from WebpageUtils import *
 import os
