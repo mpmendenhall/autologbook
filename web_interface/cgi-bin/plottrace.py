@@ -1,14 +1,13 @@
 #!/bin/env python3
 
 from WebpageUtils import *
-from AutologbookConfig import *
-from PlotUtils import *
+from AutologbookConfig import log_xmlrpc_host,log_xmlrpc_port
+from PlotUtils import PlotMaker, unmangle_xlink_namespace
 import xmlrpc.client
 import pickle
 import zlib
 import cgi
 import time
-import os
 from datetime import datetime
 
 class TracePlotter(PlotMaker):
@@ -93,8 +92,7 @@ class TracePlotter(PlotMaker):
             if chn: addTag(g,"figcaption",contents=chn["descrip"])
             if pstr: addTag(g, "div", {"class":"lightbg"}, contents=ET.fromstring(pstr))
             b.append(g)
-            print(docHeaderString())
-            print(unmangle_xlink_namespace(prettystring(P)))
+            print(docHeaderString(), unmangle_xlink_namespace(prettystring(P)))
 
 if __name__=="__main__":
 

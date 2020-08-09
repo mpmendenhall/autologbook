@@ -4,7 +4,7 @@
 # plots: dictionary of x,y points
 
 import time
-from subprocess import *
+from subprocess import Popen, PIPE, STDOUT
 import sys
 
 def pwrite(p,s):

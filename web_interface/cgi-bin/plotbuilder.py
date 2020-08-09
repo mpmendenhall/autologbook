@@ -79,5 +79,4 @@ if __name__=="__main__":
 
     addTag(FS1,"input",{"type":"submit","name":"submit","value":"Update Plots"})
 
-    print(docHeaderString())
-    print(prettystring(P))
+    print(docHeaderString(), prettystring(P))

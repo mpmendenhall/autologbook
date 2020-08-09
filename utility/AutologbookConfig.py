@@ -2,22 +2,22 @@
 ## \file AutologbookConfig.py Network configuration for Autologbook functions
 
 import os
-import subprocess
-import time
 import platform
 
 # location of autologbook repository
 autologbook = os.environ["APP_DIR"]+"/autologbook"
+# location of logging DB
+logdb_file = os.environ["HOME"]+"/autologbook_db.sql"
+# chat log DB file; set None to disable
+chatlog_db = os.environ["HOME"]+"/chatlog_db.sql"
 
-# coordinator node where this script is run
+# node this script is being run from
 thishost = platform.node()
 
-# logging DB server host (ssh tunneled from remote machined)
-loghost = "localhost"
+# TCP socket logging DB server host (ssh tunneled from remote machined)
+sock_loghost = "localhost"
 # logging DB TCP sockets server port
 log_tcp_port = 50001
-# location of logging DB on loghost
-logdb_file = os.environ["HOME"]+"/autologbook_db.sql"
 
 # host for log DB XMLRPC server (provides data for web views)
 log_xmlrpc_host = "localhost"
@@ -39,9 +39,6 @@ https_certfile = os.environ["PWD"]+"/https_cert.pem"
 https_keyfile = os.environ["PWD"]+"/https_key.pem"
 if http_host == "localhost": https_certfile = https_keyfile = http_login = None
 
-# chat log DB file; set None to disable
-chatlog_db = os.environ["HOME"]+"/chatlog_db.sql"
-
 ########################################
 ########################################
 
@@ -49,7 +46,7 @@ def network_config_summary():
     """Print summary of configuration parameters"""
     print()
     print("This computer is", thishost)
-    print("TCP sockets data server on", loghost, ":", log_tcp_port)
+    print("TCP sockets data server on", sock_loghost, ":", log_tcp_port)
     print("XMLRPC data server on ", log_xmlrpc_host, ":", log_xmlrpc_port)
     if log_xmlrpc_writeport: print("\twith write access on", log_xmlrpc_host, ":", log_xmlrpc_writeport)
     print("Web view at https://%s:%i"%(http_host, http_webview_port), "login", http_login)

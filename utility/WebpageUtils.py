@@ -78,6 +78,7 @@ def prettystring(elem, oneline = False):
     """ElementTree element to indented string"""
     if oneline: s = ET.tostring(elem).decode('utf-8')
     else:
+        #s = ET.tostring(elem).decode('utf-8')
         reparsed = minidom.parseString(ET.tostring(elem).decode('utf-8'))
         s = reparsed.toprettyxml().split('<?xml version="1.0" ?>\n')[-1]
     return s.replace('Ω',"&#937;").replace('μ',"&#956;")
