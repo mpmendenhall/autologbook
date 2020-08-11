@@ -3,6 +3,7 @@
 
 import os
 import platform
+import socket
 
 # location of autologbook code repository
 autologbook = os.path.dirname(os.path.realpath(__file__))+"/../"
@@ -13,6 +14,8 @@ chatlog_db = os.environ["HOME"]+"/chatlog_db.sql"
 
 # node this script is being run from
 thishost = platform.node()
+# full domain name
+thisdomain = socket.getfqdn()
 # host for logging, chat DB
 log_DB_host = os.environ.get("AUTOLOGBOOK_DB_HOST", thishost)
 
@@ -22,7 +25,7 @@ log_xmlrpc_port = 50002
 log_xmlrpc_writeport = 50003
 
 # host for web view HTTP server
-http_host = thishost
+http_host = thisdomain
 # port number for web view server
 http_webview_port = 50000
 # directory served
@@ -40,7 +43,7 @@ if http_host == "localhost": https_certfile = https_keyfile = http_login = None
 def network_config_summary():
     """Print summary of configuration parameters"""
     print()
-    print("This computer is", thishost, "and database is on", log_DB_host)
+    print("This computer is", thishost, thisdomain, "and database is on", log_DB_host)
     print("XMLRPC data on port", log_xmlrpc_port)
     if log_xmlrpc_writeport: print("\twith write access on port", log_xmlrpc_writeport)
     print("Web view at https://%s:%i"%(http_host, http_webview_port), "login", http_login)
