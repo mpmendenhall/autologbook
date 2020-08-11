@@ -36,7 +36,7 @@ if __name__=="__main__":
 
     sp = addTag(F, 'select', {"name":"rid", "size":"20", "multiple":''})
     try:
-        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
+        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
         rtypes = {r[0]: r[1:] for r in s.readtypes()}
         readgroups = {r[0]: tuple(r[1:]) for r in s.readgroups()}
         rlist = [((rtypes[r][0], readgroups[rtypes[r][-1]][0]), (r, rtypes[r])) for r in rtypes]

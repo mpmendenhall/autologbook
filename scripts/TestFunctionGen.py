@@ -8,7 +8,7 @@ import time
 from optparse import OptionParser
 
 parser = OptionParser()
-parser.add_option("--host",  dest="host",    default = log_xmlrpc_host, help="Hostname for logger server read/write")
+parser.add_option("--host",  dest="host",    default = log_DB_host, help="Hostname for logger server read/write")
 parser.add_option("--port",  dest="port",    type="int", default = log_xmlrpc_writeport, help="Port for logger server read/write")
 options, args = parser.parse_args()
 

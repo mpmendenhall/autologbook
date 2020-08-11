@@ -8,17 +8,19 @@ from optparse import OptionParser
 import shlex
 
 # names of services to launch/monitor
-service_names = ["HTTPServer.py", "LogDB_XMLRPC_server.py"] #, "LogMessengerSocketServer.py"]
+service_names = ["HTTPServer.py", "LogDB_XMLRPC_server.py"]
 
 def remote_cmd(host, cmd, tout = 5):
     """Run command on remote host or localhost"""
-    if host in ["localhost", thishost]: os.system(cmd)
+    if host in ["localhost", "127.0.0.1", thishost]: os.system(cmd)
     else: subprocess.call(["ssh","-x", host, cmd], timeout = tout)
 
-def tunnel_back(hostname):
+def tunnel_back(host, port):
     """Set up ssh tunnel from remote back to local for log messenger access"""
-    if host in ["localhost", thishost]: return
-    subprocess.call(["ssh","-x", hostname, 'nc localhost %i --send-only < /dev/null || nohup ssh -4xfN %s -L %i:localhost:%i > /dev/null 2>&1'%(log_tcp_port, thishost, log_tcp_port, log_tcp_port)])
+    if host in ["localhost", "127.0.0.1", thishost]: return
+    cmd = 'nc localhost %i < /dev/null || nohup ssh -4xfN %s -L %i:localhost:%i > /dev/null 2>&1'%(port, thishost, port, port)
+    print(cmd)
+    subprocess.call(["ssh","-x", host, cmd])
 
 def check_if_running(names = service_names):
     """Check whether named processes are running, return system PIDs for each available"""
@@ -39,16 +41,11 @@ def kill_network_servers(sig = "-INT", names = service_names):
     """Send signal to kill each DAQ network service"""
     ps = check_if_running(names)
     if not ps: return
-    for p in ps:
-        if p[0] == "Crunch_Realtime":
-            cancel_exfiltrate()
-            time.sleep(3)
-        os.system("kill "+sig+" %i"%p[1])
+    for p in ps: os.system("kill "+sig+" %i"%p[1])
 
     # if "soft kill" requested, do this first, then send hard kill signal
     time.sleep(2.0)
-    if ps and sig=="-INT":
-        kill_network_servers("-9", names)
+    if ps and sig=="-INT": kill_network_servers("-9", names)
     time.sleep(0.5)
 
 logflags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
@@ -80,7 +77,7 @@ def launch_network_servers():
     """Launch all necessary network services for Autologbook ecosystem"""
     kill_network_servers() # make sure nothing is already running
     #launch_tcpserver()
-    launch_xmlserver()
+    if thishost == log_DB_host: launch_xmlserver()
     launch_httpserver()
 
 if __name__=="__main__":
@@ -89,10 +86,10 @@ if __name__=="__main__":
     parser.add_option("--stop",     action="store_true", help="stop Autologbook network services")
     parser.add_option("--restart",  action="store_true", help="stop and restart Autologbook network services")
     parser.add_option("--rehttp",   action="store_true", help="(re)launch http server")
-    parser.add_option("--rexmlrpc", action="store_true", help="(re)launch xmlrpc server")
+    if thishost == log_DB_host: parser.add_option("--rexmlrpc", action="store_true", help="(re)launch xmlrpc server")
     options, args = parser.parse_args()
 
-    if not os.path.exists(logdb_file):
+    if thishost == log_DB_host and not os.path.exists(logdb_file):
         print("\nLogging database '%s' not found; initializing it.\n"%logdb_file)
         os.system("sqlite3 %s < "%shlex.quote(logdb_file) + autologbook + "/db_schema/logger_DB_schema.sql")
 
@@ -100,6 +97,7 @@ if __name__=="__main__":
     if options.stop: kill_network_servers()
     if options.start: launch_network_servers()
     if options.rehttp: kill_network_servers(names=["HTTPServer.py"]); time.sleep(1); launch_httpserver()
-    if options.rexmlrpc: kill_network_servers(names=["LogDB_XMLRPC_server.py"]); time.sleep(1); launch_xmlserver()
+    if thishost == log_DB_host:
+        if options.rexmlrpc: kill_network_servers(names=["LogDB_XMLRPC_server.py"]); time.sleep(1); launch_xmlserver()
     check_if_running()
     network_config_summary()

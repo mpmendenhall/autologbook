@@ -28,7 +28,6 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
             if rqtp == 1: # origin ID
                 origin = self.recv_string()
                 descrip = self.recv_string()
-                #print("getting origin '%s' '%s'"%(origin,descrip))
                 callq.put( (create_readgroup, (curs, origin, descrip), rq) )
                 self.request.sendall(struct.pack("q",rq.get().rid))
 

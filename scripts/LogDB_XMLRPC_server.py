@@ -10,6 +10,10 @@ from optparse import OptionParser
 import threading
 import pickle
 import zlib
+import ssl
+import socket
+import platform
+import traceback
 
 class DB_Logger:
     """Base class for writing data log"""
@@ -82,7 +86,7 @@ class DB_Logger:
         # xmlrpc web interface for data updates
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
-        server = SimpleXMLRPCServer(("localhost", self.readport), requestHandler=RequestHandler, allow_none=True)
+        server = SimpleXMLRPCServer((self.host, self.readport), requestHandler=RequestHandler, allow_none=True)
         #server.register_introspection_functions()
         server.register_function(self.get_newest,     'newest')
         server.register_function(self.get_readgroups, 'readgroups')
@@ -92,6 +96,7 @@ class DB_Logger:
         server.register_function(self.get_readout_info, 'readout_info')
         server.register_function(self.get_messages,     'messages')
 
+        print("Launching readserver on", self.host, self.readport)
         server.serve_forever()
 
     ########################
@@ -173,7 +178,8 @@ class DB_Logger:
         # xmlrpc web interface for data updates
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
-        server = SimpleXMLRPCServer(("localhost", self.writeport), requestHandler=RequestHandler, allow_none=True)
+
+        server = SimpleXMLRPCServer(None, bind_and_activate=False, requestHandler=RequestHandler, allow_none=True)
         server.register_function(self.create_readgroup, 'create_readgroup')
         server.register_function(self.create_readout, 'create_readout')
         server.register_function(self.set_ChangeFilter, 'set_ChangeFilter')
@@ -183,11 +189,37 @@ class DB_Logger:
         server.register_function(self.writeconn.commit, 'commit')
         server.register_function(self.define_readset, 'define_readset')
         server.register_function(self.log_readset, 'log_readset')
-        server.serve_forever()
 
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH) #, cafile = 'https_cert.pem') # accepted certs from clients
+        #context.verify_mode = ssl.CERT_REQUIRED
+        #context.check_hostname = False
+        context.load_cert_chain('https_cert.pem', 'https_key.pem') # my certs for clients
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
+            sock.bind((self.host, self.writeport))
+            sock.listen(40) # 20 pending connections before dropping more
+
+            with context.wrap_socket(sock, server_side=True) as ssock:
+                server.socket = ssock
+                print("Launching writeserver on", self.host, self.writeport)
+                server.serve_forever()
+
+    def try_launch_dataserver(self):
+        while True:
+            try: self.launch_dataserver()
+            except:
+                traceback.print_exc()
+                time.sleep(5)
+
+    def try_launch_writeserver(self):
+        while True:
+            try: self.launch_writeserver()
+            except:
+                traceback.print_exc()
+                time.sleep(5)
 
 ########################
-# data reduction filters
+# data reduction
 
 class DecimationFilter:
     """Data filter to keep every n'th point"""
@@ -241,18 +273,18 @@ if __name__=="__main__":
     options, args = parser.parse_args()
 
     D = DB_Logger(options.db)
+    D.host = platform.node()
     D.readport = options.readport
     D.writeport = options.writeport
 
     threads = []
 
     # run read server
-    if options.readport: threads.append(threading.Thread(target = D.launch_dataserver))
+    if options.readport: threads.append(threading.Thread(target = D.try_launch_dataserver))
 
     # run write server
-    if options.writeport: threads.append(threading.Thread(target = D.launch_writeserver))
+    if options.writeport: threads.append(threading.Thread(target = D.try_launch_writeserver))
 
-    print("Launching", len(threads), "DB logger threads on ports", options.readport, options.writeport)
     for t in threads: t.start()
     for t in threads: t.join()
     print("LogDB server done.")

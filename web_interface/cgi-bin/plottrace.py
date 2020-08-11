@@ -1,7 +1,7 @@
 #!/bin/env python3
 
 from WebpageUtils import *
-from AutologbookConfig import log_xmlrpc_host,log_xmlrpc_port
+from AutologbookConfig import log_DB_host,log_xmlrpc_port
 from PlotUtils import PlotMaker, unmangle_xlink_namespace
 import xmlrpc.client
 import pickle
@@ -25,7 +25,7 @@ class TracePlotter(PlotMaker):
              self.xtime = "%H:%M"
              self.xlabel = 'time'
         else: self.xlabel = 'time from present [hours]'
-        if dt > 48:
+        if dt >= 48:
             self.tscale = 24*3600.
             if xt: self.xtime = "%d) %I%p"
             else: self.xlabel = 'time from present [days]'
@@ -34,7 +34,7 @@ class TracePlotter(PlotMaker):
         try: rid = int(rid)
         except: return
         if rid in self.readings: return
-        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host,log_xmlrpc_port), allow_none=True)
+        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
         ri = s.readout_info(rid)
         if ri:
             self.channels[rid] = {"name": ri[0], "descrip": ri[1], "units": ri[2]}

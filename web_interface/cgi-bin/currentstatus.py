@@ -16,7 +16,7 @@ class WebChecklist:
 
     def get_readings(self):
         """Load newest readings for all items"""
-        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_xmlrpc_host, log_xmlrpc_port), allow_none=True)
+        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host, log_xmlrpc_port), allow_none=True)
         self.rtypes = {r[0]: r[1:] for r in s.readtypes(self.grpid)}
         self.readgroups = {r[0]: tuple(r[1:]) for r in s.readgroups()}
         self.readings = {r[0]: r[1:] for r in s.newest([t for t in self.rtypes]) if r}
