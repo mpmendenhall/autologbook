@@ -107,7 +107,7 @@ class PlotMaker:
 
             pstr = gpt.communicate()[0].decode("utf-8").replace("\n",'').replace('\t','') # strip internal whitespace
             pstr = pstr[pstr.find("<"):] # skip to start of XML, in case of junk warnings
-            return mangle_xlink_namespace(pstr)
+            return mangle_xlink_namespace(pstr).replace('Ω',"&#937;").replace('μ',"&#956;")
 
     def make_pdf(self, ds=None, xcmds=""):
         """Generate and return PDF binary data"""
