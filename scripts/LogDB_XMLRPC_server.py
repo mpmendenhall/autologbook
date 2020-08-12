@@ -173,7 +173,8 @@ class DB_Logger:
         # server thread interface to DB
         self.writeconn = sqlite3.connect(self.dbname, timeout = 30)
         self.write_curs = self.writeconn.cursor()
-        self.log_message(self.create_readgroup("LogDB_XMLRPC_server.py", "Autologbook DB web interface server"), "Starting Logger write server.")
+        self.log_message(self.create_readgroup("LogDB_XMLRPC_server.py", "Autologbook DB web interface server"),
+                         "Starting Logger write server on " + self.host + ":%i"%self.writeport)
 
         # xmlrpc web interface for data updates
         class RequestHandler(SimpleXMLRPCRequestHandler):
@@ -209,14 +210,14 @@ class DB_Logger:
             try: self.launch_dataserver()
             except:
                 traceback.print_exc()
-                time.sleep(5)
+                time.sleep(30)
 
     def try_launch_writeserver(self):
         while True:
             try: self.launch_writeserver()
             except:
                 traceback.print_exc()
-                time.sleep(5)
+                time.sleep(30)
 
 ########################
 # data reduction
