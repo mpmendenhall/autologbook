@@ -81,7 +81,7 @@ def launch_network_servers():
     """Launch all necessary network services for Autologbook ecosystem"""
     kill_network_servers() # make sure nothing is already running
     #launch_tcpserver()
-    if thishost == log_DB_host: launch_xmlserver()
+    if thisdomain == log_DB_host: launch_xmlserver()
     launch_httpserver()
 
 if __name__=="__main__":
@@ -90,10 +90,10 @@ if __name__=="__main__":
     parser.add_option("--stop",     action="store_true", help="stop Autologbook network services")
     parser.add_option("--restart",  action="store_true", help="stop and restart Autologbook network services")
     parser.add_option("--rehttp",   action="store_true", help="(re)launch http server")
-    if thishost == log_DB_host: parser.add_option("--rexmlrpc", action="store_true", help="(re)launch xmlrpc server")
+    if thisdomain == log_DB_host: parser.add_option("--rexmlrpc", action="store_true", help="(re)launch xmlrpc server")
     options, args = parser.parse_args()
 
-    if thishost == log_DB_host and not os.path.exists(logdb_file):
+    if thisdomain == log_DB_host and not os.path.exists(logdb_file):
         print("\nLogging database '%s' not found; initializing it.\n"%logdb_file)
         os.system("sqlite3 %s < "%shlex.quote(logdb_file) + autologbook + "/db_schema/logger_DB_schema.sql")
 
@@ -101,7 +101,7 @@ if __name__=="__main__":
     if options.stop: kill_network_servers()
     if options.start: launch_network_servers()
     if options.rehttp: kill_network_servers(names=["HTTPServer.py"]); time.sleep(1); launch_httpserver()
-    if thishost == log_DB_host:
+    if thisdomain == log_DB_host:
         if options.rexmlrpc: kill_network_servers(names=["LogDB_XMLRPC_server.py"]); time.sleep(1); launch_xmlserver()
     check_if_running()
     network_config_summary()
