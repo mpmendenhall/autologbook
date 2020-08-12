@@ -19,7 +19,7 @@ def tunnel_back(host, port):
     """Set up ssh tunnel from remote back to local for log messenger access"""
     if host in ["localhost", "127.0.0.1", thishost]: return
     cmd = 'nc localhost %i < /dev/null || nohup ssh -4xfN %s -L %i:localhost:%i > /dev/null 2>&1'%(port, thishost, port, port)
-    print(cmd)
+    print(' '.join(cmd))
     subprocess.call(["ssh","-x", host, cmd])
 
 def check_if_running(names = service_names):
@@ -59,14 +59,14 @@ def launch_xmlserver():
     xmlserver_log = os.open('XMLRPCServer_Log.txt', logflags)
     cmd = ["python3", autologbook+"/scripts/LogDB_XMLRPC_server.py",
                       "--readport", str(log_xmlrpc_port), "--writeport", str(log_xmlrpc_writeport), "--db", logdb_file]
-    print(cmd)
+    print(' '.join(cmd))
     subprocess.Popen(cmd, stdout=xmlserver_log, stderr=xmlserver_log, pass_fds=[xmlserver_log])
 
 def launch_httpserver():
     if https_certfile and not os.path.exists(https_certfile):
         print("Generating self-signed https certificate:")
         cmd = ['openssl', 'req', '-x509', '-newkey', 'rsa:4096', '-keyout', https_keyfile, '-out', https_certfile,
-               '-days', '365', '-nodes', '-subj', "/C=US/ST=Confusion/L=Mystery/O=The Illuminati/OU=DAQ/CN=%s"%http_domain]
+               '-days', '365', '-nodes', '-subj', "/C=US/ST=Confusion/L=Mystery/O=The Illuminati/OU=DAQ/CN=%s"%thisdomain]
         print(' '.join(cmd))
         subprocess.call(cmd)
 
@@ -74,7 +74,7 @@ def launch_httpserver():
     cmd = ["python3", autologbook+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", http_host, "--port", str(http_webview_port)]
     if http_login: cmd += ["--pwd", http_login]
     if https_certfile: cmd += ["--cert", https_certfile, "--key", https_keyfile]
-    print(cmd)
+    print(' '.join(cmd))
     subprocess.Popen(cmd, stdout=httpserver_log, stderr=httpserver_log, pass_fds=[httpserver_log])
 
 def launch_network_servers():

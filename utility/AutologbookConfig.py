@@ -17,7 +17,7 @@ thishost = platform.node()
 # full domain name
 thisdomain = socket.getfqdn()
 # host for logging, chat DB
-log_DB_host = os.environ.get("AUTOLOGBOOK_DB_HOST", thishost)
+log_DB_host = os.environ.get("AUTOLOGBOOK_DB_HOST", thisdomain)
 
 # port number for log DB XMLRPC (read)server
 log_xmlrpc_port = 50002

@@ -7,6 +7,8 @@ import board
 import busio
 import adafruit_bmp3xx
 from gps import *
+import platform
+import subprocess
 
 class BMP3xxMonitor:
     def h2P(h): return 1013.25 * (1 - 2.25577e-5 * h)**5.25588
@@ -68,3 +70,29 @@ class GPSMonitor:
         if self.lat is not None: DBL.log_readout(self.lat_id, self.lat, self.t)
         if self.lon is not None: DBL.log_readout(self.lon_id, self.lon, self.t)
         if self.alt is not None: DBL.log_readout(self.alt_id, self.alt, self.t)
+
+class CPUMonitor:
+    """Local system load/health indicators"""
+    def __init__(self, DBL):
+        self.hostname = platform.node()
+        self.g_id = DBL.create_readgroup(self.hostname, "Computer '" + self.hostname + "' status")
+        self.Tcpu_id = DBL.create_readout("Tcpu", self.hostname, "CPU temperature", "deg. C")
+        self.Tgpu_id = DBL.create_readout("Tgpu", self.hostname, "GPU temperature", "deg. C")
+
+        try:
+            subprocess.check_output(["vcgencmd","measure_temp"])
+            self.has_tgpu = True
+        except:
+            self.has_tgpu = False
+            self.Tgpu = None
+
+    def read(self):
+        self.t = time.time()
+        if self.has_tgpu: self.Tgpu = float(subprocess.check_output(["vcgencmd","measure_temp"]).decode()[5:9])
+        self.Tcpu = float(open("/sys/class/thermal/thermal_zone0/temp",'r').read())/1000.
+        print("CPU", self.Tcpu, self.Tgpu)
+        return True
+
+    def write(self, DBL):
+        DBL.log_readout(self.Tcpu_id,    self.Tcpu, self.t)
+        if self.Tgpu is not None: DBL.log_readout(self.Tgpu_id, self.Tgpu, self.t)

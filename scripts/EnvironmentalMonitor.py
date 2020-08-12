@@ -11,6 +11,7 @@ parser = OptionParser()
 parser.add_option("--host", default=log_DB_host, help="XMLRPC logger interface hostname")
 parser.add_option("--port", default=log_xmlrpc_writeport, type=int, help="XMLRPC logger interface port")
 parser.add_option("--gps",      action="store_true", help="log GPS readings")
+parser.add_option("--cpu",      action="store_true", help="log computer stats")
 parser.add_option("--bmp3xx",   action="store_true", help="log BMP3xx temperature/pressure readings")
 options, args = parser.parse_args()
 
@@ -31,6 +32,7 @@ with xmlrpc.client.ServerProxy(xmlrpc_url, allow_none=True, context=context) as 
 
     if options.bmp3xx: bmp3xx = BMP3xxMonitor(DBL)
     if options.gps: gpsm = GPSMonitor(DBL)
+    if options.cpu: cpum = CPUMonitor(DBL)
     print("Dataset identifiers initialized.")
 
 def read_sensors(i):
@@ -40,8 +42,9 @@ def read_sensors(i):
         i2c = busio.I2C(board.SCL, board.SDA)
         if bmp3xx.read(i2c): bmp3xx.write(DBL)
 
-    if options.gps and not i%6:
-        if gpsm.read(): gpsm.write(DBL)
+    if not i%6:
+        if options.gps and gpsm.read(): gpsm.write(DBL)
+        if options.cpu and cpum.read(): cpum.write(DBL)
 
     DBL.commit()
 
