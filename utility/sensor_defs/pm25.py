@@ -15,6 +15,7 @@ class PMSA300IMonitor:
         self.PME10_id = DBL.create_readout("PM1.0e", "PMSA300I", "Estimated PM1.5 mass density",  "μg/m^3")
         self.PME25_id = DBL.create_readout("PM2.5e", "PMSA300I", "Estimated PM2.5 mass density",  "μg/m^3")
         self.PME100_id = DBL.create_readout("PM10e", "PMSA300I", "Estimated PM10 mass density",   "μg/m^3")
+        self.i2c = None
 
     def read(self, SIO):
         #from digitalio import DigitalInOut, Direction, Pull

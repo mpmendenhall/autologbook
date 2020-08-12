@@ -12,6 +12,7 @@ class BMP3xxMonitor:
         self.T_id = DBL.create_readout("T", "BMP388", "ambient temperature", "deg. C")
         self.P_id = DBL.create_readout("P", "BMP388", "ambient pressure", "mbar")
         self.P = self.T = self.t = None
+        self.i2c = None
 
     def read(self, SIO):
         bmp3xx = adafruit_bmp3xx.BMP3XX_I2C(SIO.i2c)
