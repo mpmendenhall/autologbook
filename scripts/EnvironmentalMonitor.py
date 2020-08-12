@@ -13,6 +13,7 @@ parser.add_option("--port", default=log_xmlrpc_writeport, type=int, help="XMLRPC
 parser.add_option("--gps",      action="store_true", help="log GPS readings")
 parser.add_option("--cpu",      action="store_true", help="log computer stats")
 parser.add_option("--bmp3xx",   action="store_true", help="log BMP3xx temperature/pressure readings")
+parser.add_option("--pm",       action="store_true", help="log particulate matter readings")
 options, args = parser.parse_args()
 
 # request for remote server requiring SSH tunnel?
@@ -33,14 +34,18 @@ with xmlrpc.client.ServerProxy(xmlrpc_url, allow_none=True, context=context) as 
     if options.bmp3xx: bmp3xx = BMP3xxMonitor(DBL)
     if options.gps: gpsm = GPSMonitor(DBL)
     if options.cpu: cpum = CPUMonitor(DBL)
+    if options.pm:  pm25 = PMSA300IMonitor(DBL)
     print("Dataset identifiers initialized.")
+
+use_i2c = options.bmp3xx or options.pm
 
 def read_sensors(i):
     DBL = xmlrpc.client.ServerProxy(xmlrpc_url, allow_none=True, context=context)
 
-    if options.bmp3xx:
-        i2c = busio.I2C(board.SCL, board.SDA)
-        if bmp3xx.read(i2c): bmp3xx.write(DBL)
+    if use_i2c:
+        i2c = busio.I2C(board.SCL, board.SDA, frequency=100000) # freq slower for pm25
+        if options.bmp3xx and bmp3xx.read(i2c): bmp3xx.write(DBL)
+        if not i%6 and options.pm and pm25.read(i2c): pm25.write(DBL)
 
     if not i%6:
         if options.gps and gpsm.read(): gpsm.write(DBL)

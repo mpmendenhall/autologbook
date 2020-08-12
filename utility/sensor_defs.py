@@ -6,6 +6,7 @@ import time
 import board
 import busio
 import adafruit_bmp3xx
+import adafruit_pm25
 from gps import *
 import platform
 import subprocess
@@ -33,6 +34,36 @@ class BMP3xxMonitor:
     def write(self, DBL):
         DBL.log_readout(self.T_id, self.T, self.t)
         DBL.log_readout(self.P_id, self.P, self.t)
+
+class PMSA300IMonitor:
+    def __init__(self, DBL):
+        self.g_id = DBL.create_readgroup("PMSA300I", "PMSA300I particulate matter monitor")
+        self.PM003_id = DBL.create_readout("PM0.3", "PMSA300I", "Particles > 0.3um / 0.1L air", "n/dl")
+        self.PM005_id = DBL.create_readout("PM0.5", "PMSA300I", "Particles > 0.5um / 0.1L air", "n/dl")
+        self.PM010_id = DBL.create_readout("PM1",  "PMSA300I", "Particles > 1.0um / 0.1L air", "n/dl")
+        self.PM025_id = DBL.create_readout("PM2.5","PMSA300I", "Particles > 2.5um / 0.1L air", "n/dl")
+        self.PM050_id = DBL.create_readout("PM5",  "PMSA300I", "Particles > 5.0um / 0.1L air", "n/dl")
+        self.PM100_id = DBL.create_readout("PM10", "PMSA300I", "Particles > 10um / 0.1L air",  "n/dl")
+
+    def read(self, i2c):
+        reset_pin = None
+        pm25 = adafruit_pm25.PM25_I2C(i2c, reset_pin)
+        self.t = time.time()
+        try: self.aqdata = pm25.read()
+        except: self.aqdata = None
+        print(self.aqdata)
+        return self.aqdata is not None
+
+    def write(self, DBL):
+        if not self.aqdata: return
+        self.t = time.time()
+
+        DBL.log_readout(self.PM003_id, self.aqdata["particles 03um"], self.t)
+        DBL.log_readout(self.PM005_id, self.aqdata["particles 05um"], self.t)
+        DBL.log_readout(self.PM010_id, self.aqdata["particles 10um"], self.t)
+        DBL.log_readout(self.PM025_id, self.aqdata["particles 25um"], self.t)
+        DBL.log_readout(self.PM050_id, self.aqdata["particles 50um"], self.t)
+        DBL.log_readout(self.PM100_id, self.aqdata["particles 100um"], self.t)
 
 class GPSMonitor:
     def __init__(self, DBL):
