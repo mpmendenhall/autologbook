@@ -46,7 +46,7 @@ class DB_Logger:
         self.read_curs.execute("SELECT name, descrip, units FROM readout_types WHERE readout_id = ?", (rid,))
         return self.read_curs.fetchone()
 
-    def get_datapoints(self, rid, t0, t1, nmax = 200):
+    def get_datapoints(self, rid, t0, t1, nmax = 300):
         """Get datapoints for specified readout ID in time stamp range"""
         self.read_curs.execute("SELECT COUNT(*) FROM readings WHERE readout_id = ? AND time >= ? AND time <= ?", (int(rid), t0, t1))
         if self.read_curs.fetchone()[0] > nmax:
@@ -55,7 +55,7 @@ class DB_Logger:
             self.read_curs.execute("SELECT time,value FROM readings WHERE readout_id = ? AND time >= ? AND time <= ? ORDER BY time DESC", (int(rid), t0, t1))
         return self.read_curs.fetchall()
 
-    def get_datapoints_compressed(self, rid, t0, t1, nmax = 200):
+    def get_datapoints_compressed(self, rid, t0, t1, nmax = 300):
         """Get datapoints as compressed cPickle"""
         dp = self.get_datapoints(rid, t0, t1, nmax)
         return zlib.compress(pickle.dumps(dp))

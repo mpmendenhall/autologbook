@@ -9,6 +9,7 @@ import zlib
 import cgi
 import time
 from datetime import datetime
+import sys
 
 class TracePlotter(PlotMaker):
     def __init__(self, dt = 12, dt0 = 0, xt = False):
@@ -30,22 +31,24 @@ class TracePlotter(PlotMaker):
             if xt: self.xtime = "%d) %I%p"
             else: self.xlabel = 'time from present [days]'
 
-    def get_readings(self, rid):
-        try: rid = int(rid)
-        except: return
-        if rid in self.readings: return
-        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
-        ri = s.readout_info(rid)
-        if ri:
-            self.channels[rid] = {"name": ri[0], "descrip": ri[1], "units": ri[2]}
-            self.readings[rid] = pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, 100).data))[::-1]
-            self.ids.append(rid)
+    def get_readings(self, rids):
+        s = None
+        for rid in rids:
+            try: rid = int(rid)
+            except: continue
+            if rid in self.readings: return
+            if s is None: s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
+            ri = s.readout_info(rid)
+            if ri:
+                self.channels[rid] = {"name": ri[0], "descrip": ri[1], "units": ri[2]}
+                self.readings[rid] = pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, 150).data))[::-1]
+                self.ids.append(rid)
 
     def makePage(self, img = None):
         if not self.readings:
             if img:
-                print('Content-Type: text/plain\n')
-                print('no plots found!')
+                sys.stdout.buffer.write(b'Content-Type: image/svg+xml\nContent-Encoding: gzip\n\n')
+                sys.stdout.buffer.write(open("logo.svgz", "rb").read())
                 return
             P,b = makePageStructure("plotter fail!")
             addTag(b,"h1",contents="no plots found!")
@@ -103,12 +106,13 @@ if __name__=="__main__":
     except: dt = 12
     try: dt0 = abs(float(form.getvalue("t0","0")))
     except: dt0 = 0
+
     tp = TracePlotter(dt, dt0, "xtime" in form)
     try: tp.ymin = float(form.getvalue("min",None))
     except: pass
     try: tp.ymax = float(form.getvalue("max",None))
     except: pass
-    for r in form.getlist("rid"): tp.get_readings(r)
+    tp.get_readings(form.getlist("rid"))
     tp.keypos = form.getvalue("key","top left")
 
     tp.makePage(img = form.getvalue("img",None))
