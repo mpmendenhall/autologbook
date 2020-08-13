@@ -1,17 +1,11 @@
 #!/usr/bin/python3
+## \file PlotUtils.py Utility wrapper to gnuplot
 
-# gpt: gnuplot pipe
-# plots: dictionary of x,y points
-
-import time
-from subprocess import Popen, PIPE, STDOUT
 import sys
-from io import BytesIO
+import time
 import gzip
-
-def pwrite(p,s):
-    """encode string as bytes for write to pipe"""
-    p.stdin.write(bytes(s, 'UTF-8'))
+from io import BytesIO
+from subprocess import Popen, PIPE, STDOUT
 
 keypos_opts = ["top left", "top right", "bottom left", "bottom right"]
 
@@ -20,7 +14,7 @@ class PlotMaker:
 
     def __init__(self):
         self.renames = {}       # graph title re-naming
-        self.datasets = {}      # availabale datasets
+        self.datasets = {}      # availabale datasets, dictionary of ((x,y),...) points
         self.x_txs = {}         # plot transform functions on x axis
         self.y_txs = {}         # plot transform functions on y axis
         self.plotsty = {}       # plot style commands for each trace
@@ -35,18 +29,24 @@ class PlotMaker:
         self.keypos = None      # whether to generate graph key, and where e.g. "left top"
         self.xtime = None       # format x axis as time
 
-    def pass_gnuplot_data(self,k,gpt):
+        self.gpt = None
+
+    def gwrite(self, s):
+        """write string to gnuplot input"""
+        self.gpt.stdin.write(bytes(s, 'UTF-8'))
+
+    def pass_gnuplot_data(self,k):
         """Pass data to gnuplot for keys in k"""
         k = [p for p in k if self.datasets.get(p,None)]
         if not len(k):
-            pwrite(gpt,'plot 0 title "no data"\n')
+            self.gwrite('plot 0 title "no data"\n')
             time.sleep(0.01)
             return False
-        pwrite(gpt,"plot")
+        self.gwrite("plot")
         pstr = ', '.join(['"-" using 1:2 title "" %s'%self.plotsty.get(p,'') for p in k])
         if self.keypos in keypos_opts:
             pstr = ', '.join(['"-" using 1:2 title "%s: %g" %s'%(self.renames.get(p,p), self.datasets[p][-1][1], self.plotsty.get(p,'')) for p in k])
-        pwrite(gpt,pstr+'\n')
+        self.gwrite(pstr+'\n')
         time.sleep(0.01)
 
         for p in k:
@@ -54,31 +54,31 @@ class PlotMaker:
             ytx = self.y_txs.get(p,(lambda y: y))
             for d in self.datasets[p]:
                 x,y = xtx(d[0]), ytx(d[1])
-                if x is not None and y is not None: pwrite(gpt,"%f\t%f\n"%(xtx(d[0]), ytx(d[1])))
-            pwrite(gpt,"e\n")
-            gpt.stdin.flush()
+                if x is not None and y is not None: self.gwrite("%f\t%f\n"%(xtx(d[0]), ytx(d[1])))
+            self.gwrite("e\n")
+            self.gpt.stdin.flush()
             time.sleep(0.01)
-        gpt.stdin.flush()
+        self.gpt.stdin.flush()
         time.sleep(0.1)
 
         return True
 
-    def setup_axes(self,gpt):
+    def setup_axes(self):
         """Axis set-up commands"""
-        pwrite(gpt,"set autoscale\n")
+        self.gwrite("set autoscale\n")
         if self.ymin is not None or self.ymax is not None:
-            pwrite(gpt,"set yrange [%s:%s]\n"%(str(self.ymin) if self.ymin is not None else "", str(self.ymax) if self.ymax is not None else ""))
-        pwrite(gpt,"set xtic %s\n"%self.xtic)
-        pwrite(gpt,"set ytic %s\n"%self.ytic)
-        pwrite(gpt,"unset label\n")
-        if self.title: pwrite(gpt,'set title "%s"\n'%self.title)
-        pwrite(gpt,'set xlabel "%s"\n'%(self.xlabel if self.xlabel else ''))
-        pwrite(gpt,'set ylabel "%s"\n'%(self.ylabel if self.ylabel else ''))
+            self.gwrite("set yrange [%s:%s]\n"%(str(self.ymin) if self.ymin is not None else "", str(self.ymax) if self.ymax is not None else ""))
+        self.gwrite("set xtic %s\n"%self.xtic)
+        self.gwrite("set ytic %s\n"%self.ytic)
+        self.gwrite("unset label\n")
+        if self.title: self.gwrite('set title "%s"\n'%self.title)
+        self.gwrite('set xlabel "%s"\n'%(self.xlabel if self.xlabel else ''))
+        self.gwrite('set ylabel "%s"\n'%(self.ylabel if self.ylabel else ''))
         if self.xtime:
-            pwrite(gpt,'set xdata time\n')
-            pwrite(gpt,'set timefmt "%s"\n')
-            pwrite(gpt,'set format x "%s"\n'%self.xtime)
-        if self.keypos in keypos_opts: pwrite(gpt,"set key on %s\n"%self.keypos)
+            self.gwrite('set xdata time\n')
+            self.gwrite('set timefmt "%s"\n')
+            self.gwrite('set format x "%s"\n'%self.xtime)
+        if self.keypos in keypos_opts: self.gwrite("set key on %s\n"%self.keypos)
 
     def make_txt(self, ds=None):
         """Text table dump"""
@@ -98,13 +98,13 @@ class PlotMaker:
 
     def _make_x(self, terminal, ds=None, xcmds=""):
         """Generate and return plot data for given terminal command"""
-        with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as gpt:
-            pwrite(gpt, terminal + "\n")
-            self.setup_axes(gpt)
-            pwrite(gpt,xcmds)
+        with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as self.gpt:
+            self.gwrite(terminal + "\n")
+            self.setup_axes()
+            self.gwrite(xcmds)
 
-            self.pass_gnuplot_data(ds, gpt)
-            return gpt.communicate()[0]
+            self.pass_gnuplot_data(ds)
+            return self.gpt.communicate()[0]
 
     def make_svg(self, ds=None, xcmds=""):
         """Generate and return SVG plot"""

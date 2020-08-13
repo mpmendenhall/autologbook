@@ -1,8 +1,7 @@
 autologbook lab logging utility suite
-Michael P. Mendenhall (2016)
+Michael P. Mendenhall (2016--2020)
 
 a collection of Python scripts for generating and managing sqlite3 database log files of lab "slow control" readings
-INCOMPLETE WORK IN PROGRESS
 See doc/AutologbookManual.pdf for overview documentation.
 
 
@@ -11,10 +10,6 @@ See doc/AutologbookManual.pdf for overview documentation.
 --------------- TO DO ----------------
 fix display of 0 in tree form
 fix relative link edit-link path
-multi-plot graphs
-PMT I,V plots
-saved-state sessions
-messages display: last n OR time interval
 
 == quirks ==
 

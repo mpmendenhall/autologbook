@@ -9,8 +9,8 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="485.11356"
-   height="487.9707"
+   width="469.41632"
+   height="479.09647"
    id="svg2"
    version="1.1"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
@@ -25,8 +25,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.35"
-     inkscape:cx="646.77553"
-     inkscape:cy="120.04205"
+     inkscape:cx="52.489811"
+     inkscape:cy="-74.546477"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -55,7 +55,7 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(821.5163,-196.80651)">
+     transform="translate(821.5163,-11.092208)">
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:0%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L Bold';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#c50000;fill-opacity:1;stroke:none"
@@ -69,7 +69,7 @@
          style="font-size:86px;line-height:1.25">M</tspan></text>
     <g
        id="g3761"
-       transform="translate(-925.71429,-131.42858)">
+       transform="translate(-925.71429,-203.80956)">
       <circle
          id="path2985"
          style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
@@ -143,19 +143,19 @@
          y="645.53613"
          style="font-size:86px;line-height:1.25">A</tspan></text>
     <g
-       transform="rotate(90,-59.665269,51.497604)"
-       id="g856">
+       transform="translate(-925.71429,-90.47622)"
+       id="g853">
       <circle
          r="54.548237"
          cy="397.78333"
          cx="173.74623"
          style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-         id="circle848" />
+         id="circle845" />
       <circle
          r="54.548237"
          cy="397.78333"
          cx="173.74623"
-         id="circle850"
+         id="circle847"
          style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
          transform="translate(110.1066)" />
       <circle
@@ -164,12 +164,74 @@
          cx="173.74623"
          transform="translate(220.21323)"
          style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-         id="circle852" />
+         id="circle849" />
       <circle
          r="54.548237"
          cy="397.78333"
          cx="173.74623"
-         id="circle854"
+         id="circle851"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         transform="translate(330.31986)" />
+    </g>
+    <g
+       id="g863"
+       transform="translate(-925.71429,22.857124)">
+      <circle
+         id="circle855"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         cx="173.74623"
+         cy="397.78333"
+         r="54.548237" />
+      <circle
+         transform="translate(110.1066)"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="circle857"
+         cx="173.74623"
+         cy="397.78333"
+         r="54.548237" />
+      <circle
+         id="circle859"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         transform="translate(220.21323)"
+         cx="173.74623"
+         cy="397.78333"
+         r="54.548237" />
+      <circle
+         transform="translate(330.31986)"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="circle861"
+         cx="173.74623"
+         cy="397.78333"
+         r="54.548237" />
+    </g>
+    <g
+       transform="translate(-925.71429,-317.14288)"
+       id="g873">
+      <circle
+         r="54.548237"
+         cy="397.78333"
+         cx="173.74623"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="circle865" />
+      <circle
+         r="54.548237"
+         cy="397.78333"
+         cx="173.74623"
+         id="circle867"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         transform="translate(110.1066)" />
+      <circle
+         r="54.548237"
+         cy="397.78333"
+         cx="173.74623"
+         transform="translate(220.21323)"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="circle869" />
+      <circle
+         r="54.548237"
+         cy="397.78333"
+         cx="173.74623"
+         id="circle871"
          style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
          transform="translate(330.31986)" />
     </g>

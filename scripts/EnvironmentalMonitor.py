@@ -11,6 +11,7 @@ import ssl
 from Null_LogDB import *
 
 def get_DBL(options):
+    """Get DB Logger connection"""
     if not options.port: return Null_LogDB()
     xmlrpc_url = 'https://%s:%i'%(options.host, options.port)
     context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile = 'https_cert.pem') # validation of server credentials
@@ -18,36 +19,39 @@ def get_DBL(options):
     return xmlrpc.client.ServerProxy(xmlrpc_url, allow_none=True, context=context)
 
 def init_sensors(options):
-    #with get_DBL() as DBL:
-        DBL = get_DBL(options)
-        monitor_group = DBL.create_readgroup(thishost + ":EnvironmentalMonitoring.py", "Environmental sensors readout on "+thishost)
-        DBL.log_message(monitor_group, "Starting environmental monitor on " + thishost +".")
+    """Initialize sensors to read"""
 
-        smons = []
+    DBL = get_DBL(options)
+    monitor_group = DBL.create_readgroup(thishost + ":EnvironmentalMonitoring.py", "Environmental sensors readout on "+thishost)
+    DBL.log_message(monitor_group, "Starting environmental monitor on " + thishost +".")
 
-        if options.bmp3xx:
-            from sensor_defs import bmp3xx
-            smons.append(bmp3xx.BMP3xxMonitor(DBL))
-        if options.shtc3:
-            from sensor_defs import shtc3
-            smons.append(shtc3.SHTC3Monitor(DBL))
-        if options.pm:
-            from sensor_defs import pm25
-            smons.append(pm25.PMSA300IMonitor(DBL))
-        if options.as726x:
-            from sensor_defs import as726x
-            smons.append(as726x.AS726xMonitor(DBL))
+    smons = []
 
-        if options.gps:
-            from sensor_defs import gpsmon
-            smons.append(gpsmon.GPSMonitor(DBL))
-        if options.cpu:
-            smons.append(sensor_defs.CPUMonitor(DBL))
+    if options.bmp3xx:
+        from sensor_defs import bmp3xx
+        smons.append(bmp3xx.BMP3xxMonitor(DBL))
+    if options.shtc3:
+        from sensor_defs import shtc3
+        smons.append(shtc3.SHTC3Monitor(DBL))
+    if options.pm:
+        from sensor_defs import pm25
+        smons.append(pm25.PMSA300IMonitor(DBL))
+    if options.as726x:
+        from sensor_defs import as726x
+        smons.append(as726x.AS726xMonitor(DBL))
 
-        print("Dataset identifiers initialized.")
-        return smons
+    if options.gps:
+        from sensor_defs import gpsmon
+        smons.append(gpsmon.GPSMonitor(DBL))
+    if options.cpu:
+        smons.append(sensor_defs.CPUMonitor(DBL))
+
+    print("Dataset identifiers initialized.")
+    return smons
+
 
 def read_sensors(smons, options):
+    """read each sensor"""
     SIO = sensor_defs.SensorIO()
     SIO.DBL = get_DBL(options)
     if use_i2c: SIO.i2c = busio.I2C(board.SCL, board.SDA, frequency=100000) # freq slower for pm25
