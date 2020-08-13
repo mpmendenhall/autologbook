@@ -5,7 +5,7 @@ import time
 import platform
 import subprocess
 
-__all__ = ["SensorIO", "CPUMonitor", "bmp3xx", "gpsmon", "pm25", "shtc3"]
+__all__ = ["SensorIO", "CPUMonitor", "bmp3xx", "gpsmon", "pm25", "shtc3", "as726x"]
 
 class SensorIO:
     """Shared resources for sensor monitoring"""
