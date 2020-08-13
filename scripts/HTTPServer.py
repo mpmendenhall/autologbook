@@ -55,7 +55,8 @@ if  options.mode == "cgi":
     print("enabling cgi mode")
     handler.cgi_directories = ['/cgi-bin']
 
-httpd = http.server.HTTPServer((options.host, options.port), handler)
+#httpd = http.server.HTTPServer((options.host, options.port), handler)
+httpd = http.server.ThreadingHTTPServer((options.host, options.port), handler)
 if options.pwd: httpd.auth = base64.b64encode(options.pwd.encode()).decode()
 
 # openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -subj "/C=US/ST=California/L=Livermore/O=Company Name/OU=Org/CN=www.example.com" -nodes

@@ -6,6 +6,7 @@ import time
 import gzip
 from io import BytesIO
 from subprocess import Popen, PIPE, STDOUT
+import traceback
 
 keypos_opts = ["top left", "top right", "bottom left", "bottom right"]
 
@@ -128,8 +129,8 @@ class PlotMaker:
     def make_dump(self, fmt="svg", ds=None, xcmds="", headers=True):
         """Dump with headers to stdout for HTTP requests"""
         if fmt == "txt":
-            if headers: print('Content-Type: text/plain\n')
-            print(self.make_txt(ds))
+            if headers: sys.stdout.buffer.write(b'Content-Type: text/plain;charset=UTF-8\n\n')
+            sys.stdout.buffer.write(self.make_txt(ds).encode("utf-8"))
         elif fmt == "pdf":
             if headers: sys.stdout.buffer.write(b"Content-Type: application/pdf\n\n")
             sys.stdout.buffer.write(self.make_pdf(ds, xcmds))
