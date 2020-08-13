@@ -6,6 +6,8 @@
 import time
 from subprocess import Popen, PIPE, STDOUT
 import sys
+from io import BytesIO
+import gzip
 
 def pwrite(p,s):
     """encode string as bytes for write to pipe"""
@@ -94,32 +96,34 @@ class PlotMaker:
             s += "\n"
         return s
 
-    def make_svg(self, ds=None, xcmds=""):
-        """Generate and return SVG plot"""
-        if not ds: ds = self.datasets.keys()
-
+    def _make_x(self, terminal, ds=None, xcmds=""):
+        """Generate and return plot data for given terminal command"""
         with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as gpt:
-            pwrite(gpt,"set terminal svg enhanced\n")
-            self.setup_axes(gpt)
-            pwrite(gpt,xcmds)
-
-            self.pass_gnuplot_data(ds, gpt)
-
-            pstr = gpt.communicate()[0].decode("utf-8").replace("\n",'').replace('\t','') # strip internal whitespace
-            pstr = pstr[pstr.find("<"):] # skip to start of XML, in case of junk warnings
-            return mangle_xlink_namespace(pstr).replace('Ω',"&#937;").replace('μ',"&#956;")
-
-    def make_pdf(self, ds=None, xcmds=""):
-        """Generate and return PDF binary data"""
-        if not ds: ds = self.datasets.keys()
-
-        with Popen(["gnuplot", ],  stdin=PIPE, stdout=PIPE, stderr=STDOUT) as gpt:
-            pwrite(gpt,"set terminal pdf enhanced size 5in,4in\n")
+            pwrite(gpt, terminal + "\n")
             self.setup_axes(gpt)
             pwrite(gpt,xcmds)
 
             self.pass_gnuplot_data(ds, gpt)
             return gpt.communicate()[0]
+
+    def make_svg(self, ds=None, xcmds=""):
+        """Generate and return SVG plot"""
+        pstr = self._make_x("set terminal svg enhanced", ds, xcmds).decode("utf-8")
+        pstr = pstr.replace("\n",'').replace('\t','') # strip internal whitespace
+        pstr = pstr[pstr.find("<"):] # skip to start of XML, in case of junk warnings
+        return mangle_xlink_namespace(pstr).replace('Ω',"&#937;").replace('μ',"&#956;")
+
+    def make_pdf(self, ds=None, xcmds=""):
+        """Generate and return PDF binary data"""
+        return self._make_x("set terminal pdf enhanced size 5in,4in", ds, xcmds)
+
+    def make_png(self, ds=None, xcmds=""):
+        """Generate and return .png bitmap"""
+        return self._make_x("set terminal png transparent enhanced", ds, xcmds)
+
+    def make_gif(self, ds=None, xcmds=""):
+        """Generate and return .png bitmap"""
+        return self._make_x("set terminal gif transparent enhanced", ds, xcmds)
 
     def make_dump(self, fmt="svg", ds=None, xcmds="", headers=True):
         """Dump with headers to stdout for HTTP requests"""
@@ -129,6 +133,16 @@ class PlotMaker:
         elif fmt == "pdf":
             if headers: sys.stdout.buffer.write(b"Content-Type: application/pdf\n\n")
             sys.stdout.buffer.write(self.make_pdf(ds, xcmds))
+        elif fmt == "png":
+            if headers: sys.stdout.buffer.write(b'Content-Type: image/png\n\n')
+            sys.stdout.buffer.write(self.make_png(ds, xcmds))
+        elif fmt == "gif":
+            if headers: sys.stdout.buffer.write(b'Content-Type: image/gif\n\n')
+            sys.stdout.buffer.write(self.make_gif(ds, xcmds))
+        elif fmt == "svgz":
+            if headers: sys.stdout.buffer.write(b'Content-Type: image/svg+xml\nContent-Encoding: gzip\n\n')
+            with gzip.GzipFile(filename="plot.svgz", mode='wb', fileobj=sys.stdout.buffer) as gzip_obj:
+                gzip_obj.write(self.make_svg(ds, xcmds).encode())
         else:
             if headers: print('Content-Type: image/svg+xml\n')
             print(self.make_svg(ds, xcmds))

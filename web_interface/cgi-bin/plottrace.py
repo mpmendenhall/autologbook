@@ -82,7 +82,7 @@ class TracePlotter(PlotMaker):
             else: self.x_txs[r] = (lambda x, dx=(datetime.now()-datetime.utcnow()).total_seconds(): x+dx)
 
         if img:
-            if img not in ["pdf","svg","txt"]: img = "svg"
+            if img not in ["pdf","svg","txt","png","gif","svg"]: img = "svgz"
             self.make_dump(img, self.ids, "set xtics rotate by 35 right offset 0,-0.2\n" if self.xtime else "")
         else:
             pstr = self.make_svg(self.ids, "set xtics rotate by 35 right offset 0,-0.2\n" if self.xtime else "")
