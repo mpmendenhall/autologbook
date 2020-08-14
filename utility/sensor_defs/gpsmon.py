@@ -31,7 +31,7 @@ class GPSMonitor:
             #print  getattr(report,'speed','nan'),"\t",
             #print getattr(report,'climb','nan'),"\t"
 
-        if self.lat is not None: SIO.DBL.log_readout(self.lat_id, self.lat, self.t)
-        if self.lon is not None: SIO.DBL.log_readout(self.lon_id, self.lon, self.t)
-        if self.alt is not None: SIO.DBL.log_readout(self.alt_id, self.alt, self.t)
+        if self.lat is not None: SIO.log_readout(self.lat_id, self.lat, self.t)
+        if self.lon is not None: SIO.log_readout(self.lon_id, self.lon, self.t)
+        if self.alt is not None: SIO.log_readout(self.alt_id, self.alt, self.t)
 

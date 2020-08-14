@@ -49,16 +49,31 @@ def init_sensors(options):
     print("Dataset identifiers initialized.")
     return smons
 
+class SensLogger:
+    def __init__(self, options):
+        self.options = options
+        self.readouts = []
 
-def read_sensors(smons, options):
+    def log_readout(self, rid, val, t):
+        self.readouts.append((rid,val,t))
+
+    def upload(self):
+        """Send data to logger"""
+        if not self.readouts: return
+
+        print("Attempting upload of", len(self.readouts), "readout datapoints.")
+        DBL = get_DBL(self.options)
+        DBL.log_readouts(self.readouts)
+        self.readouts = []
+
+def read_sensors(smons, SIO):
     """read each sensor"""
-    SIO = sensor_defs.SensorIO()
-    SIO.DBL = get_DBL(options)
     if use_i2c: SIO.i2c = busio.I2C(board.SCL, board.SDA, frequency=100000) # freq slower for pm25
     for s in smons:
         try: s.read(SIO)
         except: traceback.print_exc()
-    SIO.DBL.commit()
+    try: SIO.upload()
+    except: traceback.print_exc()
 
 if __name__ == "__main__":
     parser = OptionParser()
@@ -79,9 +94,10 @@ if __name__ == "__main__":
         import board
         import busio
 
+    SIO = SensLogger(options)
     while True:
         print("\n------ Sensors readout", time.asctime(), " ------\n");
-        try: read_sensors(smons, options)
+        try: read_sensors(smons, SIO)
         except:
             traceback.print_exc()
             time.sleep(30)

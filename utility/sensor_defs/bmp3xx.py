@@ -23,5 +23,5 @@ class BMP3xxMonitor:
         self.t = time.time()
         print("BMP3xx", self.t, self.T, "C,\t", self.P, "mbar")
 
-        SIO.DBL.log_readout(self.T_id, self.T, self.t)
-        SIO.DBL.log_readout(self.P_id, self.P, self.t)
+        SIO.log_readout(self.T_id, self.T, self.t)
+        SIO.log_readout(self.P_id, self.P, self.t)

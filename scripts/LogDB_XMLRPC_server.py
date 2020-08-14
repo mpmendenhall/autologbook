@@ -6,6 +6,7 @@ import time
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 import os
+import sys
 from optparse import OptionParser
 import threading
 import pickle
@@ -98,6 +99,7 @@ class DB_Logger_Reader:
         server.register_function(self.get_messages,     'messages')
 
         print("Launching readserver on", self.host, self.readport)
+        sys.stdout.flush()
         server.serve_forever()
 
     def try_launch_dataserver(self):
@@ -105,7 +107,8 @@ class DB_Logger_Reader:
             try: self.launch_dataserver()
             except:
                 traceback.print_exc()
-                time.sleep(30)
+                sys.stdout.flush()
+                time.sleep(10)
 
 
 ######################
@@ -161,6 +164,11 @@ class DB_Logger_Writer:
         self.readouts[rid].time = t
         self.readouts[rid].val = value
 
+    def log_readouts(self, rs):
+        """Log list of [(rid, val, [t]), ...]"""
+        for r in rs: self.log_readout(*r)
+        if len(rs): self.writeconn.commit()
+
     def log_readset(self, rsid, tvs):
         """log readouts [t,v,t,v...] in predefined readset (simplified data transfer)"""
         for (n,rid) in enumerate(self.readsets[rsid]):
@@ -208,6 +216,7 @@ class DB_Logger_Writer:
         server.register_function(self.set_ChangeFilter, 'set_ChangeFilter')
         server.register_function(self.set_DecimationFilter, 'set_DecimationFilter')
         server.register_function(self.log_readout, 'log_readout')
+        server.register_function(self.log_readouts, 'log_readouts')
         server.register_function(self.log_message, 'log_message')
         server.register_function(self.writeconn.commit, 'commit')
         server.register_function(self.define_readset, 'define_readset')
@@ -225,6 +234,7 @@ class DB_Logger_Writer:
             with context.wrap_socket(sock, server_side=True) as ssock:
                 server.socket = ssock
                 print("Launching writeserver on", self.host, self.writeport)
+                sys.stdout.flush()
                 server.serve_forever()
 
     def try_launch_writeserver(self):
@@ -232,7 +242,8 @@ class DB_Logger_Writer:
             try: self.launch_writeserver()
             except:
                 traceback.print_exc()
-                time.sleep(30)
+                sys.stdout.flush()
+                time.sleep(10)
 
 ########################
 # data reduction
@@ -281,6 +292,10 @@ class ChangeFilter:
         return vjump
 
 
+############################
+############################
+############################
+
 if __name__=="__main__":
     parser = OptionParser()
     parser.add_option("--readport", dest="readport",    type="int", default = 0, help="Localhost port for read access")
@@ -304,7 +319,10 @@ if __name__=="__main__":
 
     nalive = len(threads)
     while nalive:
-        for t in threads: t.join(1)
-        nalive = sum([t.is_alive() for t in threads])
+        nalive = 0
+        for t in threads:
+            if t.is_alive(): nalive += 1
+            else: t.join()
+        time.sleep(5)
 
     print("LogDB server done.")

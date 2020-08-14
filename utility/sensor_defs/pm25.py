@@ -36,13 +36,13 @@ class PMSA300IMonitor:
             self.aqdata = None
             return
 
-        SIO.DBL.log_readout(self.PM003_id, self.aqdata["particles 03um"], self.t)
-        SIO.DBL.log_readout(self.PM005_id, self.aqdata["particles 05um"], self.t)
-        SIO.DBL.log_readout(self.PM010_id, self.aqdata["particles 10um"], self.t)
-        SIO.DBL.log_readout(self.PM025_id, self.aqdata["particles 25um"], self.t)
-        SIO.DBL.log_readout(self.PM050_id, self.aqdata["particles 50um"], self.t)
-        SIO.DBL.log_readout(self.PM100_id, self.aqdata["particles 100um"], self.t)
+        SIO.log_readout(self.PM003_id, self.aqdata["particles 03um"], self.t)
+        SIO.log_readout(self.PM005_id, self.aqdata["particles 05um"], self.t)
+        SIO.log_readout(self.PM010_id, self.aqdata["particles 10um"], self.t)
+        SIO.log_readout(self.PM025_id, self.aqdata["particles 25um"], self.t)
+        SIO.log_readout(self.PM050_id, self.aqdata["particles 50um"], self.t)
+        SIO.log_readout(self.PM100_id, self.aqdata["particles 100um"], self.t)
 
-        SIO.DBL.log_readout(self.PME10_id,  self.aqdata["pm10 env"],  self.t)
-        SIO.DBL.log_readout(self.PME25_id,  self.aqdata["pm25 env"],  self.t)
-        SIO.DBL.log_readout(self.PME100_id, self.aqdata["pm100 env"], self.t)
+        SIO.log_readout(self.PME10_id,  self.aqdata["pm10 env"],  self.t)
+        SIO.log_readout(self.PME25_id,  self.aqdata["pm25 env"],  self.t)
+        SIO.log_readout(self.PME100_id, self.aqdata["pm100 env"], self.t)

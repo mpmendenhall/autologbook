@@ -34,5 +34,5 @@ class CPUMonitor:
         self.Tcpu = float(open("/sys/class/thermal/thermal_zone0/temp",'r').read())/1000.
         print("\n", self.hostname, "Tcpu =", self.Tcpu, "C, Tgpu =", self.Tgpu, "C")
 
-        SIO.DBL.log_readout(self.Tcpu_id,    self.Tcpu, self.t)
-        if self.Tgpu is not None: SIO.DBL.log_readout(self.Tgpu_id, self.Tgpu, self.t)
+        SIO.log_readout(self.Tcpu_id,    self.Tcpu, self.t)
+        if self.Tgpu is not None: SIO.log_readout(self.Tgpu_id, self.Tgpu, self.t)

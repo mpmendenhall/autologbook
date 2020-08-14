@@ -15,5 +15,5 @@ class SHTC3Monitor:
         self.t = time.time()
         print("SHTC3", self.t, self.T, "C,\t", self.RH, " % Humidity")
 
-        SIO.DBL.log_readout(self.T_id, self.T, self.t)
-        SIO.DBL.log_readout(self.RH_id, self.RH, self.t)
+        SIO.log_readout(self.T_id, self.T, self.t)
+        SIO.log_readout(self.RH_id, self.RH, self.t)
