@@ -23,6 +23,7 @@ class TracePlotter(PlotMaker):
         self.channels = {}
         self.keypos = "top left"
         self.tscale = 3600.
+        self.maxpts = 150
         if xt:
              self.xtime = "%H:%M"
              self.xlabel = 'time'
@@ -42,7 +43,7 @@ class TracePlotter(PlotMaker):
             ri = s.readout_info(rid)
             if ri:
                 self.channels[rid] = {"name": ri[0], "descrip": ri[1], "units": ri[2]}
-                self.readings[rid] = pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, 150).data))[::-1]
+                self.readings[rid] = pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, self.maxpts).data))[::-1]
                 self.ids.append(rid)
 
     def dumpImage(self, img):
@@ -104,8 +105,10 @@ def makePage(form):
     P,b = makePageStructure(ptitle, refresh=300)
     addTag(b,"h1",contents=[pheader, makeLink("/index.html","[Home]")])
     f = addTag(b, 'figure', {"style":"display:inline-block"})
-    addTag(f, 'img', {"class":"lightbg", "width":"600", "height":"480", "src":"/cgi-bin/plottrace.py?" + args + "&img=y"})
-    addTag(f, 'figcaption', {}, [subtitle, makeLink("/cgi-bin/plottrace.py?" + args + "&img=pdf", "[PDF]")])
+    addTag(f, 'img', {"class":"lightbg", "width":"750", "height":"600", "src":"/cgi-bin/plottrace.py?" + args + "&img=y"})
+    addTag(f, 'figcaption', {}, [subtitle,
+                                 makeLink("/cgi-bin/plottrace.py?" + args + "&img=pdf", "[PDF]"),
+                                 makeLink("/cgi-bin/plottrace.py?" + args + "&img=txt", "[txt]")])
     print(docHeaderString(), unmangle_xlink_namespace(prettystring(P)))
 
 if __name__=="__main__":
@@ -127,6 +130,14 @@ if __name__=="__main__":
     try: tp.ymin = float(form.getvalue("min",None))
     except: pass
     try: tp.ymax = float(form.getvalue("max",None))
+    except: pass
+    try:
+        tp.smooth = float(form.getvalue("smooth",None))
+        tp.smooth = min(max(tp.smooth, 1), 10)
+    except: pass
+    try:
+        tp.maxpts = int(form.getvalue("nmax",None))
+        tp.maxpts = min(500, tp.maxpts)
     except: pass
     tp.get_readings(form.getlist("rid"))
     tp.keypos = form.getvalue("key","top left")

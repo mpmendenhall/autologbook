@@ -15,15 +15,16 @@ import socket
 import platform
 import traceback
 
-class DB_Logger:
-    """Base class for writing data log"""
+######################
+######################
+class DB_Logger_Reader:
+    """Base class for reading data log"""
 
-    def __init__(self, dbname):
+    def __init__(self, dbname, host, readport):
         """Initialize with name of database to open"""
+        self.host = host
+        self.readport = readport
         self.dbname = dbname
-
-        self.readouts = {}      # cache of readout information
-        self.filters = {}       # data reduction filters per channel
         self.readsets = []      # pre-defined sets of readouts for negotiating bulk transfers
 
 
@@ -43,8 +44,8 @@ class DB_Logger:
 
     def get_readout_info(self, rid):
         """Get (name, descrip, units) on one readout"""
-        self.read_curs.execute("SELECT name, descrip, units FROM readout_types WHERE readout_id = ?", (rid,))
-        return self.read_curs.fetchone()
+        ri = get_readout_info(self.read_curs, rid)
+        return (ri.name, ri.descrip, ri.units) if ri is not None else None
 
     def get_datapoints(self, rid, t0, t1, nmax = 300):
         """Get datapoints for specified readout ID in time stamp range"""
@@ -99,8 +100,27 @@ class DB_Logger:
         print("Launching readserver on", self.host, self.readport)
         server.serve_forever()
 
-    ########################
-    # write server functions
+    def try_launch_dataserver(self):
+        while True:
+            try: self.launch_dataserver()
+            except:
+                traceback.print_exc()
+                time.sleep(30)
+
+
+######################
+######################
+class DB_Logger_Writer:
+    """Base class for writing data log"""
+
+    def __init__(self, dbname, host, writeport):
+        """Initialize with name of database to open"""
+        self.dbname = dbname
+        self.host = host
+        self.writeport = writeport
+        self.readouts = {}      # cache of readout information
+        self.filters = {}       # data reduction filters per channel
+        self.readsets = []      # pre-defined sets of readouts for negotiating bulk transfers
 
     def insert(self, tname, valdict, cols = None):
         """Generate and execute an insert command"""
@@ -125,24 +145,26 @@ class DB_Logger:
         if rid is not None: self.readouts[rid] = get_readout_info(self.write_curs, rid)
         return rid
 
-    def log_readout(self, tid, value, t = None):
+    def log_readout(self, rid, value, t = None):
         """Log reading, using current time for timestamp if not specified"""
-        assert(tid in self.readouts)
+        if rid not in self.readouts:
+            self.readouts[rid] = get_readout_info(self.write_curs, rid)
+        assert(self.readouts[rid] is not None)
 
         t = time.time() if t is None else t
 
-        self.log_readout_hook(tid, value, t)
-        if self.filters.get(tid, (lambda a,b,c: True))(tid,t,value):
-            self.insert("readings", {"readout_id":tid, "time":t, "value":value})
+        self.log_readout_hook(rid, value, t)
+        if self.filters.get(rid, (lambda a,b,c: True))(rid,t,value):
+            self.insert("readings", {"readout_id":rid, "time":t, "value":value})
 
         # update latest readout value
-        self.readouts[tid].time = t
-        self.readouts[tid].val = value
+        self.readouts[rid].time = t
+        self.readouts[rid].val = value
 
     def log_readset(self, rsid, tvs):
         """log readouts [t,v,t,v...] in predefined readset (simplified data transfer)"""
-        for (n,tid) in enumerate(self.readsets[rsid]):
-            self.log_readout(tid, tvs[2*n+1], tvs[2*n])
+        for (n,rid) in enumerate(self.readsets[rsid]):
+            self.log_readout(rid, tvs[2*n+1], tvs[2*n])
 
     def log_readout_hook(self, tid, value, t):
         """Hook for subclass to check readout values"""
@@ -205,13 +227,6 @@ class DB_Logger:
                 print("Launching writeserver on", self.host, self.writeport)
                 server.serve_forever()
 
-    def try_launch_dataserver(self):
-        while True:
-            try: self.launch_dataserver()
-            except:
-                traceback.print_exc()
-                time.sleep(30)
-
     def try_launch_writeserver(self):
         while True:
             try: self.launch_writeserver()
@@ -273,19 +288,23 @@ if __name__=="__main__":
     parser.add_option("--db",       dest="db",          help="path to database")
     options, args = parser.parse_args()
 
-    D = DB_Logger(options.db)
-    D.host = platform.node()
-    D.readport = options.readport
-    D.writeport = options.writeport
-
     threads = []
 
     # run read server
-    if options.readport: threads.append(threading.Thread(target = D.try_launch_dataserver))
+    if options.readport:
+        Dr = DB_Logger_Reader(options.db, platform.node(), options.readport)
+        threads.append(threading.Thread(target = Dr.try_launch_dataserver))
 
     # run write server
-    if options.writeport: threads.append(threading.Thread(target = D.try_launch_writeserver))
+    if options.writeport:
+        Dw = DB_Logger_Writer(options.db, platform.node(), options.writeport)
+        threads.append(threading.Thread(target = Dw.try_launch_writeserver))
 
     for t in threads: t.start()
-    for t in threads: t.join()
+
+    nalive = len(threads)
+    while nalive:
+        for t in threads: t.join(1)
+        nalive = sum([t.is_alive() for t in threads])
+
     print("LogDB server done.")

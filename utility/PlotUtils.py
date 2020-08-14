@@ -7,6 +7,8 @@ import gzip
 from io import BytesIO
 from subprocess import Popen, PIPE, STDOUT
 import traceback
+import numpy as np
+from scipy import signal
 
 keypos_opts = ["top left", "top right", "bottom left", "bottom right"]
 
@@ -29,6 +31,7 @@ class PlotMaker:
         self.ymax = None        # y axis maximum; None to autoscale
         self.keypos = None      # whether to generate graph key, and where e.g. "left top"
         self.xtime = None       # format x axis as time
+        self.smooth = None
 
         self.gpt = None
 
@@ -43,6 +46,7 @@ class PlotMaker:
             self.gwrite('plot 0 title "no data"\n')
             time.sleep(0.01)
             return False
+
         self.gwrite("plot")
         pstr = ', '.join(['"-" using 1:2 title "" %s'%self.plotsty.get(p,'') for p in k])
         if self.keypos in keypos_opts:
@@ -53,9 +57,15 @@ class PlotMaker:
         for p in k:
             xtx = self.x_txs.get(p,(lambda x: x))
             ytx = self.y_txs.get(p,(lambda y: y))
-            for d in self.datasets[p]:
-                x,y = xtx(d[0]), ytx(d[1])
-                if x is not None and y is not None: self.gwrite("%f\t%f\n"%(xtx(d[0]), ytx(d[1])))
+
+            ys = np.array([d[1] for d in self.datasets[p]])
+            if self.smooth:
+                k = 1./self.smooth
+                ys = signal.symiirorder1(ys, k**2, 1-k)
+
+            for n,d in enumerate(self.datasets[p]):
+                x,y = xtx(d[0]), ytx(ys[n])
+                if x is not None and y is not None: self.gwrite("%f\t%f\n"%(x,y))
             self.gwrite("e\n")
             self.gpt.stdin.flush()
             time.sleep(0.01)
