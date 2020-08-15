@@ -59,9 +59,9 @@ class PlotMaker:
             ytx = self.y_txs.get(p,(lambda y: y))
 
             ys = np.array([d[1] for d in self.datasets[p]])
-            if self.smooth:
-                k = 1./self.smooth
-                ys = signal.symiirorder1(ys, k**2, 1-k)
+            if self.smooth and self.smooth > 1:
+                b, a = signal.butter(1, 1./self.smooth)
+                ys = signal.filtfilt(b, a, ys)
 
             for n,d in enumerate(self.datasets[p]):
                 x,y = xtx(d[0]), ytx(ys[n])

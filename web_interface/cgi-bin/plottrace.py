@@ -133,7 +133,7 @@ if __name__=="__main__":
     except: pass
     try:
         tp.smooth = float(form.getvalue("smooth",None))
-        tp.smooth = min(max(tp.smooth, 1), 10)
+        tp.smooth = min(max(tp.smooth, 1), 20)
     except: pass
     try:
         tp.maxpts = int(form.getvalue("nmax",None))

@@ -4,11 +4,13 @@
 from SystemLauncher import *
 import xmlrpc.client
 import sensor_defs
+from sensor_defs import SensorItem
 import time
 import traceback
 from optparse import OptionParser
 import ssl
 from Null_LogDB import *
+from queue import PriorityQueue
 
 def get_DBL(options):
     """Get DB Logger connection"""
@@ -49,31 +51,23 @@ def init_sensors(options):
     print("Dataset identifiers initialized.")
     return smons
 
-class SensLogger:
+class SensLogger(SensorItem):
     def __init__(self, options):
+        SensorItem.__init__(self)
         self.options = options
         self.readouts = []
 
     def log_readout(self, rid, val, t):
         self.readouts.append((rid,val,t))
 
-    def upload(self):
+    def read(self, SIO):
         """Send data to logger"""
         if not self.readouts: return
 
-        print("Attempting upload of", len(self.readouts), "readout datapoints.")
+        print("\n**** Uploading", len(self.readouts), "readout datapoints. ****\n")
         DBL = get_DBL(self.options)
         DBL.log_readouts(self.readouts)
         self.readouts = []
-
-def read_sensors(smons, SIO):
-    """read each sensor"""
-    if use_i2c: SIO.i2c = busio.I2C(board.SCL, board.SDA, frequency=100000) # freq slower for pm25
-    for s in smons:
-        try: s.read(SIO)
-        except: traceback.print_exc()
-    try: SIO.upload()
-    except: traceback.print_exc()
 
 if __name__ == "__main__":
     parser = OptionParser()
@@ -88,18 +82,27 @@ if __name__ == "__main__":
     parser.add_option("--dt",       type=float, default= 10, help="minimum wait between readouts (s)")
     options, args = parser.parse_args()
 
-    smons = init_sensors(options)
-    use_i2c = len([None for s in smons if hasattr(s,'i2c')])
-    if use_i2c:
-        import board
-        import busio
-
     SIO = SensLogger(options)
+    SIO.tnext = time.time()
+    SIO.dt = options.dt/2.
+
+    SQ = PriorityQueue()
+    SQ.put(SIO)
+    for s in init_sensors(options):
+        s.dt = options.dt
+        s.tnext = SIO.tnext - 1
+        SQ.put(s)
+
     while True:
-        print("\n------ Sensors readout", time.asctime(), " ------\n");
-        try: read_sensors(smons, SIO)
-        except:
-            traceback.print_exc()
-            time.sleep(30)
-        print("\n----- waiting", options.dt, "s from", time.asctime(), " ------\n");
-        time.sleep(options.dt)
+        tnow = time.time()
+        s = SQ.get()
+        dtnext = s.tnext - tnow
+        if dtnext > 0:
+            print("------ Waiting", dtnext, "s from", time.asctime(), " ------\n");
+            time.sleep(dtnext)
+            tnow = s.tnext
+
+        try: s.read(SIO)
+        except: traceback.print_exc()
+        s.tnext = tnow + s.dt
+        SQ.put(s)

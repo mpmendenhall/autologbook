@@ -2,9 +2,12 @@ import time
 import board
 import busio
 from adafruit_as726x import AS726x_I2C
+from . import SensorItem
 
-class AS726xMonitor:
+class AS726xMonitor(SensorItem):
     def __init__(self, DBL):
+        SensorItem.__init__(self)
+
         self.g_id = DBL.create_readgroup("AS726x", "AS726x multispectral light sensor")
 
         self.R_id = DBL.create_readout("R", "AS726x", "650+-40nm Red band",    "μW/cm^2")
@@ -16,10 +19,9 @@ class AS726xMonitor:
 
         self.T_id = DBL.create_readout("T", "AS726x", "device temperature", "deg. C")
 
-        self.i2c = None
-
     def read(self, SIO):
-        sensor = AS726x_I2C(SIO.i2c)
+        i2c = busio.I2C(board.SCL, board.SDA, frequency=100000) # freq slower for pm25
+        sensor = AS726x_I2C(i2c)
         sensor.integration_time = 50
         sensor. start_measurement()
         self.t = time.time()

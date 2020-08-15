@@ -9,6 +9,15 @@ See doc/AutologbookManual.pdf for overview documentation.
 --------------------------------------
 --------------- TO DO ----------------
 
+revive data reduction filters
+controlled/clean XMLRPC logger shutdown
+static page generators; on-demand updates; fully-remote view
+
+certificate generation, distribution for remotes
+revive c++/"hardwired" local net TCP socket interface
+
+
+------------------------------
 fix display of 0 in tree form
 fix relative link edit-link path
 

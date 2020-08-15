@@ -13,9 +13,19 @@ class SensorIO:
         self.i2c = None
         self.DBL = None
 
-class CPUMonitor:
+class SensorItem:
+    def __init__(self, dt = 60):
+        self.dt = dt             # read repeat frequency
+        self.tnext = time.time() # next requested read time
+
+    def __lt__(self, other):
+        return self.tnext < other.tnext
+
+class CPUMonitor(SensorItem):
     """Local system load/health indicators"""
     def __init__(self, DBL):
+        SensorItem.__init__(self)
+
         self.hostname = platform.node()
         self.g_id = DBL.create_readgroup(self.hostname, "Computer '" + self.hostname + "' status")
         self.Tcpu_id = DBL.create_readout("Tcpu", self.hostname, "CPU temperature", "deg. C")

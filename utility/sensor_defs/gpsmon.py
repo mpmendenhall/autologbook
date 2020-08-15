@@ -1,8 +1,11 @@
 import time
 from gps import *
+from . import SensorItem
 
-class GPSMonitor:
+class GPSMonitor(SensorItem):
     def __init__(self, DBL):
+        SensorItem.__init__(self)
+
         self.g_id = DBL.create_readgroup("GPS", "Global Positioning System receiver")
         self.lat_id = DBL.create_readout("lat", "GPS", "Latitude", "degrees N")
         self.lon_id = DBL.create_readout("lon", "GPS", "Longitude", "degrees E")

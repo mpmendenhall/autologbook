@@ -2,9 +2,12 @@ import time
 import board
 import busio
 import adafruit_pm25
+from . import SensorItem
 
-class PMSA300IMonitor:
+class PMSA300IMonitor(SensorItem):
     def __init__(self, DBL):
+        SensorItem.__init__(self)
+
         self.g_id = DBL.create_readgroup("PMSA300I", "PMSA300I particulate matter monitor")
         self.PM003_id = DBL.create_readout("PM0.3", "PMSA300I", "Particles > 0.3um / 0.1L air", "n/dl")
         self.PM005_id = DBL.create_readout("PM0.5", "PMSA300I", "Particles > 0.5um / 0.1L air", "n/dl")
@@ -24,8 +27,9 @@ class PMSA300IMonitor:
         # reset_pin.direction = Direction.OUTPUT
         # reset_pin.value = False
 
+        i2c = busio.I2C(board.SCL, board.SDA, frequency=100000) # freq slower for pm25
         reset_pin = None
-        pm25 = adafruit_pm25.PM25_I2C(SIO.i2c, reset_pin)
+        pm25 = adafruit_pm25.PM25_I2C(i2c, reset_pin)
         self.t = time.time()
         try:
             self.aqdata = pm25.read()
