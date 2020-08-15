@@ -31,22 +31,22 @@ def init_sensors(options):
 
     if options.bmp3xx:
         from sensor_defs import bmp3xx
-        smons.append(bmp3xx.BMP3xxMonitor(DBL))
+        smons.append(bmp3xx.BMP3xxMonitor(DBL, options.bmp3xx))
     if options.shtc3:
         from sensor_defs import shtc3
-        smons.append(shtc3.SHTC3Monitor(DBL))
+        smons.append(shtc3.SHTC3Monitor(DBL, options.shtc3))
     if options.pm:
         from sensor_defs import pm25
-        smons.append(pm25.PMSA300IMonitor(DBL))
+        smons.append(pm25.PMSA300IMonitor(DBL, options.pm))
     if options.as726x:
         from sensor_defs import as726x
-        smons.append(as726x.AS726xMonitor(DBL))
+        smons.append(as726x.AS726xMonitor(DBL, options.as726x))
 
     if options.gps:
         from sensor_defs import gpsmon
-        smons.append(gpsmon.GPSMonitor(DBL))
+        smons.append(gpsmon.GPSMonitor(DBL, options.gps))
     if options.cpu:
-        smons.append(sensor_defs.CPUMonitor(DBL))
+        smons.append(sensor_defs.CPUMonitor(DBL, options.cpu))
 
     print("Dataset identifiers initialized.")
     return smons
@@ -73,25 +73,30 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--host",     default=log_DB_host, help="XMLRPC logger interface hostname")
     parser.add_option("--port",     default=log_xmlrpc_writeport, type=int, help="XMLRPC logger interface port; 0 for local test")
-    parser.add_option("--gps",      action="store_true", help="log GPS readings")
-    parser.add_option("--cpu",      action="store_true", help="log computer stats")
-    parser.add_option("--bmp3xx",   action="store_true", help="log BMP3xx temperature/pressure readings")
-    parser.add_option("--shtc3",    action="store_true", help="log SHTC3 temperature/humidity readings")
-    parser.add_option("--as726x",   action="store_true", help="log AS726x color spectrum readings")
-    parser.add_option("--pm",       action="store_true", help="log particulate matter readings")
-    parser.add_option("--dt",       type=float, default= 10, help="minimum wait between readouts (s)")
+    parser.add_option("--gps",      type=float, help="log GPS readings")
+    parser.add_option("--cpu",      type=float, help="log computer stats")
+    parser.add_option("--bmp3xx",   type=float, help="log BMP3xx temperature/pressure readings")
+    parser.add_option("--shtc3",    type=float, help="log SHTC3 temperature/humidity readings")
+    parser.add_option("--as726x",   type=float, help="log AS726x color spectrum readings")
+    parser.add_option("--pm",       type=float, help="log particulate matter readings")
+    parser.add_option("--dt",       type=float, default = 30, help="data upload interval (s)")
     options, args = parser.parse_args()
 
-    SIO = SensLogger(options)
-    SIO.tnext = time.time()
-    SIO.dt = options.dt/2.
+    ss = init_sensors(options)
+    if not ss:
+        print("Zero sensors enabled.")
+        exit(0)
 
     SQ = PriorityQueue()
-    SQ.put(SIO)
-    for s in init_sensors(options):
-        s.dt = options.dt
-        s.tnext = SIO.tnext - 1
+    SIO = SensLogger(options)
+    SIO.tnext = time.time() + 1
+    SIO.dt = options.dt
+
+    for s in ss:
+        s.tnext = SIO.tnext + options.dt/10.
         SQ.put(s)
+
+    SQ.put(SIO)
 
     while True:
         tnow = time.time()
@@ -101,6 +106,11 @@ if __name__ == "__main__":
             print("------ Waiting", dtnext, "s from", time.asctime(), " ------\n");
             time.sleep(dtnext)
             tnow = s.tnext
+        else:
+            # spread readouts apart on collision
+            db = 0.1*options.dt/SQ.qsize()
+            print("** Late by", -dtnext, "s; bumping next read by", db, "s **\n")
+            tnow +=  db
 
         try: s.read(SIO)
         except: traceback.print_exc()

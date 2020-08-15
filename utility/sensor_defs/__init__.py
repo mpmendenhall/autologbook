@@ -23,8 +23,8 @@ class SensorItem:
 
 class CPUMonitor(SensorItem):
     """Local system load/health indicators"""
-    def __init__(self, DBL):
-        SensorItem.__init__(self)
+    def __init__(self, DBL, dt):
+        SensorItem.__init__(self, dt)
 
         self.hostname = platform.node()
         self.g_id = DBL.create_readgroup(self.hostname, "Computer '" + self.hostname + "' status")

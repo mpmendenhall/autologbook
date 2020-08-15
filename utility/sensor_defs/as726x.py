@@ -5,8 +5,8 @@ from adafruit_as726x import AS726x_I2C
 from . import SensorItem
 
 class AS726xMonitor(SensorItem):
-    def __init__(self, DBL):
-        SensorItem.__init__(self)
+    def __init__(self, DBL, dt):
+        SensorItem.__init__(self, dt)
 
         self.g_id = DBL.create_readgroup("AS726x", "AS726x multispectral light sensor")
 

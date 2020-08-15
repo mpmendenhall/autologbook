@@ -6,8 +6,8 @@ from . import SensorItem
 
 class SHTC3Monitor(SensorItem):
 
-    def __init__(self, DBL):
-        SensorItem.__init__(self)
+    def __init__(self, DBL, dt):
+        SensorItem.__init__(self, dt)
 
         self.g_id = DBL.create_readgroup("SHTC3", "SHTC3 temperature/humidity sensor")
         self.T_id = DBL.create_readout("T", "SHTC3", "temperature", "deg. C")
