@@ -141,7 +141,18 @@ class DB_Logger_Writer:
         inst = group_name if type(group_name) == type(0) else get_readrgoup(self.write_curs, group_name)
         if inst is None: return None
 
-        self.write_curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO readout_types(name,descrip,units,readgroup_id) VALUES (?,?,?,?)", (name,descrip,units,inst.rid))
+        if overwrite:
+            self.write_curs.execute("SELECT rowid FROM readout_types WHERE name = ? AND readgroup_id = ?", (name,inst.rid))
+            r = self.write_curs.fetchall()
+            if len(r) == 1:
+                self.write_curs.execute("UPDATE readout_types SET descrip=?,units=? WHERE readout_id = ?", (descrip, units, r[0][0])
+            else:
+                self.write_curs.execute("INSERT INTO readout_types(name,descrip,units,readgroup_id) VALUES (?,?,?,?)",
+                                        (name,descrip,units,inst.rid))
+        else:
+            self.write_curs.execute("INSERT OR IGNORE INTO readout_types(name,descrip,units,readgroup_id) VALUES (?,?,?,?)",
+                                    (name,descrip,units,inst.rid))
+
         self.write_curs.execute("SELECT rowid FROM readout_types WHERE name = ? AND readgroup_id = ?", (name,inst.rid))
         r = self.write_curs.fetchall()
         rid = r[0][0] if len(r) == 1 else None

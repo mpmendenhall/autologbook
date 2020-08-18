@@ -9,15 +9,15 @@ class PMSA300IMonitor(SensorItem):
         SensorItem.__init__(self, dt)
 
         self.g_id = DBL.create_readgroup("PMSA300I", "PMSA300I particulate matter monitor")
-        self.PM003_id = DBL.create_readout("PM0.3", "PMSA300I", "Particles > 0.3um / 0.1L air", "n/dl")
-        self.PM005_id = DBL.create_readout("PM0.5", "PMSA300I", "Particles > 0.5um / 0.1L air", "n/dl")
-        self.PM010_id = DBL.create_readout("PM1",  "PMSA300I", "Particles > 1.0um / 0.1L air", "n/dl")
-        self.PM025_id = DBL.create_readout("PM2.5","PMSA300I", "Particles > 2.5um / 0.1L air", "n/dl")
-        self.PM050_id = DBL.create_readout("PM5",  "PMSA300I", "Particles > 5.0um / 0.1L air", "n/dl")
-        self.PM100_id = DBL.create_readout("PM10", "PMSA300I", "Particles > 10um / 0.1L air",  "n/dl")
-        self.PME10_id = DBL.create_readout("PM1.0e", "PMSA300I", "Estimated PM1.5 mass density",  "μg/m^3")
-        self.PME25_id = DBL.create_readout("PM2.5e", "PMSA300I", "Estimated PM2.5 mass density",  "μg/m^3")
-        self.PME100_id = DBL.create_readout("PM10e", "PMSA300I", "Estimated PM10 mass density",   "μg/m^3")
+        self.PM003_id = DBL.create_readout("PM0.3",  "PMSA300I", "Particles > 0.3μm / 0.1L air", "n/dl")
+        self.PM005_id = DBL.create_readout("PM0.5",  "PMSA300I", "Particles > 0.5μm / 0.1L air", "n/dl")
+        self.PM010_id = DBL.create_readout("PM1",    "PMSA300I", "Particles > 1.0μm / 0.1L air", "n/dl")
+        self.PM025_id = DBL.create_readout("PM2.5",  "PMSA300I", "Particles > 2.5μm / 0.1L air", "n/dl")
+        self.PM050_id = DBL.create_readout("PM5",    "PMSA300I", "Particles > 5.0μm / 0.1L air", "n/dl")
+        self.PM100_id = DBL.create_readout("PM10",   "PMSA300I", "Particles > 10μm / 0.1L air",  "n/dl")
+        self.PME10_id = DBL.create_readout("PM1.0e", "PMSA300I", "Particles d < 1μm estimated mass density",          "μg/m^3")
+        self.PME25_id = DBL.create_readout("PM2.5e", "PMSA300I", "Particles 1μm < d < 2.5μm estimated mass density",  "μg/m^3")
+        self.PME100_id = DBL.create_readout("PM10e", "PMSA300I", "Particles 2.5μm < d < 10μm extimated mass density", "μg/m^3")
 
         self.pm25 = None
 
@@ -45,6 +45,10 @@ class PMSA300IMonitor(SensorItem):
         SIO.log_readout(self.PM050_id, self.aqdata["particles 50um"], self.t)
         SIO.log_readout(self.PM100_id, self.aqdata["particles 100um"], self.t)
 
-        SIO.log_readout(self.PME10_id,  self.aqdata["pm10 env"],  self.t)
-        SIO.log_readout(self.PME25_id,  self.aqdata["pm25 env"],  self.t)
-        SIO.log_readout(self.PME100_id, self.aqdata["pm100 env"], self.t)
+        # report mass densities exclusive of lower categories
+        n1 = self.aqdata["pm10 env"]
+        n2 = self.aqdata["pm25 env"]
+        n3 = self.aqdata["pm100 env"]
+        SIO.log_readout(self.PME10_id,  n1,  self.t)
+        SIO.log_readout(self.PME25_id,  n2 - n1,  self.t)
+        SIO.log_readout(self.PME100_id, n3 - n2, self.t)

@@ -4,7 +4,7 @@
 from SystemLauncher import *
 import xmlrpc.client
 import sensor_defs
-from sensor_defs import SensorItem
+from sensor_defs import SensorItem, computer
 import time
 import traceback
 from optparse import OptionParser
@@ -46,7 +46,9 @@ def init_sensors(options):
         from sensor_defs import gpsmon
         smons.append(gpsmon.GPSMonitor(DBL, options.gps))
     if options.cpu:
-        smons.append(sensor_defs.CPUMonitor(DBL, options.cpu))
+        smons.append(computer.CPUMonitor(DBL, options.cpu))
+    if options.chrony:
+        smons.append(computer.ChronyMonitor(DBL, options.chrony))
 
     print("Dataset identifiers initialized.")
     return smons
@@ -75,6 +77,7 @@ if __name__ == "__main__":
     parser.add_option("--port",     default=log_xmlrpc_writeport, type=int, help="XMLRPC logger interface port; 0 for local test")
     parser.add_option("--gps",      type=float, help="log GPS readings")
     parser.add_option("--cpu",      type=float, help="log computer stats")
+    parser.add_option("--chrony",   type=float, help="log chronyc tracking")
     parser.add_option("--bmp3xx",   type=float, help="log BMP3xx temperature/pressure readings")
     parser.add_option("--shtc3",    type=float, help="log SHTC3 temperature/humidity readings")
     parser.add_option("--as726x",   type=float, help="log AS726x color spectrum readings")
@@ -99,20 +102,23 @@ if __name__ == "__main__":
     SQ.put(SIO)
 
     while True:
+        # wait for next readout event time
         tnow = time.time()
         s = SQ.get()
         dtnext = s.tnext - tnow
         if dtnext > 0:
-            print("------ Waiting", dtnext, "s from", time.asctime(), " ------\n");
+            print("------ Waiting %.2f s until"%dtnext, time.ctime(s.tnext), " ------\n");
             time.sleep(dtnext)
             tnow = s.tnext
         else:
             # spread readouts apart on collision
             db = 0.1*options.dt/SQ.qsize()
             print("** Late by", -dtnext, "s; bumping next read by", db, "s **\n")
-            tnow +=  db
+            tnow += db
 
+        s.tnext = None
         try: s.read(SIO)
         except: traceback.print_exc()
-        s.tnext = tnow + s.dt
+        if s.tnext is None: s.tnext = tnow + s.dt
+        s.tnext = max(s.tnext, time.time() + 4)
         SQ.put(s)
