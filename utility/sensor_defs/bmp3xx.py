@@ -3,6 +3,7 @@ import board
 import busio
 import adafruit_bmp3xx
 from . import SensorItem
+import traceback
 
 class BMP3xxMonitor(SensorItem):
     def h2P(h): return 1013.25 * (1 - 2.25577e-5 * h)**5.25588

@@ -145,7 +145,7 @@ class DB_Logger_Writer:
             self.write_curs.execute("SELECT rowid FROM readout_types WHERE name = ? AND readgroup_id = ?", (name,inst.rid))
             r = self.write_curs.fetchall()
             if len(r) == 1:
-                self.write_curs.execute("UPDATE readout_types SET descrip=?,units=? WHERE readout_id = ?", (descrip, units, r[0][0])
+                self.write_curs.execute("UPDATE readout_types SET descrip=?,units=? WHERE readout_id = ?", (descrip, units, r[0][0]))
             else:
                 self.write_curs.execute("INSERT INTO readout_types(name,descrip,units,readgroup_id) VALUES (?,?,?,?)",
                                         (name,descrip,units,inst.rid))

@@ -3,6 +3,7 @@ import board
 import busio
 import adafruit_shtc3
 from . import SensorItem
+import traceback
 
 class SHTC3Monitor(SensorItem):
 

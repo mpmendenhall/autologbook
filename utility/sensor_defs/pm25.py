@@ -3,6 +3,7 @@ import board
 import busio
 import adafruit_pm25
 from . import SensorItem
+import traceback
 
 class PMSA300IMonitor(SensorItem):
     def __init__(self, DBL, dt):
