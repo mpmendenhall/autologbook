@@ -2,7 +2,7 @@
 
 from WebpageUtils import *
 from AutologbookConfig import log_DB_host,log_xmlrpc_port
-from PlotUtils import PlotMaker, unmangle_xlink_namespace
+from PlotUtils import *
 import xmlrpc.client
 import pickle
 import zlib
@@ -12,6 +12,48 @@ from datetime import datetime
 import os
 import sys
 
+from sensor_defs.humidity import *
+from sensor_defs.AQI import *
+
+class TFahren:
+    def __init__(self):
+        self.rids = [1]
+        self.name = "T"
+        self.descrip = "indoor temperature"
+        self.units = "deg F"
+    def f(self, p):
+        return 9*p/5 + 32
+
+class AbsHum:
+    def __init__(self):
+        self.rids = [46,47]
+        self.name = "H_abs"
+        self.descrip = "absolute humidity"
+        self.units = "g/m^3"
+
+    def f(self, p):
+        return RH_to_Abs_Humidity(p[1], p[0])
+
+class Dewpt:
+    def __init__(self):
+        self.rids = [46,47]
+        self.name = "T_d"
+        self.descrip = "dewpoint"
+        self.units = "deg C"
+
+    def f(self, p): return dewpoint(p[0], p[1])
+
+class AQIcalc:
+    def __init__(self):
+        self.rids = [43,44]
+        self.name = "AQI"
+        self.descrip = "Air Quality Index estimate from PM2.5"
+        self.units = None
+
+    def f(self, p): return PM25_to_AQI(p[0] + p[1])
+
+calcmodules = {"degF": TFahren, "absH": AbsHum, "dewpt": Dewpt, "AQI": AQIcalc}
+
 class TracePlotter(PlotMaker):
     def __init__(self, dt = 12, dt0 = 0, xt = False):
         PlotMaker.__init__(self)
@@ -19,7 +61,6 @@ class TracePlotter(PlotMaker):
         self.t0 = time.time() - dt0*3600
         self.tm = self.t0 - dt*3600
         self.ids = []
-        self.readings = {}
         self.channels = {}
         self.keypos = "top left"
         self.tscale = 3600.
@@ -33,24 +74,41 @@ class TracePlotter(PlotMaker):
             if xt: self.xtime = "%d) %I%p"
             else: self.xlabel = 'time from present [days]'
 
-    def get_readings(self, rids):
+    def _get_readings(self, rids):
+        """Load non-calculated readings"""
         s = None
         for rid in rids:
-            try: rid = int(rid)
-            except: continue
-            if rid in self.readings: return
+            if rid in self.datasets: continue
             if s is None: s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
             ri = s.readout_info(rid)
             if ri:
                 self.channels[rid] = {"name": ri[0], "descrip": ri[1], "units": ri[2]}
-                self.readings[rid] = pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, self.maxpts).data))[::-1]
-                self.ids.append(rid)
+                self.datasets[rid] = np.array(pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, self.maxpts).data))[::-1])
+
+    def get_readings(self, rids):
+        """Get readings, including interpreting calculated values"""
+        xrids = []
+        mods = {}
+        for rid in rids:
+            try:
+                xrids.append(int(rid))
+                self.ids.append(int(rid))
+            except:
+                if rid in calcmodules:
+                    mods[rid] = calcmodules[rid]()
+                    xrids += mods[rid].rids
+        self._get_readings(xrids)
+
+        for n,m in mods.items():
+            self.channels[n] = {"name": m.name, "descrip": m.descrip, "units": m.units}
+            self.ids.append(n)
+            self.synth_data(n, m.rids, m.f)
 
     def dumpImage(self, img):
         """Generate response page"""
 
         # no data to plot?
-        if not self.readings:
+        if not self.datasets:
             sys.stdout.buffer.write(b'Content-Type: image/svg+xml\nContent-Encoding: gzip\n\n')
             sys.stdout.buffer.write(open("logo.svgz", "rb").read())
             return
@@ -68,8 +126,7 @@ class TracePlotter(PlotMaker):
                 break
         if units: self.ylabel = 'value [%s]'%units
 
-        self.datasets = dict([(r, self.readings[r]) for r in self.readings])
-        for r in self.readings:
+        for r in self.ids:
             self.plotsty[r] = "with linespoints pt 7 ps 0.4"
             if not self.xtime: self.x_txs[r] = (lambda x, t0=self.t0+self.dt0: (x-t0)/self.tscale)
             else: self.x_txs[r] = (lambda x, dx=(datetime.now()-datetime.utcnow()).total_seconds(): x+dx)
