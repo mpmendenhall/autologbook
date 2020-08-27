@@ -57,11 +57,11 @@ calcmodules = {"degF": TFahren, "absH": AbsHum, "dewpt": Dewpt, "AQI": AQIcalc}
 class TracePlotter(PlotMaker):
     def __init__(self, dt = 12, dt0 = 0, xt = False):
         PlotMaker.__init__(self)
+        self.ids = []   # selected dataset identifiers to plot
+
         self.dt0 = dt0*3600
         self.t0 = time.time() - dt0*3600
         self.tm = self.t0 - dt*3600
-        self.ids = []
-        self.channels = {}
         self.keypos = "top left"
         self.tscale = 3600.
         self.maxpts = 150
@@ -72,18 +72,7 @@ class TracePlotter(PlotMaker):
         if dt >= 48:
             self.tscale = 24*3600.
             if xt: self.xtime = "%d) %I%p"
-            else: self.xlabel = 'time from present [days]'
-
-    def _get_readings(self, rids):
-        """Load non-calculated readings"""
-        s = None
-        for rid in rids:
-            if rid in self.datasets: continue
-            if s is None: s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
-            ri = s.readout_info(rid)
-            if ri:
-                self.channels[rid] = {"name": ri[0], "descrip": ri[1], "units": ri[2]}
-                self.datasets[rid] = np.array(pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, self.maxpts).data))[::-1])
+            else: self.xAx.label = 'time from present [days]'
 
     def get_readings(self, rids):
         """Get readings, including interpreting calculated values"""
@@ -98,8 +87,18 @@ class TracePlotter(PlotMaker):
                     mods[rid] = calcmodules[rid]()
                     self.ids.append(rid)
                     xrids += mods[rid].rids
-        self._get_readings(xrids)
 
+        # load non-calculated readings
+        s = None
+        for rid in xrids:
+            if rid in self.datasets: continue
+            if s is None: s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
+            ri = s.readout_info(rid)
+            if ri:
+                self.channels[rid] = {"name": ri[0], "descrip": ri[1], "units": ri[2]}
+                self.datasets[rid] = np.array(pickle.loads(zlib.decompress(s.datapoints_compressed(rid, self.tm, self.t0, self.maxpts).data))[::-1])
+
+        # calculated readings modules
         for n,m in mods.items():
             self.channels[n] = {"name": m.name, "descrip": m.descrip, "units": m.units}
             self.synth_data(n, m.rids, m.f)

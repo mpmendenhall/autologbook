@@ -34,6 +34,7 @@ class PlotMaker:
 
     def __init__(self):
         self.datasets = {}      # availabale datasets, dictionary of arrays [[x,y], ...]
+        self.channels = {}      # channels metadata
         self.x_txs = {}         # plot transform functions on x axis
         self.y_txs = {}         # plot transform functions on y axis
         self.plotsty = {}       # plot style commands for each trace
@@ -116,7 +117,7 @@ class PlotMaker:
                                                  str(ax.amax) if ax.amax is not None else ""))
         self.gwrite("set %stic %s\n"%(ax.ax, ax.tic))
         axl = 'set %slabel "%s"'%(ax.ax, ax.label if ax.label else '')
-        if ax.ax == "y2": axl += " offset -1.5,0,0"
+        if ax.ax == "y2": axl += " offset -2.5,0,0"
         self.gwrite(axl + '\n')
 
     def setup_axes(self):
@@ -130,6 +131,7 @@ class PlotMaker:
         if self.yAx2.label:
             self.set_axis(self.yAx2)
             self.gwrite('set rmargin 8\n')
+            self.gwrite('set ytics nomirror\n')
 
         if self.title: self.gwrite('set title "%s"\n'%self.title)
         if self.xtime:

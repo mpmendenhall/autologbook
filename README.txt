@@ -9,6 +9,9 @@ See doc/AutologbookManual.pdf for overview documentation.
 --------------------------------------
 --------------- TO DO ----------------
 
+split out plot calc modules file
+calc modules available in plot builder, status display
+
 revive data reduction filters
 controlled/clean XMLRPC logger shutdown
 static page generators; on-demand updates; fully-remote view
