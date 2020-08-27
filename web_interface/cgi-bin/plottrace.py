@@ -3,6 +3,7 @@
 from WebpageUtils import *
 from AutologbookConfig import log_DB_host,log_xmlrpc_port
 from PlotUtils import *
+from PlotCalcModules import *
 import xmlrpc.client
 import pickle
 import zlib
@@ -11,48 +12,6 @@ import time
 from datetime import datetime
 import os
 import sys
-
-from sensor_defs.humidity import *
-from sensor_defs.AQI import *
-
-class TFahren:
-    def __init__(self):
-        self.rids = [1]
-        self.name = "T"
-        self.descrip = "indoor temperature"
-        self.units = "deg F"
-    def f(self, p):
-        return 9*p/5 + 32
-
-class AbsHum:
-    def __init__(self):
-        self.rids = [46,47]
-        self.name = "H_abs"
-        self.descrip = "absolute humidity"
-        self.units = "g/m^3"
-
-    def f(self, p):
-        return RH_to_Abs_Humidity(p[1], p[0])
-
-class Dewpt:
-    def __init__(self):
-        self.rids = [46,47]
-        self.name = "T_d"
-        self.descrip = "dewpoint"
-        self.units = "deg. C"
-
-    def f(self, p): return dewpoint(p[0], p[1])
-
-class AQIcalc:
-    def __init__(self):
-        self.rids = [43,44]
-        self.name = "AQI"
-        self.descrip = "Air Quality Index estimate from PM2.5"
-        self.units = None
-
-    def f(self, p): return PM25_to_AQI(p[0] + p[1])
-
-calcmodules = {"degF": TFahren, "absH": AbsHum, "dewpt": Dewpt, "AQI": AQIcalc}
 
 class TracePlotter(PlotMaker):
     def __init__(self, dt = 12, dt0 = 0, xt = False):
