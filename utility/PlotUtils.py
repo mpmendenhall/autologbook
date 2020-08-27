@@ -20,24 +20,29 @@ def lin_interp(X, Y, x):
     l = (x-X[i-1])/(X[i] - X[i-1])
     return Y[i-1]*(1-l) + Y[i]*l
 
+class AxisInfo:
+    def __init__(self, ax):
+        self.ax  = ax
+        self.tic = "auto"   # axis ticks settings
+        self.label = None   # axis label
+        self.amin = None    # axis min; None to autoscale
+        self.amax = None    # axis max; None to autoscale
+
 
 class PlotMaker:
     """Wrapper for gnuplot control"""
 
     def __init__(self):
-        self.renames = {}       # graph title re-naming
         self.datasets = {}      # availabale datasets, dictionary of arrays [[x,y], ...]
         self.x_txs = {}         # plot transform functions on x axis
         self.y_txs = {}         # plot transform functions on y axis
         self.plotsty = {}       # plot style commands for each trace
 
+        self.xAx = AxisInfo("x")
+        self.yAx = AxisInfo("y")
+        self.yAx2 = AxisInfo("y2")
+
         self.title = None       # top-of-graph title
-        self.xlabel = None      # x axis label
-        self.xtic = "auto"      # x axis tick settings
-        self.ylabel = None      # y axis label
-        self.ytic = "auto"      # y axis tick settings
-        self.ymin = None        # y axis minimum; None to autoscale
-        self.ymax = None        # y axis maximum; None to autoscale
         self.keypos = None      # whether to generate graph key, and where e.g. "left top"
         self.xtime = None       # format x axis as time
         self.smooth = None
@@ -76,10 +81,12 @@ class PlotMaker:
             return False
 
         self.gwrite("plot")
-        pstr = ', '.join(['"-" using 1:2 title "" %s'%self.plotsty.get(p,'') for p in k])
-        if self.keypos in keypos_opts:
-            pstr = ', '.join(['"-" using 1:2 title "%s: %g" %s'%(self.renames.get(p,p), self.datasets[p][-1][1], self.plotsty.get(p,'')) for p in k])
-        self.gwrite(pstr+'\n')
+
+        pstr = []
+        for p in k:
+            pstr.append('"-" using 1:2 title "%s: %g" %s'%(self.channels[p]["rename"], self.datasets[p][-1][1], self.plotsty.get(p,'')))
+            if self.channels[p].get("yax", 1) == 2: pstr[-1] += " axes x1y2"
+        self.gwrite(', '.join(pstr)+'\n')
         time.sleep(0.01)
 
         for p in k:
@@ -102,17 +109,25 @@ class PlotMaker:
 
         return True
 
+    def set_axis(self, ax):
+        if ax.amin is not None or ax.amax is not None:
+            self.gwrite("set %srange [%s:%s]\n"%(ax.ax,
+                                                 str(ax.amin) if ax.amin is not None else "",
+                                                 str(ax.amax) if ax.amax is not None else ""))
+        self.gwrite("set %stic %s\n"%(ax.ax, ax.tic))
+        self.gwrite('set %slabel "%s"\n'%(ax.ax, ax.label if ax.label else ''))
+
     def setup_axes(self):
         """Axis set-up commands"""
+
         self.gwrite("set autoscale\n")
-        if self.ymin is not None or self.ymax is not None:
-            self.gwrite("set yrange [%s:%s]\n"%(str(self.ymin) if self.ymin is not None else "", str(self.ymax) if self.ymax is not None else ""))
-        self.gwrite("set xtic %s\n"%self.xtic)
-        self.gwrite("set ytic %s\n"%self.ytic)
         self.gwrite("unset label\n")
+
+        self.set_axis(self.xAx)
+        self.set_axis(self.yAx)
+        if self.yAx2.label: self.set_axis(self.yAx2)
+
         if self.title: self.gwrite('set title "%s"\n'%self.title)
-        self.gwrite('set xlabel "%s"\n'%(self.xlabel if self.xlabel else ''))
-        self.gwrite('set ylabel "%s"\n'%(self.ylabel if self.ylabel else ''))
         if self.xtime:
             self.gwrite('set xdata time\n')
             self.gwrite('set timefmt "%s"\n')
@@ -124,7 +139,7 @@ class PlotMaker:
         print(ds)
         s = ""
         for p in ds:
-            s += "# '%s'\t'%s'\n"%(self.xlabel if self.xlabel else 'x', self.renames.get(p,p))
+            s += "# '%s'\t'%s'\n"%(self.xAx.label if self.xAx.label else 'x', self.channels[p]["rename"])
             if p not in self.datasets:
                 s += "\n"
                 continue

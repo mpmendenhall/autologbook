@@ -39,7 +39,7 @@ class Dewpt:
         self.rids = [46,47]
         self.name = "T_d"
         self.descrip = "dewpoint"
-        self.units = "deg C"
+        self.units = "deg. C"
 
     def f(self, p): return dewpoint(p[0], p[1])
 
@@ -67,8 +67,8 @@ class TracePlotter(PlotMaker):
         self.maxpts = 150
         if xt:
              self.xtime = "%H:%M"
-             self.xlabel = 'time'
-        else: self.xlabel = 'time from present [hours]'
+             self.xAx.label = 'time'
+        else: self.xAx.label = 'time from present [hours]'
         if dt >= 48:
             self.tscale = 24*3600.
             if xt: self.xtime = "%d) %I%p"
@@ -113,18 +113,20 @@ class TracePlotter(PlotMaker):
             sys.stdout.buffer.write(open("logo.svgz", "rb").read())
             return
 
-        self.renames = dict([(c,self.channels[c]["name"].replace("_"," ")) for c in self.channels])
+        # channel renaming with units
+        for c in self.channels.values():
+            c["rename"] = c["name"].replace("_"," ")
+            if c["units"]: c["rename"] += " ["+c["units"]+"]"
 
-        # common units?
-        units = None
-        self.ylabel = "readings"
-        for (n,c) in self.channels.items():
-            if c["units"]: self.renames[n] += " ["+c["units"]+"]"
-            if units is None: units = c["units"]
-            elif units != c["units"]:
-                units = None
-                break
-        if units: self.ylabel = 'value [%s]'%units
+        # identify common units between entries; label and assign axes
+        units = tuple(set([self.channels[i]["units"] for i in self.ids]))
+        self.yAx.label = "readings"
+        if len(units) in (1,2) and units[0]:
+            self.yAx.label = 'value [%s]'%units[0]
+        if len(units) == 2:
+            self.yAx2.label = 'value [%s]'%units[1] if units[1] else 'readings'
+            for c in self.channels.values():
+                if c["units"] == units[1]: c["yax"] = 2
 
         for r in self.ids:
             self.plotsty[r] = "with linespoints pt 7 ps 0.4"
@@ -184,10 +186,15 @@ if __name__=="__main__":
     except: dt0 = 0
 
     tp = TracePlotter(dt, dt0, "xtime" in form)
-    try: tp.ymin = float(form.getvalue("min",None))
+    try: tp.yAx.amin = float(form.getvalue("min",None))
     except: pass
-    try: tp.ymax = float(form.getvalue("max",None))
+    try: tp.yAx.amax = float(form.getvalue("max",None))
     except: pass
+    try: tp.yAx2.amin = float(form.getvalue("min2",None))
+    except: pass
+    try: tp.yAx2.amax = float(form.getvalue("max2",None))
+    except: pass
+
     try:
         tp.smooth = float(form.getvalue("smooth",None))
         tp.smooth = min(max(tp.smooth, 1), 20)
