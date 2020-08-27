@@ -96,12 +96,12 @@ class TracePlotter(PlotMaker):
             except:
                 if rid in calcmodules:
                     mods[rid] = calcmodules[rid]()
+                    self.ids.append(rid)
                     xrids += mods[rid].rids
         self._get_readings(xrids)
 
         for n,m in mods.items():
             self.channels[n] = {"name": m.name, "descrip": m.descrip, "units": m.units}
-            self.ids.append(n)
             self.synth_data(n, m.rids, m.f)
 
     def dumpImage(self, img):
@@ -119,14 +119,30 @@ class TracePlotter(PlotMaker):
             if c["units"]: c["rename"] += " ["+c["units"]+"]"
 
         # identify common units between entries; label and assign axes
-        units = tuple(set([self.channels[i]["units"] for i in self.ids]))
-        self.yAx.label = "readings"
-        if len(units) in (1,2) and units[0]:
-            self.yAx.label = 'value [%s]'%units[0]
+        units = []
+        for i in self.ids:
+            u = self.channels[i]["units"]
+            if u not in units: units.append(u)
+
+        if len(units) in (1,2):
+            self.yAx.label = None
+            for i in self.ids:
+                c = self.channels[i]
+                if c["units"] == units[0]:
+                    if self.yAx.label == None: self.yAx.label = c["name"].replace("_"," ")
+                    else: self.yAx.label = 'value'
+            if units[0]: self.yAx.label += ' [%s]'%units[0]
+        else: self.yAx.label = "value"
+
         if len(units) == 2:
-            self.yAx2.label = 'value [%s]'%units[1] if units[1] else 'readings'
-            for c in self.channels.values():
-                if c["units"] == units[1]: c["yax"] = 2
+            self.yAx2.label = None
+            for i in self.ids:
+                c = self.channels[i]
+                if c["units"] == units[1]:
+                    c["yax"] = 2
+                    if self.yAx2.label == None: self.yAx2.label = c["name"].replace("_"," ")
+                    else: self.yAx2.label = 'value'
+            if units[1]: self.yAx2.label += ' [%s]'%units[1]
 
         for r in self.ids:
             self.plotsty[r] = "with linespoints pt 7 ps 0.4"

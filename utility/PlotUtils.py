@@ -115,7 +115,9 @@ class PlotMaker:
                                                  str(ax.amin) if ax.amin is not None else "",
                                                  str(ax.amax) if ax.amax is not None else ""))
         self.gwrite("set %stic %s\n"%(ax.ax, ax.tic))
-        self.gwrite('set %slabel "%s"\n'%(ax.ax, ax.label if ax.label else ''))
+        axl = 'set %slabel "%s"'%(ax.ax, ax.label if ax.label else '')
+        if ax.ax == "y2": axl += " offset -1.5,0,0"
+        self.gwrite(axl + '\n')
 
     def setup_axes(self):
         """Axis set-up commands"""
@@ -125,7 +127,9 @@ class PlotMaker:
 
         self.set_axis(self.xAx)
         self.set_axis(self.yAx)
-        if self.yAx2.label: self.set_axis(self.yAx2)
+        if self.yAx2.label:
+            self.set_axis(self.yAx2)
+            self.gwrite('set rmargin 8\n')
 
         if self.title: self.gwrite('set title "%s"\n'%self.title)
         if self.xtime:
