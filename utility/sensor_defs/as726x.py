@@ -18,26 +18,32 @@ class AS726xMonitor(SensorItem):
         self.V_id = DBL.create_readout("V", "AS726x", "450+-40nm Violet band", "μW/cm^2")
 
         self.T_id = DBL.create_readout("T", "AS726x", "device temperature", "deg. C")
+        self.T_integ = 50.
 
     def read(self, SIO):
         i2c = busio.I2C(board.SCL, board.SDA, frequency=100000) # freq slower for pm25
         sensor = AS726x_I2C(i2c)
-        sensor.integration_time = 50
+        sensor.integration_time = self.T_integ
+        sensor.gain = 64 # 1., 3.7, 16., 64.]
         sensor. start_measurement()
         self.t = time.time()
         while not sensor.data_ready: time.sleep(0.1)
 
-        r,o,y,g,b,v = sensor.red, sensor.orange, sensor.yellow, sensor.green, sensor.blue, sensor.violet
+        # "typical" 45 counts / uW/cm^2 at gain 16, 166 ms integration
+        n = 16*166/(45. * self.T_integ * sensor.gain) # normalization
+        r,o,y,g,b,v = sensor.red*n, sensor.orange*n, sensor.yellow*n, sensor.green*n, sensor.blue*n, sensor.violet*n
+
         self.spectrum = (r,o,y,g,b,v)
         self.T = sensor.temperature
+        self.raw = (sensor.raw_red, sensor.raw_orange, sensor.raw_yellow, sensor.raw_green, sensor.raw_blue, sensor.raw_violet)
 
-        print("\nAS726x spectrum (uW/cm^2), at", self.T, "deg. C:")
-        print(" * R", r)
-        print(" * O", o)
-        print(" * Y", y)
-        print(" * G", g)
-        print(" * B", b)
-        print(" * V", v)
+        print("\nAS726x spectrum (uW/cm^2) over", self.T_integ, "ms, at", self.T, "deg. C:")
+        print(" * R", r, self.raw[0])
+        print(" * O", o, self.raw[1])
+        print(" * Y", y, self.raw[2])
+        print(" * G", g, self.raw[3])
+        print(" * B", b, self.raw[4])
+        print(" * V", v, self.raw[5])
 
         SIO.log_readout(self.R_id, r, self.t)
         SIO.log_readout(self.O_id, o, self.t)
@@ -46,3 +52,8 @@ class AS726xMonitor(SensorItem):
         SIO.log_readout(self.B_id, b, self.t)
         SIO.log_readout(self.V_id, v, self.t)
         SIO.log_readout(self.T_id, self.T, self.t)
+
+        # adjust for next readout
+        rmax = max(self.raw)
+        if rmax: self.T_integ = min(max((2**15)*self.T_integ/rmax, 3), 700)
+        else: self.T_integ = 700
