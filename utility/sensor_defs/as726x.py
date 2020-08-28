@@ -27,7 +27,8 @@ class AS726xMonitor(SensorItem):
         sensor.gain = 64 # 1., 3.7, 16., 64.]
         sensor. start_measurement()
         self.t = time.time()
-        while not sensor.data_ready: time.sleep(0.1)
+        time.sleep(2*self.T_integ/1000.)
+        while not sensor.data_ready: time.sleep(0.05)
 
         # "typical" 45 counts / uW/cm^2 at gain 16, 166 ms integration
         n = 16*166/(45. * self.T_integ * sensor.gain) # normalization

@@ -58,6 +58,7 @@ class SensLogger(SensorItem):
         SensorItem.__init__(self)
         self.options = options
         self.readouts = []
+        self.DBL = None
 
     def log_readout(self, rid, val, t):
         self.readouts.append((rid,val,t))
@@ -67,9 +68,13 @@ class SensLogger(SensorItem):
         if not self.readouts: return
 
         print("\n**** Uploading", len(self.readouts), "readout datapoints. ****\n")
-        DBL = get_DBL(self.options)
-        DBL.log_readouts(self.readouts)
-        self.readouts = []
+        if self.DBL is None: self.DBL = get_DBL(self.options)
+        try:
+            self.DBL.log_readouts(self.readouts)
+            self.readouts = []
+        except:
+            traceback.print_exc()
+            self.DBL = None
 
 if __name__ == "__main__":
     parser = OptionParser()
@@ -120,5 +125,5 @@ if __name__ == "__main__":
         try: s.read(SIO)
         except: traceback.print_exc()
         if s.tnext is None: s.tnext = tnow + s.dt
-        s.tnext = max(s.tnext, time.time() + 4)
+        s.tnext = max(s.tnext, time.time() + 1)
         SQ.put(s)
