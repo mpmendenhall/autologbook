@@ -9,6 +9,8 @@ See doc/AutologbookManual.pdf for overview documentation.
 --------------------------------------
 --------------- TO DO ----------------
 
+auto-detect I2C attached sensors
+
 calc modules available in plot builder, status display
 
 revive data reduction filters

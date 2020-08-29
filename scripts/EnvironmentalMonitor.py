@@ -32,6 +32,12 @@ def init_sensors(options):
     if options.bmp3xx:
         from sensor_defs import bmp3xx
         smons.append(bmp3xx.BMP3xxMonitor(DBL, options.bmp3xx))
+    if options.dps310:
+        from sensor_defs import dps310
+        smons.append(dps310.DPS310Monitor(DBL, options.dps310))
+    if options.bme680:
+        from sensor_defs import bme680
+        smons.append(bme680.BME680Monitor(DBL, options.bme680))
     if options.shtc3:
         from sensor_defs import shtc3
         smons.append(shtc3.SHTC3Monitor(DBL, options.shtc3))
@@ -41,6 +47,9 @@ def init_sensors(options):
     if options.as726x:
         from sensor_defs import as726x
         smons.append(as726x.AS726xMonitor(DBL, options.as726x))
+    if options.as7341:
+        from sensor_defs import as7341
+        smons.append(as7341.AS7341Monitor(DBL, options.as7341))
 
     if options.gps:
         from sensor_defs import gpsmon
@@ -84,8 +93,11 @@ if __name__ == "__main__":
     parser.add_option("--cpu",      type=float, help="log computer stats")
     parser.add_option("--chrony",   type=float, help="log chronyc tracking")
     parser.add_option("--bmp3xx",   type=float, help="log BMP3xx temperature/pressure readings")
+    parser.add_option("--dps310",   type=float, help="log DPS310 temperature/pressure readings")
+    parser.add_option("--bme680",   type=float, help="log BME680 environmental readings")
     parser.add_option("--shtc3",    type=float, help="log SHTC3 temperature/humidity readings")
     parser.add_option("--as726x",   type=float, help="log AS726x color spectrum readings")
+    parser.add_option("--as7341",   type=float, help="log AS7341 multispectral sensor readings")
     parser.add_option("--pm",       type=float, help="log particulate matter readings")
     parser.add_option("--dt",       type=float, default = 30, help="data upload interval (s)")
     options, args = parser.parse_args()

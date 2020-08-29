@@ -21,12 +21,12 @@ class BMP3xxMonitor(SensorItem):
     def read(self, SIO):
         if not self.bmp3xx:
             i2c = busio.I2C(board.SCL, board.SDA, frequency=100000) # freq slower for pm25
-            bmp3xx = adafruit_bmp3xx.BMP3XX_I2C(i2c)
-            bmp3xx.pressure_oversampling = 32
-            bmp3xx.temperature_oversampling = 2
+            self.bmp3xx = adafruit_bmp3xx.BMP3XX_I2C(i2c)
+            self.bmp3xx.pressure_oversampling = 32
+            self.bmp3xx.temperature_oversampling = 2
         try:
-            self.T = bmp3xx.temperature
-            self.P = bmp3xx.pressure
+            self.T = self.bmp3xx.temperature
+            self.P = self.bmp3xx.pressure
         except:
             traceback.print_exc()
             self.bmp3xx = None
