@@ -8,16 +8,16 @@ class AS726xMonitor(SensorItem):
     def __init__(self, DBL, dt):
         SensorItem.__init__(self, dt)
 
-        self.g_id = DBL.create_readgroup("AS726x", "AS726x multispectral light sensor")
+        self.g_id = DBL.create_readout("AS726x", "AS726x multispectral light sensor", None)
 
-        self.R_id = DBL.create_readout("R", "AS726x", "650+-40nm Red band",    "μW/cm^2")
-        self.O_id = DBL.create_readout("O", "AS726x", "600+-40nm Orange band", "μW/cm^2")
-        self.Y_id = DBL.create_readout("Y", "AS726x", "570+-40nm Yellow band", "μW/cm^2")
-        self.G_id = DBL.create_readout("G", "AS726x", "550+-40nm Green band",  "μW/cm^2")
-        self.B_id = DBL.create_readout("B", "AS726x", "500+-40nm Blue band",   "μW/cm^2")
-        self.V_id = DBL.create_readout("V", "AS726x", "450+-40nm Violet band", "μW/cm^2")
+        self.R_id = DBL.create_readout("AS726x/R", "650+-40nm Red band",    "μW/cm^2")
+        self.O_id = DBL.create_readout("AS726x/O", "600+-40nm Orange band", "μW/cm^2")
+        self.Y_id = DBL.create_readout("AS726x/Y", "570+-40nm Yellow band", "μW/cm^2")
+        self.G_id = DBL.create_readout("AS726x/G", "550+-40nm Green band",  "μW/cm^2")
+        self.B_id = DBL.create_readout("AS726x/B", "500+-40nm Blue band",   "μW/cm^2")
+        self.V_id = DBL.create_readout("AS726x/V", "450+-40nm Violet band", "μW/cm^2")
 
-        self.T_id = DBL.create_readout("T", "AS726x", "device temperature", "deg. C")
+        self.T_id = DBL.create_readout("AS726x/T", "device temperature", "deg. C")
         self.T_integ = 50.
 
     def read(self, SIO):

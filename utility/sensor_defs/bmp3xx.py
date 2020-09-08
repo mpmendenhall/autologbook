@@ -12,9 +12,9 @@ class BMP3xxMonitor(SensorItem):
     def __init__(self, DBL, dt):
         SensorItem.__init__(self, dt)
 
-        self.g_id = DBL.create_readgroup("BMP388", "BMP388 pressure/temperature sensor")
-        self.T_id = DBL.create_readout("T", "BMP388", "ambient temperature", "deg. C")
-        self.P_id = DBL.create_readout("P", "BMP388", "ambient pressure", "mbar")
+        self.g_id = DBL.create_readout("BMP388",   "BMP388 pressure/temperature sensor", None)
+        self.T_id = DBL.create_readout("BMP388/T", "ambient temperature", "deg. C")
+        self.P_id = DBL.create_readout("BMP388/P", "ambient pressure", "mbar")
         self.P = self.T = self.t = None
         self.bmp3xx = None
 

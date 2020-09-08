@@ -9,16 +9,16 @@ class PMSA300IMonitor(SensorItem):
     def __init__(self, DBL, dt):
         SensorItem.__init__(self, dt)
 
-        self.g_id = DBL.create_readgroup("PMSA300I", "PMSA300I particulate matter monitor")
-        self.PM003_id = DBL.create_readout("PM0.3",  "PMSA300I", "Particles > 0.3μm / 0.1L air", "n/dl")
-        self.PM005_id = DBL.create_readout("PM0.5",  "PMSA300I", "Particles > 0.5μm / 0.1L air", "n/dl")
-        self.PM010_id = DBL.create_readout("PM1",    "PMSA300I", "Particles > 1.0μm / 0.1L air", "n/dl")
-        self.PM025_id = DBL.create_readout("PM2.5",  "PMSA300I", "Particles > 2.5μm / 0.1L air", "n/dl")
-        self.PM050_id = DBL.create_readout("PM5",    "PMSA300I", "Particles > 5.0μm / 0.1L air", "n/dl")
-        self.PM100_id = DBL.create_readout("PM10",   "PMSA300I", "Particles > 10μm / 0.1L air",  "n/dl")
-        self.PME10_id = DBL.create_readout("PM1.0e", "PMSA300I", "Particles d < 1μm estimated mass density",          "μg/m^3")
-        self.PME25_id = DBL.create_readout("PM2.5e", "PMSA300I", "Particles 1μm < d < 2.5μm estimated mass density",  "μg/m^3")
-        self.PME100_id = DBL.create_readout("PM10e", "PMSA300I", "Particles 2.5μm < d < 10μm extimated mass density", "μg/m^3")
+        self.g_id = DBL.create_readout("PMSA300I", "PMSA300I particulate matter monitor", None)
+        self.PM003_id = DBL.create_readout("PMSA300I/PM0.3",  "Particles > 0.3μm / 0.1L air", "n/dl")
+        self.PM005_id = DBL.create_readout("PMSA300I/PM0.5",  "Particles > 0.5μm / 0.1L air", "n/dl")
+        self.PM010_id = DBL.create_readout("PMSA300I/PM1",    "Particles > 1.0μm / 0.1L air", "n/dl")
+        self.PM025_id = DBL.create_readout("PMSA300I/PM2.5",  "Particles > 2.5μm / 0.1L air", "n/dl")
+        self.PM050_id = DBL.create_readout("PMSA300I/PM5",    "Particles > 5.0μm / 0.1L air", "n/dl")
+        self.PM100_id = DBL.create_readout("PMSA300I/PM10",   "Particles > 10μm / 0.1L air",  "n/dl")
+        self.PME10_id = DBL.create_readout("PMSA300I/PM1.0e", "Particles d < 1μm estimated mass density",          "μg/m^3")
+        self.PME25_id = DBL.create_readout("PMSA300I/PM2.5e", "Particles 1μm < d < 2.5μm estimated mass density",  "μg/m^3")
+        self.PME100_id = DBL.create_readout("PMSA300I/PM10e", "Particles 2.5μm < d < 10μm extimated mass density", "μg/m^3")
 
         self.pm25 = None
 

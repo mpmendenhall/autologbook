@@ -14,7 +14,7 @@ class TFahren:
 
 class AbsHum:
     def __init__(self):
-        self.rids = [46,47]
+        self.rids = [65,67] # 46,47
         self.name = "H_abs"
         self.descrip = "absolute humidity"
         self.units = "g/m^3"

@@ -8,9 +8,9 @@ import traceback
 class DPS310Monitor(SensorItem):
     def __init__(self, DBL, dt):
         SensorItem.__init__(self, dt)
-        self.g_id = DBL.create_readgroup("DPS310", "DPS310 pressure/temperature sensor")
-        self.T_id = DBL.create_readout("T", "DPS310", "ambient temperature", "deg. C")
-        self.P_id = DBL.create_readout("P", "DPS310", "ambient pressure", "mbar")
+        self.g_id = DBL.create_readout("DPS310", "DPS310 pressure/temperature sensor", None)
+        self.T_id = DBL.create_readout("DPS310/T", "ambient temperature", "deg. C")
+        self.P_id = DBL.create_readout("DPS310/P", "ambient pressure", "mbar")
         self.dps310 = None
 
     def read(self, SIO):

@@ -24,7 +24,7 @@ def init_sensors(options):
     """Initialize sensors to read"""
 
     DBL = get_DBL(options)
-    monitor_group = DBL.create_readgroup(thishost + ":EnvironmentalMonitoring.py", "Environmental sensors readout on "+thishost)
+    monitor_group = DBL.create_readout(thishost + ":EnvironmentalMonitoring.py", "Environmental sensors readout on "+thishost, None)
     DBL.log_message(monitor_group, "Starting environmental monitor on " + thishost +".")
 
     smons = []

@@ -10,9 +10,9 @@ class SHTC3Monitor(SensorItem):
     def __init__(self, DBL, dt):
         SensorItem.__init__(self, dt)
 
-        self.g_id = DBL.create_readgroup("SHTC3", "SHTC3 temperature/humidity sensor")
-        self.T_id = DBL.create_readout("T", "SHTC3", "temperature", "deg. C")
-        self.RH_id = DBL.create_readout("RH", "SHTC3", "relative humidity", "%")
+        self.g_id = DBL.create_readout("SHTC3", "SHTC3 temperature/humidity sensor", None)
+        self.T_id = DBL.create_readout("SHTC3/T", "temperature", "deg. C")
+        self.RH_id = DBL.create_readout("SHTC3/RH", "relative humidity", "%")
 
         self.sens = None
 

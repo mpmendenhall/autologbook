@@ -10,11 +10,11 @@ class BME680Monitor(SensorItem):
     def __init__(self, DBL, dt):
         SensorItem.__init__(self, dt)
 
-        self.g_id   = DBL.create_readgroup("BME680", "BME680 environmental sensor sensor")
-        self.T_id   = DBL.create_readout("T", "BME680", "ambient temperature", "deg. C")
-        self.P_id   = DBL.create_readout("P", "BME680", "ambient pressure", "mbar")
-        self.RH_id  = DBL.create_readout("RH", "BME680", "relative humidity", "%")
-        self.VOC_id = DBL.create_readout("VOC", "BME680", "VOC sensor gas conductivity", "millimho")
+        self.g_id   = DBL.create_readout("BME680",     "BME680 environmental sensor sensor", None)
+        self.T_id   = DBL.create_readout("BME680/T",   "ambient temperature", "deg. C")
+        self.P_id   = DBL.create_readout("BME680/P",   "ambient pressure", "mbar")
+        self.RH_id  = DBL.create_readout("BME680/RH",  "relative humidity", "%")
+        self.VOC_id = DBL.create_readout("BME680/VOC", "VOC sensor gas conductivity", "millimho")
 
         self.bme680 = None
 

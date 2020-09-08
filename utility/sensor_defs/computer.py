@@ -9,9 +9,9 @@ class CPUMonitor(SensorItem):
         SensorItem.__init__(self, dt)
 
         self.hostname = platform.node()
-        self.g_id = DBL.create_readgroup(self.hostname, "Computer '" + self.hostname + "' status")
-        self.Tcpu_id = DBL.create_readout("Tcpu", self.hostname, "CPU temperature", "deg. C")
-        self.Tgpu_id = DBL.create_readout("Tgpu", self.hostname, "GPU temperature", "deg. C")
+        self.g_id = DBL.create_readout(self.hostname, "Computer '" + self.hostname + "' status", None)
+        self.Tcpu_id = DBL.create_readout(self.hostname + "/Tcpu", "CPU temperature", "deg. C")
+        self.Tgpu_id = DBL.create_readout(self.hostname + "/Tgpu", "GPU temperature", "deg. C")
 
         try:
             subprocess.check_output(["vcgencmd","measure_temp"])
@@ -51,10 +51,10 @@ class ChronyMonitor(SensorItem):
         SensorItem.__init__(self, dt)
 
         self.hostname = platform.node()
-        self.g_id     = DBL.create_readgroup(self.hostname, "Computer '" + self.hostname + "' status")
-        self.freq_id  = DBL.create_readout("clockfreq", self.hostname, "clock frequency offset", "ppm")
-        self.resid_id = DBL.create_readout("clockresid", self.hostname, "residual frequency offset", "ppm")
-        self.err_id   = DBL.create_readout("clockerr", self.hostname, "system clock error on update", "ms")
+        self.g_id     = DBL.create_readout(self.hostname, "Computer '" + self.hostname + "' status", None)
+        self.freq_id  = DBL.create_readout(self.hostname+"/clockfreq", "clock frequency offset", "ppm")
+        self.resid_id = DBL.create_readout(self.hostname+"/clockresid", "residual frequency offset", "ppm")
+        self.err_id   = DBL.create_readout(self.hostname+"/clockerr", "system clock error on update", "ms")
 
     def read(self, SIO):
         self.t = time.time()

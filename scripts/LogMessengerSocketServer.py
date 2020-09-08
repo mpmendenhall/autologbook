@@ -25,13 +25,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                 break
             if verbose: print("request type %i"%rqtp)
 
-            if rqtp == 1: # origin ID
-                origin = self.recv_string()
-                descrip = self.recv_string()
-                callq.put( (create_readgroup, (curs, origin, descrip), rq) )
-                self.request.sendall(struct.pack("q",rq.get().rid))
-
-            elif rqtp == 2: # datapoint ID
+            if rqtp == 2: # datapoint ID
                 gid = self.recv_i64()
                 datname = self.recv_string()
                 descrip = self.recv_string()
@@ -156,17 +150,9 @@ class LogServerConnection:
         self.send(status,"q")
         return self.recv_i64()
 
-    def create_readgroup(self, name, descrip):
-        """Get/create readings group"""
-        self.send(1,"i")
-        self.send_string(name)
-        self.send_string(descrip)
-        return self.recv_i64()
-
-    def create_readout(self, gid, name, descrip, units):
+    def create_readout(self, name, descrip, units):
         """Get/create readout"""
         self.send(2,"i")
-        self.send(gid,"q")
         self.send_string(name)
         self.send_string(descrip)
         self.send_string(units)
@@ -208,7 +194,7 @@ if __name__ == "__main__":
     callq = queue.Queue()
     conn,curs = logdb_cxn(options.db)
 
-    my_id = create_readgroup(curs, "LogMessengerSocketServer.py", "Log messages database TCP sockets server").rid
+    my_id = create_readout(curs, "LogMessengerSocketServer.py", "Log messages database TCP sockets server", None).rid
     add_message(curs, my_id, "Starting LogMessenger socket server on %s:%i"%(options.host, options.port))
     conn.commit()
 

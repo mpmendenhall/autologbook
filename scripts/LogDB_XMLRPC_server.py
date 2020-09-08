@@ -32,15 +32,10 @@ class DB_Logger_Reader:
     #######################
     # read server functions
 
-    def get_readgroups(self):
-        """Get complete list of readout groups (id, name, descrip)"""
-        self.read_curs.execute("SELECT readgroup_id,name,descrip FROM readout_groups")
-        return self.read_curs.fetchall()
-
-    def get_readtypes(self, rgroup=None):
-        """Get list of readout types (id, name, descrip, units[, readgroup_id]) for all or group"""
-        if rgroup is None: self.read_curs.execute("SELECT readout_id,name,descrip,units,readgroup_id FROM readout_types")
-        else: self.read_curs.execute("SELECT readout_id,name,descrip,units FROM readout_types WHERE readgroup_id = ?", (rgroup,))
+    def get_readtypes(self, rgroup = None):
+        """Get list of readout types (id, name, descrip, units) for all or group"""
+        if rgroup is None: self.read_curs.execute("SELECT readout_id,name,descrip,units FROM readout_types")
+        else: self.read_curs.execute('SELECT readout_id,name,descrip,units FROM readout_types WHERE name LIKE ? || "/%"', (rgroup,))
         return self.read_curs.fetchall()
 
     def get_readout_info(self, rid):
@@ -67,16 +62,17 @@ class DB_Logger_Reader:
         rs = []
         for i in ilist:
             self.read_curs.execute("SELECT readout_id,time,value FROM readings WHERE readout_id = ? ORDER BY time DESC LIMIT 1", (i,))
-            rs.append(self.read_curs.fetchone())
+            res = self.read_curs.fetchone()
+            if res is not None: rs.append(tuple(res))
         return rs
 
     def get_messages(self, t0, t1, nmax=100, srcid=None):
         """Get messages in time range, (time, srcid, message)"""
         if not (nmax < 10000): nmax = 10000
         if srcid is None:
-            self.read_curs.execute("SELECT time,readgroup_id,msg FROM textlog WHERE time >= ? AND time <= ? ORDER BY time DESC LIMIT ?", (t0, t1, nmax))
+            self.read_curs.execute("SELECT time,readout_id,msg FROM textlog WHERE time >= ? AND time <= ? ORDER BY time DESC LIMIT ?", (t0, t1, nmax))
         else:
-            self.read_curs.execute("SELECT time,readgroup_id,msg FROM textlog WHERE time >= ? AND time <= ? AND readgroup_id=? ORDER BY time DESC LIMIT ?", (t0, t1, srcid, nmax))
+            self.read_curs.execute("SELECT time,readout_id,msg FROM textlog WHERE time >= ? AND time <= ? AND readout_id=? ORDER BY time DESC LIMIT ?", (t0, t1, srcid, nmax))
         return self.read_curs.fetchall()
 
     def launch_dataserver(self):
@@ -91,7 +87,6 @@ class DB_Logger_Reader:
         server = SimpleXMLRPCServer((self.host, self.readport), requestHandler=RequestHandler, allow_none=True)
         #server.register_introspection_functions()
         server.register_function(self.get_newest,     'newest')
-        server.register_function(self.get_readgroups, 'readgroups')
         server.register_function(self.get_readtypes,  'readtypes')
         server.register_function(self.get_datapoints, 'datapoints')
         server.register_function(self.get_datapoints_compressed, 'datapoints_compressed')
@@ -130,30 +125,20 @@ class DB_Logger_Writer:
         icmd, vals = make_insert_command(tname, valdict, cols)
         self.write_curs.execute(icmd, vals)
 
-    def create_readgroup(self, nm, descrip, overwrite = False):
-        """Assure instrument entry exists, creating/updating as needed"""
-        self.write_curs.execute("INSERT OR " + ("REPLACE" if overwrite else "IGNORE") + " INTO readout_groups(name,descrip) VALUES (?,?)", (nm,descrip))
-        inst = get_readrgoup(self.write_curs, nm)
-        return inst.rid
-
-    def create_readout(self, name, group_name, descrip, units, overwrite = False):
+    def create_readout(self, name, descrip, units, overwrite = False):
         """Assure a readout exists, creating as necessary; return readout ID"""
-        inst = group_name if type(group_name) == type(0) else get_readrgoup(self.write_curs, group_name)
-        if inst is None: return None
 
         if overwrite:
-            self.write_curs.execute("SELECT rowid FROM readout_types WHERE name = ? AND readgroup_id = ?", (name,inst.rid))
+            self.write_curs.execute("SELECT readout_id FROM readout_types WHERE name = ?", (name,))
             r = self.write_curs.fetchall()
             if len(r) == 1:
                 self.write_curs.execute("UPDATE readout_types SET descrip=?,units=? WHERE readout_id = ?", (descrip, units, r[0][0]))
             else:
-                self.write_curs.execute("INSERT INTO readout_types(name,descrip,units,readgroup_id) VALUES (?,?,?,?)",
-                                        (name,descrip,units,inst.rid))
+                self.write_curs.execute("INSERT INTO readout_types(name,descrip,units) VALUES (?,?,?)", (name,descrip,units))
         else:
-            self.write_curs.execute("INSERT OR IGNORE INTO readout_types(name,descrip,units,readgroup_id) VALUES (?,?,?,?)",
-                                    (name,descrip,units,inst.rid))
+            self.write_curs.execute("INSERT OR IGNORE INTO readout_types(name,descrip,units) VALUES (?,?,?)", (name,descrip,units))
 
-        self.write_curs.execute("SELECT rowid FROM readout_types WHERE name = ? AND readgroup_id = ?", (name,inst.rid))
+        self.write_curs.execute("SELECT readout_id FROM readout_types WHERE name = ?", (name,))
         r = self.write_curs.fetchall()
         rid = r[0][0] if len(r) == 1 else None
         if rid is not None: self.readouts[rid] = get_readout_info(self.write_curs, rid)
@@ -192,7 +177,7 @@ class DB_Logger_Writer:
     def log_message(self, srcid, msg, t = None):
         """Log a textual message, using current time for timestamp if not specified"""
         t = time.time() if t is None else t
-        self.insert("textlog", {"readgroup_id":srcid, "time":t, "msg":msg})
+        self.insert("textlog", {"readout_id":srcid, "time":t, "msg":msg})
 
     def set_ChangeFilter(self, iid, dv, dt, extrema = True):
         """Set "change" data reduction filter on readout"""
@@ -214,7 +199,7 @@ class DB_Logger_Writer:
         # server thread interface to DB
         self.writeconn = sqlite3.connect(self.dbname, timeout = 30)
         self.write_curs = self.writeconn.cursor()
-        self.log_message(self.create_readgroup("LogDB_XMLRPC_server.py", "Autologbook DB web interface server"),
+        self.log_message(self.create_readout("LogDB_XMLRPC_server.py", "Autologbook DB web interface server", None),
                          "Starting Logger write server on " + self.host + ":%i"%self.writeport)
 
         # xmlrpc web interface for data updates
@@ -222,7 +207,6 @@ class DB_Logger_Writer:
             rpc_paths = ('/RPC2',)
 
         server = SimpleXMLRPCServer(None, bind_and_activate=False, requestHandler=RequestHandler, allow_none=True)
-        server.register_function(self.create_readgroup, 'create_readgroup')
         server.register_function(self.create_readout, 'create_readout')
         server.register_function(self.set_ChangeFilter, 'set_ChangeFilter')
         server.register_function(self.set_DecimationFilter, 'set_DecimationFilter')

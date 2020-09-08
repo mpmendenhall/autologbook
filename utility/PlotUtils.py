@@ -75,7 +75,7 @@ class PlotMaker:
 
     def pass_gnuplot_data(self,k):
         """Pass data to gnuplot for keys in k"""
-        k = [p for p in k if p in self.datasets]
+        k = [p for p in k if p in self.datasets and self.datasets[p].size]
         if not len(k):
             self.gwrite('plot 0 title "no data"\n')
             time.sleep(0.01)
@@ -91,10 +91,10 @@ class PlotMaker:
         time.sleep(0.01)
 
         for p in k:
+            ys = self.datasets[p][:,1]
             xtx = self.x_txs.get(p,(lambda x: x))
             ytx = self.y_txs.get(p,(lambda y: y))
 
-            ys = self.datasets[p][:,1]
             if self.smooth and self.smooth > 1:
                 b, a = signal.butter(1, 1./self.smooth)
                 ys = signal.filtfilt(b, a, ys)
@@ -142,7 +142,6 @@ class PlotMaker:
 
     def make_txt(self, ds):
         """Text table dump"""
-        print(ds)
         s = ""
         for p in ds:
             s += "# '%s'\t'%s'\n"%(self.xAx.label if self.xAx.label else 'x', self.channels[p]["rename"])
