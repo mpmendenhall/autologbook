@@ -34,17 +34,15 @@ if __name__=="__main__":
             makeLink("/cgi-bin/plottrace.py?"+urlargs+"&img=txt", "[txt]")])
     F = addTag(b, 'form', {"action":"/cgi-bin/plotbuilder.py", "method":"POST", "style":"display:inline-block;vertical-align:top"})
 
-    sp = addTag(F, 'select', {"name":"rid", "size":"20", "multiple":''})
-    try:
-        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
-        rtypes = {r[0]: r[1:] for r in s.readtypes()}
-        rlist = [((rtypes[r][0], r), (r, rtypes[r])) for r in rtypes]
-        rlist.sort()
-        for r in rlist:
-            attrs = {"value":str(r[1][0])}
-            if r[1][0] in splots: attrs["selected"]=""
-            addTag(sp, 'option', attrs, r[0][1]+": "+r[1][1][0])
-    except: pass
+    sp = addTag(F, 'select', {"name":"rid", "size":"30", "multiple":''})
+
+    s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
+    rlist = [(r[1], r[0]) for r in s.readtypes()] # (name, id)
+    rlist.sort()
+    for r in rlist:
+        attrs = {"value": str(r[1])}
+        if r[1] in splots: attrs["selected"]=""
+        addTag(sp, 'option', attrs, r[0])
 
     FS1 = addTag(F, 'fieldset', {"style":"display:inline-block;vertical-align:top;text-align:right"})
 

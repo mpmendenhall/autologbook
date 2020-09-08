@@ -17,14 +17,16 @@ class WebChecklist:
         """Load newest readings for all items"""
         s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host, log_xmlrpc_port), allow_none=True)
         self.rtypes = {r[0]: r[1:] for r in s.readtypes(self.grp)}
+        self.rnames = {v[0]: k for k,v in self.rtypes.items()}
         self.readings = {r[0]: r[1:] for r in s.newest([t for t,v in self.rtypes.items() if '/' in v[0]])}
 
     def makeChecklistTable(self):
         """Generate display table of readings"""
         t0 = time.time()
-        trows = [makeTable([["Readout","Value","Unit","Last updated"]], T="thead"),]
+        trows = [makeTable([["Group", "Readout", "Value", "Unit", "Last updated"]], T="thead"),]
 
-        rlist = [(v, r) for r,v in self.rtypes.items() if '/' in v[0]] # ((name,descrip,units), id)
+        # ((name,group,descrip,units), id)
+        rlist = [((os.path.basename(v[0]), os.path.dirname(v[0]), v[1], v[2]), r) for r,v in self.rtypes.items() if '/' in v[0]]
         rlist.sort() # sort by name
 
         for rinfo,rid in rlist:
@@ -32,16 +34,15 @@ class WebChecklist:
             try: tv[1] = "%.4g"%tv[1]
             except: pass
 
-            varname = rinfo[0]
-            #if self.grp is None:
-            #    gid = r[1][-1]
-            #    varname = [makeLink("/cgi-bin/currentstatus.py?groupid=%i"%gid, self.readgroups[gid][0]+":"),varname]
+            rdat = [rinfo[1], rinfo[0], tv[1], rinfo[2], "---", makeLink("/cgi-bin/plottrace.py?rid=%i"%rid, "plot")]
 
-            rdat = [varname, tv[1], rinfo[2], "---", makeLink("/cgi-bin/plottrace.py?rid=%i"%rid, "plot")]
+            gid = self.rnames.get(rinfo[1], None)
+            if gid is not None: rdat[0] = makeLink("/cgi-bin/currentstatus.py?groupid=%i"%gid, rinfo[1])
+
             cls = "good"
             if tv[0] is not None:
                 dt = t0-tv[0]
-                rdat[3] = timeWriter(dt)+" ago"
+                rdat[4] = timeWriter(dt)+" ago"
                 if dt > 120: cls = "unknown"
             else: cls = "unknown"
             trows.append((rdat,{"class":cls}))

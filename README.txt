@@ -9,6 +9,12 @@ See doc/AutologbookManual.pdf for overview documentation.
 --------------------------------------
 --------------- TO DO ----------------
 
+unified name lookup cache interface
+
+Reference IDs by name in cgi query
+
+Parse, link nested path ID names
+
 auto-detect I2C attached sensors
 
 calc modules available in plot builder, status display
