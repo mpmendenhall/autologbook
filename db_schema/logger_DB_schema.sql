@@ -21,10 +21,10 @@ CREATE INDEX idx_readings ON readings(readout_id, time);
 
 -- text log messages
 CREATE TABLE textlog (
-    time REAL,              -- message timestamp
     readout_id INTEGER,     -- source of message from readout_types
+    time REAL,              -- message timestamp
     msg TEXT,               -- message text
     FOREIGN KEY(readout_id) REFERENCES readout_types(readout_id) ON DELETE SET NULL
 );
-CREATE INDEX idx_textlog ON textlog(time, readout_id);
-CREATE INDEX idx_textlog_readid ON textlog(readout_id);
+CREATE INDEX idx_textlog_time ON textlog(time);
+CREATE INDEX idx_textlog_readid ON textlog(readout_id, time);

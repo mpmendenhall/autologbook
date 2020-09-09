@@ -23,7 +23,7 @@ class WebChecklist:
     def makeChecklistTable(self):
         """Generate display table of readings"""
         t0 = time.time()
-        trows = [makeTable([["Group", "Readout", "Value", "Unit", "Last updated"]], T="thead"),]
+        trows = [makeTable([["Group", "Readout", "Value", "Unit", "Description", "Last updated"]], T="thead"),]
 
         # ((name,group,descrip,units), id)
         rlist = [((os.path.basename(v[0]), os.path.dirname(v[0]), v[1], v[2]), r) for r,v in self.rtypes.items() if '/' in v[0]]
@@ -34,7 +34,7 @@ class WebChecklist:
             try: tv[1] = "%.4g"%tv[1]
             except: pass
 
-            rdat = [rinfo[1], rinfo[0], tv[1], rinfo[2], "---", makeLink("/cgi-bin/plottrace.py?rid=%i"%rid, "plot")]
+            rdat = [rinfo[1], makeLink("/cgi-bin/plottrace.py?rid=%i"%rid, rinfo[0]), tv[1], rinfo[3], rinfo[2], "---"]
 
             gid = self.rnames.get(rinfo[1], None)
             if gid is not None: rdat[0] = makeLink("/cgi-bin/currentstatus.py?groupid=%i"%gid, rinfo[1])
@@ -42,7 +42,7 @@ class WebChecklist:
             cls = "good"
             if tv[0] is not None:
                 dt = t0-tv[0]
-                rdat[4] = timeWriter(dt)+" ago"
+                rdat[5] = timeWriter(dt)+" ago"
                 if dt > 120: cls = "unknown"
             else: cls = "unknown"
             trows.append((rdat,{"class":cls}))

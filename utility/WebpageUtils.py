@@ -122,7 +122,7 @@ def docHeaderString():
     #return 'Content-Type: application/xhtml+xml\n\n<!DOCTYPE html>\n'
     return 'Content-Type: application/xhtml+xml\n\n' # no DOCTYPE with this header
 
-def makePageStructure(title="", refresh=None, css="../sitestyle.css"):
+def makePageStructure(title="", refresh=None, css="/sitestyle.css"):
     """Generic page skeleton"""
     P = ET.Element('html', {"lang":"en-US", "xml:lang":"en-US", "xmlns":"http://www.w3.org/1999/xhtml"})
 
