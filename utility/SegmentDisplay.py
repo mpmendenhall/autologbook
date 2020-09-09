@@ -55,7 +55,17 @@ xletters = {
     'w': 0b1111110,
     'x': 0b1100100,
     'y': 0b1110010,
-    'Z': 0b0011011
+    'Z': 0b0011011,
+    '0': 0b0111111,
+    '1': 0b0000110,
+    '2': 0b1011011,
+    '3': 0b1001111,
+    '4': 0b1100110,
+    '5': 0b1101101,
+    '6': 0b1111101,
+    '7': 0b0000111,
+    '8': 0b1111111,
+    '9': 0b1100111
 }
 
 xambig = {
@@ -77,31 +87,65 @@ def xlet(c, allow_ambiguous = True):
     if b is None: b = xletters.get(c.upper(), 0b1100011)
     return b
 
-# Create the I2C interface.
-i2c = busio.I2C(board.SCL, board.SDA, frequency=100000)
+class SegDisplay:
+    def __init__(self):
+        i2c = busio.I2C(board.SCL, board.SDA, frequency=100000)
+        self.display = segments.BigSeg7x4(i2c, auto_write = False)
 
-# Create the LED segment class.
-# This creates a 7 segment 4 character display:
-display = segments.BigSeg7x4(i2c, auto_write = False)
+    def brightness(self, b):
+        self.display.brightness = b
 
-t = "The quick red fox jumped over the lazy brown dog.  "
-t += "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.  "
-t += t.upper()
-t += "    "
+    def show(self, t, i0=0):
+        self.display.fill(0)
+        n = len(t)
+        for i in range(min(4, n)):
+            self.display.set_digit_raw(i, xlet(t[(i0 + i)%n]))
 
-i = 0
-while True:
-    display.fill(0)
-    display.brightness = 0.3*0.5*(1 + sin(0.3*i))
 
-    #display.ampm =
-    display.top_left_dot = i%2
-    display.bottom_left_dot = i%3
-    #display.colon = i%3
+    def test(self, t = None):
+        if t is None:
+            t = "The quick red fox jumped over the lazy brown dog.  "
+            t += "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.  "
+            t += t.upper()
 
-    i0 = i%(len(t)-4)
-    for n,c in enumerate(t[i0 : i0+4]): display.set_digit_raw(n, xlet(c))
+        i = 0
+        while True:
+            self.brightness(0.3*0.5*(1 + sin(0.3*i)))
 
-    display.show()
-    time.sleep(0.2)
-    i += 1
+            self.show(t, i)
+
+            self.display.top_left_dot = i%2
+            self.display.bottom_left_dot = i%3
+            #self.display.colon = i%3
+            #self.display.ampm =
+
+            self.display.show()
+            time.sleep(0.2)
+            i += 1
+
+
+if __name__=="__main__":
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("--bright",   type=float, help="display brightness, 0--1")
+    parser.add_option("--test",     action="store_true", help="run display test")
+    parser.add_option("--show",     help="display specified text")
+    parser.add_option("--T",        action="store_true", help="display room temperature")
+
+    options, args = parser.parse_args()
+
+    SD = SegDisplay()
+    if options.bright is not None: SD.brightness(options.bright)
+    if options.show is not None: SD.show(options.show)
+    if options.test: SD.test()
+
+    if options.T:
+        from AutologbookConfig import log_DB_host,log_xmlrpc_port
+        import xmlrpc.client
+        s = xmlrpc.client.ServerProxy('http://%s:%i'%(log_DB_host,log_xmlrpc_port), allow_none=True)
+        T = 32 + 9*s.newest([1])[0][2]/5.
+        SD.show("%4i"%int(100*T))
+        SD.display.colon = True
+
+    SD.display.show()
+
