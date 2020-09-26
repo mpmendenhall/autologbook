@@ -12,9 +12,9 @@ logdb_file = os.environ["HOME"]+"/autologbook_db.sql"
 # chat log DB file; set None to disable
 chatlog_db = os.environ["HOME"]+"/chatlog_db.sql"
 
-# node this script is being run from
+# node this script is being run from, e.g. "pitorius4"
 thishost = platform.node()
-# full domain name
+# full domain name, e.g. "pitorius4.lan"
 thisdomain = socket.getfqdn()
 # host for logging, chat DB
 log_DB_host = os.environ.get("AUTOLOGBOOK_DB_HOST", thisdomain)
@@ -43,7 +43,7 @@ if http_host == "localhost": https_certfile = https_keyfile = http_login = None
 def network_config_summary():
     """Print summary of configuration parameters"""
     print()
-    print("This computer is", thishost, thisdomain, "and database is on", log_DB_host)
+    print("This computer is host", thishost, "domain", thisdomain, "and database is on", log_DB_host)
     print("XMLRPC data on port", log_xmlrpc_port)
     if log_xmlrpc_writeport: print("\twith write access on port", log_xmlrpc_writeport)
     print("Web view at https://%s:%i"%(http_host, http_webview_port), "login", http_login)

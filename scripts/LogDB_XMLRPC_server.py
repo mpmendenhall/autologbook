@@ -13,7 +13,6 @@ import pickle
 import zlib
 import ssl
 import socket
-import platform
 import traceback
 
 ######################
@@ -84,7 +83,7 @@ class DB_Logger_Reader:
         # xmlrpc web interface for data updates
         class RequestHandler(SimpleXMLRPCRequestHandler):
             rpc_paths = ('/RPC2',)
-        server = SimpleXMLRPCServer((self.host, self.readport), requestHandler=RequestHandler, allow_none=True)
+        server = SimpleXMLRPCServer(('', self.readport), requestHandler=RequestHandler, allow_none=True)
         #server.register_introspection_functions()
         server.register_function(self.get_newest,     'newest')
         server.register_function(self.get_readtypes,  'readtypes')
@@ -223,7 +222,7 @@ class DB_Logger_Writer:
         context.load_cert_chain('https_cert.pem', 'https_key.pem') # my certs for clients
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
-            sock.bind((self.host, self.writeport))
+            sock.bind(('', self.writeport)) # listen on all interfaces
             sock.listen(40) # 20 pending connections before dropping more
 
             with context.wrap_socket(sock, server_side=True) as ssock:
@@ -299,15 +298,16 @@ if __name__=="__main__":
     options, args = parser.parse_args()
 
     threads = []
+    fqdn = socket.getfqdn()
 
     # run read server
     if options.readport:
-        Dr = DB_Logger_Reader(options.db, platform.node(), options.readport)
+        Dr = DB_Logger_Reader(options.db, fqdn, options.readport)
         threads.append(threading.Thread(target = Dr.try_launch_dataserver))
 
     # run write server
     if options.writeport:
-        Dw = DB_Logger_Writer(options.db, platform.node(), options.writeport)
+        Dw = DB_Logger_Writer(options.db, fqdn, options.writeport)
         threads.append(threading.Thread(target = Dw.try_launch_writeserver))
 
     for t in threads: t.start()

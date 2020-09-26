@@ -71,7 +71,7 @@ def launch_httpserver():
         subprocess.call(cmd)
 
     httpserver_log = os.open('HTTPServer_Log.txt', logflags)
-    cmd = ["python3", autologbook+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", http_host, "--port", str(http_webview_port)]
+    cmd = ["python3", autologbook+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", '0.0.0.0', "--port", str(http_webview_port)]
     if http_login: cmd += ["--pwd", http_login]
     if https_certfile: cmd += ["--cert", https_certfile, "--key", https_keyfile]
     print(' '.join(cmd))
