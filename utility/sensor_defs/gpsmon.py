@@ -6,7 +6,7 @@ class GPSMonitor(SensorItem):
     def __init__(self, DBL, dt):
         SensorItem.__init__(self, dt)
 
-        self.g_id = DBL.create_readout("GPS", "Global Positioning System receiver")
+        self.g_id = DBL.create_readout("GPS", "Global Positioning System receiver", None)
         self.lat_id = DBL.create_readout("GPS/lat", "Latitude", "degrees N")
         self.lon_id = DBL.create_readout("GPS/lon", "Longitude", "degrees E")
         self.alt_id = DBL.create_readout("GPS/alt", "Altitude", "m")

@@ -3,7 +3,7 @@
 
 import time
 
-__all__ = ["SensorIO", "AQI", "as726x", "bmp3xx", "computer", "gpsmon", "humidity", "pm25", "shtc3"]
+__all__ = ["SensorIO", "AnalogUV", "AQI", "as726x", "bmp3xx", "computer", "gpsmon", "humidity", "pm25", "shtc3"]
 
 class SensorIO:
     """Shared resources for sensor monitoring"""
