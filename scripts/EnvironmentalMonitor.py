@@ -17,7 +17,7 @@ def get_DBL(options):
     if not options.port: return Null_LogDB()
     xmlrpc_url = 'https://%s:%i'%(options.host, options.port)
     print("Connecting to XMLRPC server at", xmlrpc_url)
-    context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile = 'https_cert.pem') # validation of server credentials
+    context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile = 'server_https_cert.pem') # validation of server credentials
     context.load_cert_chain('https_cert.pem', 'https_key.pem') # my certs for auth to server
     return xmlrpc.client.ServerProxy(xmlrpc_url, allow_none=True, context=context)
 

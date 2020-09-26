@@ -63,13 +63,6 @@ def launch_xmlserver():
     subprocess.Popen(cmd, stdout=xmlserver_log, stderr=xmlserver_log, pass_fds=[xmlserver_log])
 
 def launch_httpserver():
-    if https_certfile and not os.path.exists(https_certfile):
-        print("Generating self-signed https certificate:")
-        cmd = ['openssl', 'req', '-x509', '-newkey', 'rsa:4096', '-keyout', https_keyfile, '-out', https_certfile,
-               '-days', '365', '-nodes', '-subj', "/C=US/ST=Confusion/L=Mystery/O=The Illuminati/OU=DAQ/CN=%s"%thisdomain]
-        print(' '.join(cmd))
-        subprocess.call(cmd)
-
     httpserver_log = os.open('HTTPServer_Log.txt', logflags)
     cmd = ["python3", autologbook+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", '0.0.0.0', "--port", str(http_webview_port)]
     if http_login: cmd += ["--pwd", http_login]
@@ -92,6 +85,13 @@ if __name__=="__main__":
     parser.add_option("--rehttp",   action="store_true", help="(re)launch http server")
     if thisdomain == log_DB_host: parser.add_option("--rexmlrpc", action="store_true", help="(re)launch xmlrpc server")
     options, args = parser.parse_args()
+
+    if https_certfile and not os.path.exists(https_certfile):
+        print("Generating self-signed https certificate:")
+        cmd = ['openssl', 'req', '-x509', '-newkey', 'rsa:4096', '-keyout', https_keyfile, '-out', https_certfile,
+               '-days', '365', '-nodes', '-subj', "/C=US/ST=Confusion/L=Mystery/O=The Illuminati/OU=DAQ/CN=%s"%thisdomain]
+        print(' '.join(cmd))
+        subprocess.call(cmd)
 
     if thisdomain == log_DB_host and not os.path.exists(logdb_file):
         print("\nLogging database '%s' not found; initializing it.\n"%logdb_file)
