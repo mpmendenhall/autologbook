@@ -7,4 +7,6 @@ class Null_LogDB:
     def create_readout(self, n, *args): return n
     def log_message(self, sid, msg): print(sid, ":", msg)
     def log_readout(self, rid, v, t): print(rid, ":", t, v)
+    def log_readouts(self, ro):
+        for r in ro: self.log_readout(*r)
     def commit(self): pass

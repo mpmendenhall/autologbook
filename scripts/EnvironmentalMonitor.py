@@ -54,6 +54,9 @@ def init_sensors(options):
     if options.UV:
         from sensor_defs import AnalogUV
         smons.append(AnalogUV.AnalogUVMonitor(DBL, options.UV))
+    if options.veml6070:
+        from sensor_defs import veml6070
+        smons.append(veml6070.VEML6070Monitor(DBL, options.veml6070))
 
     if options.gps:
         from sensor_defs import gpsmon
@@ -102,6 +105,7 @@ if __name__ == "__main__":
     parser.add_option("--shtc3",    type=float, help="log SHTC3 temperature/humidity readings")
     parser.add_option("--as726x",   type=float, help="log AS726x color spectrum readings")
     parser.add_option("--as7341",   type=float, help="log AS7341 multispectral sensor readings")
+    parser.add_option("--veml6070", type=float, help="log VEML6070 UV sensor readings")
     parser.add_option("--UV",       type=float, help="log UV photodiode sensor readings")
     parser.add_option("--pm",       type=float, help="log particulate matter readings")
     parser.add_option("--dt",       type=float, default = 30, help="data upload interval (s)")
