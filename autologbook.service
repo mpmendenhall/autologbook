@@ -1,0 +1,21 @@
+# copy into /lib/systemd/system/autologbook.service
+# sudo systemctl daemon-reload
+# sudo systemctl enable autologbook.service
+
+[Unit]
+Description=Autologbook data logging services
+After=multi-user.target
+After=network-online.target
+
+[Service]
+User=michael
+WorkingDirectory=/home/michael/Applications/autologbook/scripts/
+ExecStart=/usr/bin/python3 SystemLauncher.py --start
+# will recognize HTTPServer child as process to stop:
+Type=forking
+
+Environment=PYTHONPATH=/home/michael/Applications/autologbook/utility
+#Environment=AUTOLOGBOOK_WEBAUTH=user:password
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+# copy into /lib/systemd/system/runmon.service
+# sudo systemctl daemon-reload
+# sudo systemctl enable runmon.service
+
+[Unit]
+Description=Sensors readout to autologbook
+After=multi-user.target
+After=network-online.target
+
+[Service]
+User=michael
+WorkingDirectory=/home/michael/Applications/autologbook/scripts
+ExecStart=/usr/bin/python3 ./EnvironmentalMonitor.py --cpu 60 --chrony 1800
+
+Environment=PYTHONPATH=/home/michael/Applications/autologbook/utility
+Environment=AUTOLOGBOOK_DB_HOST=pitorius4.lan
+
+[Install]
+WantedBy=multi-user.target

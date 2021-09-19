@@ -6,6 +6,7 @@ from . import SensorItem
 import traceback
 
 class VEML6070Monitor(SensorItem):
+    """UV(A) sensor with 355 nm peak, 40 nm FWHM"""
 
     def __init__(self, DBL, dt):
         SensorItem.__init__(self, dt)
@@ -19,10 +20,13 @@ class VEML6070Monitor(SensorItem):
         try:
             if self.sens is None:
                 i2c = busio.I2C(board.SCL, board.SDA)
-                self.sens = adafruit_veml6070.VEML6070(i2c)
+                self.sens = adafruit_veml6070.VEML6070(i2c, 'VEML6070_4_T')
 
             self.t = time.time()
-            self.UV = self.sens.uv_raw
+            #self.sens.wake()
+            self.UV = self.sens.uv_raw * 0.25
+            #self.sens.sleep()
+            print(self.UV)
 
         except:
             traceback.print_exc()

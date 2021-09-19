@@ -6,9 +6,9 @@ cgitb.enable()
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-def makeLink(href, content, xargs = {}):
+def makeLink(href, content, xargs = {}, hreftag = "href"):
     """Make <a href=...>contents</a> link tag"""
-    xargs["href"] = href
+    xargs[hreftag] = href
     a = ET.Element('a', xargs)
     if ET.iselement(content): a.append(content)
     else: a.text = str(content)
@@ -72,6 +72,44 @@ def makeTable(rows, xargs={}, T = None):
 
     return T
 
+
+class selectMenu:
+    """Selection drop-down handler"""
+
+    def __init__(self, idname, options, name = None, multiple = False, size = None):
+        """Initialize with ID and list or dict {value:label} of options"""
+        self.name = name
+        self.idname = idname
+        self.xargs = {}
+        self.selected = []
+        self.multiple = multiple
+        self.size = size
+        if isinstance(options, dict):
+            self.options = options
+        else:
+            self.options = dict([[x,x] for x in options])
+
+    def label(self, contents, xargs = {}):
+        """Get label element for this"""
+        xargs["for"] = self.idname
+        l = ET.Element('label', xargs)
+        mergecontents(l, contents)
+        return l
+
+    def toElem(self):
+        """Get HTML representation"""
+        self.xargs["name"] = self.name if self.name else self.idname
+        self.xargs["id"] = self.idname
+        if self.multiple: self.xargs["multiple"] = None
+        if self.size: self.xargs["size"] = str(self.size)
+        M = ET.Element('select', self.xargs)
+        for k in self.options:
+            args = {"value": k}
+            if k in self.selected: args["selected"] = None
+            o = ET.Element("option",  args)
+            o.text = self.options[k]
+            M.append(o)
+        return M
 
 
 def prettystring(elem, oneline = False):

@@ -52,19 +52,19 @@ logflags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
 
 def launch_tcpserver():
     tcpserver_log = os.open('TCPServer_Log.txt', logflags)
-    cmd = ["python3", autologbook+"/scripts/LogMessengerSocketServer.py", "--db", logdb_file, "--port", str(log_tcp_port), "--wall"]
+    cmd = ["python3", autologbook_dir+"/scripts/LogMessengerSocketServer.py", "--db", logdb_file, "--port", str(log_tcp_port), "--wall"]
     subprocess.Popen(cmd, stdout=tcpserver_log, stderr=tcpserver_log, pass_fds=[tcpserver_log])
 
 def launch_xmlserver():
     xmlserver_log = os.open('XMLRPCServer_Log.txt', logflags)
-    cmd = ["python3", autologbook+"/scripts/LogDB_XMLRPC_server.py",
+    cmd = ["python3", autologbook_dir+"/scripts/LogDB_XMLRPC_server.py",
                       "--readport", str(log_xmlrpc_port), "--writeport", str(log_xmlrpc_writeport), "--db", logdb_file]
     print(' '.join(cmd))
     subprocess.Popen(cmd, stdout=xmlserver_log, stderr=xmlserver_log, pass_fds=[xmlserver_log])
 
 def launch_httpserver():
     httpserver_log = os.open('HTTPServer_Log.txt', logflags)
-    cmd = ["python3", autologbook+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", '0.0.0.0', "--port", str(http_webview_port)]
+    cmd = ["python3", autologbook_dir+"/scripts/HTTPServer.py", "--dir", http_datdir, "--host", '0.0.0.0', "--port", str(http_webview_port)]
     if http_login: cmd += ["--pwd", http_login]
     if https_certfile: cmd += ["--cert", https_certfile, "--key", https_keyfile]
     print(' '.join(cmd))
@@ -95,7 +95,7 @@ if __name__=="__main__":
 
     if thisdomain == log_DB_host and not os.path.exists(logdb_file):
         print("\nLogging database '%s' not found; initializing it.\n"%logdb_file)
-        os.system("sqlite3 %s < "%shlex.quote(logdb_file) + autologbook + "/db_schema/logger_DB_schema.sql")
+        os.system("sqlite3 %s < "%shlex.quote(logdb_file) + autologbook_dir + "/db_schema/logger_DB_schema.sql")
 
     if options.restart: options.stop = True; options.start = True
     if options.stop: kill_network_servers()

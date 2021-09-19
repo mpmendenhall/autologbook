@@ -73,7 +73,7 @@ if __name__=="__main__":
     #"REMOTE_ADDR" not in os.environ and
     # initialization
     if not os.path.exists(chatlog_db):
-        cmd = "sqlite3 %s < "%shlex.quote(chatlog_db) + autologbook + "/db_schema/chat_DB_schema.sql"
+        cmd = "sqlite3 %s < "%shlex.quote(chatlog_db) + autologbook_dir + "/db_schema/chat_DB_schema.sql"
         os.system(cmd)
 
     CMD = ChatMessagesDisplay(chatlog_db)
