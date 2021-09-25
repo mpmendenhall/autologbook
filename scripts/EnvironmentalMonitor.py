@@ -39,6 +39,9 @@ def init_sensors(options):
     if options.bme680:
         from sensor_defs import bme680
         smons.append(bme680.BME680Monitor(DBL, options.bme680))
+    if options.scd30:
+        from sensor_defs import scd30
+        smons.append(scd30.SCD30Monitor(DBL, options.scd30))
     if options.shtc3:
         from sensor_defs import shtc3
         smons.append(shtc3.SHTC3Monitor(DBL, options.shtc3))
@@ -102,6 +105,7 @@ if __name__ == "__main__":
     parser.add_option("--bmp3xx",   type=float, help="log BMP3xx temperature/pressure readings")
     parser.add_option("--dps310",   type=float, help="log DPS310 temperature/pressure readings")
     parser.add_option("--bme680",   type=float, help="log BME680 environmental readings")
+    parser.add_option("--scd30",    type=float, help="log SCD30 CO_2 readings")
     parser.add_option("--shtc3",    type=float, help="log SHTC3 temperature/humidity readings")
     parser.add_option("--as726x",   type=float, help="log AS726x color spectrum readings")
     parser.add_option("--as7341",   type=float, help="log AS7341 multispectral sensor readings")
