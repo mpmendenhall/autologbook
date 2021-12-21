@@ -4,15 +4,16 @@ import sqlite3
 import time
 import os
 import shlex
+import sys
 
 warn_wall = True # whether to send "wall" messages on warning/errors
 
 def logdb_cxn(db):
     """Connection to logger DB"""
-    conn = sqlite3.connect(db, 60)
-    curs = conn.cursor()
-    curs.execute("PRAGMA foreign_keys = ON")
-    return conn,curs
+    _conn = sqlite3.connect(db, 60)
+    _curs = _conn.cursor()
+    _curs.execute("PRAGMA foreign_keys = ON")
+    return _conn,_curs
 
 class readout_info:
     """Information on readout entry in DB, with most recent values"""
@@ -31,6 +32,19 @@ def make_insert_command(tname, valdict, cols = None):
     icmd = "INSERT INTO %s("%tname + ", ".join(cols) + ") VALUES (" + ",".join(["?"]*len(cols)) +")"
     vals = tuple([valdict.get(c,None) for c in cols])
     return (icmd, vals)
+
+def create_readout(curs, name, descrip, units, overwrite = False):
+    """Assure a readout exists, creating as necessary; return readout ID"""
+
+    curs.execute("SELECT readout_id FROM readout_types WHERE name = ?", (name,))
+    r = curs.fetchall()
+    if len(r) == 1:
+        if overwrite: curs.execute("UPDATE readout_types SET descrip=?,units=? WHERE readout_id = ?", (descrip, units, r[0][0]))
+        return r[0][0]
+    else:
+        curs.execute("INSERT INTO readout_types(name, descrip, units) VALUES (?,?,?)", (name, descrip, units))
+        curs.execute("SELECT last_insert_rowid()")
+        return curs.fetchall()[0][0]
 
 def get_readout_id(curs, name):
     """Get identifier for readout by name and optional instrument name"""

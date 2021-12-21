@@ -5,54 +5,18 @@
 
 #include "LogMessenger.hh"
 #include "LocklessCircleBuffer.hh"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#include "SockConnection.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
 
-#include <string.h>
-
 /// LogMessenger passing data to socket connection
-class LogMessengerSocketed: public LogMessenger {
+class LogMessengerSocketed: public LogMessenger, public SockConnection {
 public:
     /// Constructor
     LogMessengerSocketed() { }
-    /// Destructor
-    ~LogMessengerSocketed() { close_socket(); }
-
-    /// (try to) open socket connection
-    bool open_socket(const string& host, int port) {
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0) {
-            fprintf(stderr, "ERROR opening socket\n");
-            return false;
-        }
-
-        server = gethostbyname(host.c_str());
-        if(server == nullptr) {
-            fprintf(stderr, "ERROR: Host '%s' not found!\n",host.c_str());
-            close_socket();
-            return false;
-        }
-
-        bzero((char*) &serv_addr, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        bcopy((char*)server->h_addr, (char*)&serv_addr.sin_addr.s_addr, server->h_length);
-        serv_addr.sin_port = htons(port);
-        if(connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-            fprintf(stderr, "ERROR connecting to socket %s:%i\n", host.c_str(), port);
-            close_socket();
-            return false;
-        }
-
-        return true;
-    }
 
     /// request types in socket communication
     enum request_type {
@@ -63,16 +27,13 @@ public:
         SET_STATUS = 5  ///< notify of current status
     };
 
-    /// close socket
-    void close_socket() { close(sockfd); sockfd = 0; }
-
     /// set origin identifier
     void set_origin(const string& name, const string& descrip) override {
         if(!sockfd) return;
         send(REQ_ORIGIN);
         send(name);
         send(descrip);
-        ioret = read(sockfd, &origin_id, sizeof(origin_id));
+        sockread((char*)&origin_id, sizeof(origin_id));
     }
 
     /// get datapoint identifier
@@ -84,7 +45,7 @@ public:
         send(descrip);
         send(unit);
         int64_t dpid;
-        ioret = read(sockfd, &dpid, sizeof(dpid));
+        sockread((char*)&dpid, sizeof(dpid));
         return dpid;
     }
 
@@ -120,23 +81,15 @@ public:
     bool message_stdout = false;  ///< whether to print added messages to stdout
 
 protected:
-    /// send request type
-    void send(const request_type& r) { ioret = write(sockfd, &r, sizeof(r)); }
-    /// send double
-    void send(const double& d) { ioret = write(sockfd, &d, sizeof(d)); }
-    /// send int64_t
-    void send(const int64_t& i) { ioret = write(sockfd, &i, sizeof(i)); }
-    /// send (length, string) over connection
+    /// send scalar
+    template<class T>
+    void send(const T& r) { sockwrite((const char*)&r, sizeof(r), true); }
+    /// send (length, string)
     void send(const string& s) {
         auto l = s.size();
-        ioret = write(sockfd, &l, sizeof(l));
-        ioret = write(sockfd, s.c_str(), l);
+        send(l);
+        sockwrite(s.c_str(), l, true);
     }
-
-    int sockfd = 0;                         ///< file descriptor number for socket
-    int ioret = 0;                          ///< return code from IO operation
-    struct sockaddr_in serv_addr;
-    struct hostent* server = nullptr;       ///< server
 };
 
 /// Bufferable request for IO task
@@ -157,7 +110,9 @@ public:
 class MessengerBuffer: public LocklessCircleBuffer<LogMessengerIOTask>, public LogMessengerSocketed {
 public:
     /// Constructor
-    MessengerBuffer(const string& host = "", int port = 0): LocklessCircleBuffer(1000) { if(host.size() && port) open_socket(host,port); }
+    MessengerBuffer(const string& _host = "", int _port = 0): LocklessCircleBuffer(1000) {
+        if(_host.size() && _port) connect_to_socket(_host, _port);
+    }
 
     /// forward datapoint to database
     void process_item() override {

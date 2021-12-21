@@ -23,7 +23,11 @@ log_DB_host = os.environ.get("AUTOLOGBOOK_DB_HOST", thisdomain)
 # port number for log DB XMLRPC (read)server
 log_xmlrpc_port = 50002
 # port number for log DB write access XMLRPC server; 0 to disable
-log_xmlrpc_writeport = 50003
+log_xmlrpc_writeport = 0 #50003
+# port number for TCP logbook write access; 0 to disable
+log_tcp_port = 50004
+# ... avoid deadlock caused by both at once!
+assert not (log_xmlrpc_writeport and log_tcp_port)
 
 # host for web view HTTP server
 http_host = thisdomain
@@ -50,5 +54,6 @@ def network_config_summary():
     print("This computer is host", thishost, "domain", thisdomain, "and database is on", log_DB_host)
     print("XMLRPC data on port", log_xmlrpc_port)
     if log_xmlrpc_writeport: print("\twith write access on port", log_xmlrpc_writeport)
+    if log_tcp_port: print("\tTCP access at port", log_tcp_port);
     print("Web view at https://%s:%i"%(http_host, http_webview_port), "login", http_login)
     print()

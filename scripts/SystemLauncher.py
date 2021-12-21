@@ -8,7 +8,7 @@ from optparse import OptionParser
 import shlex
 
 # names of services to launch/monitor
-service_names = ["HTTPServer.py", "LogDB_XMLRPC_server.py"]
+service_names = ["HTTPServer.py", "LogDB_XMLRPC_server.py", "LogMessengerSocketServer.py"]
 
 def remote_cmd(host, cmd, tout = 5):
     """Run command on remote host or localhost"""
@@ -58,7 +58,8 @@ def launch_tcpserver():
 def launch_xmlserver():
     xmlserver_log = os.open('XMLRPCServer_Log.txt', logflags)
     cmd = ["python3", autologbook_dir+"/scripts/LogDB_XMLRPC_server.py",
-                      "--readport", str(log_xmlrpc_port), "--writeport", str(log_xmlrpc_writeport), "--db", logdb_file]
+                      "--readport", str(log_xmlrpc_port), "--db", logdb_file]
+    if log_xmlrpc_writeport: cmd += ["--writeport", str(log_xmlrpc_writeport)]
     print(' '.join(cmd))
     subprocess.Popen(cmd, stdout=xmlserver_log, stderr=xmlserver_log, pass_fds=[xmlserver_log])
 
@@ -73,7 +74,7 @@ def launch_httpserver():
 def launch_network_servers():
     """Launch all necessary network services for Autologbook ecosystem"""
     kill_network_servers() # make sure nothing is already running
-    #launch_tcpserver()
+    if log_tcp_port: launch_tcpserver()
     if thisdomain == log_DB_host: launch_xmlserver()
     launch_httpserver()
 
