@@ -39,6 +39,9 @@ def init_sensors(options):
     if options.bme680:
         from sensor_defs import bme680
         smons.append(bme680.BME680Monitor(DBL, options.bme680))
+    if options.mcp9808:
+        from sensor_defs import mcp9808
+        smons.append(mcp9808.MCP9808Monitor(DBL, options.mcp9808))
     if options.scd30:
         from sensor_defs import scd30
         smons.append(scd30.SCD30Monitor(DBL, options.scd30))
@@ -109,6 +112,7 @@ if __name__ == "__main__":
     parser.add_option("--shtc3",    type=float, help="log SHTC3 temperature/humidity readings")
     parser.add_option("--as726x",   type=float, help="log AS726x color spectrum readings")
     parser.add_option("--as7341",   type=float, help="log AS7341 multispectral sensor readings")
+    parser.add_option("--mcp9808",  type=float, help="log MCP9808 temperature readings")
     parser.add_option("--veml6070", type=float, help="log VEML6070 UV sensor readings")
     parser.add_option("--UV",       type=float, help="log UV photodiode sensor readings")
     parser.add_option("--pm",       type=float, help="log particulate matter readings")
